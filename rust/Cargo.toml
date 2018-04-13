@@ -1,7 +1,0 @@
-[workspace]
-members = ["tor_util"]
-
-[profile.release]
-debug = true
-panic = "abort"
-
