@@ -1706,6 +1706,13 @@ route_len_for_purpose(uint8_t purpose, extend_info_t *exit_ei)
     routelen++;
     break;
 
+  //IOT
+  case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
+	/* hidden service connecting to rendezvous point over split point*/
+	known_purpose = 1;
+	routelen = 2*routelen;
+	break;
+
   default:
     /* Got a purpose not listed above along with a chosen exit.
      * Increase the circuit length by one anyway for safety. */

@@ -544,7 +544,11 @@ typedef enum {
 #define CIRCUIT_PURPOSE_CONTROLLER 19
 /** This circuit is used for path bias probing only */
 #define CIRCUIT_PURPOSE_PATH_BIAS_TESTING 20
-#define CIRCUIT_PURPOSE_MAX_ 20
+
+//IOT
+#define CIRCUIT_PURPOSE_S_CONNECT_REND_IOT 21
+
+#define CIRCUIT_PURPOSE_MAX_ 21
 /** A catch-all for unrecognized purposes. Currently we don't expect
  * to make or see any circuits with this purpose. */
 #define CIRCUIT_PURPOSE_UNKNOWN 255
