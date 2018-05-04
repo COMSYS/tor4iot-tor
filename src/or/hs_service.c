@@ -3188,6 +3188,16 @@ hs_service_circuit_has_opened(origin_circuit_t *circ)
       rend_service_rendezvous_has_opened(circ);
     }
     break;
+//IOT
+  case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
+    if (circ->hs_ident) {
+      service_rendezvous_circ_has_opened(circ);
+    } else {
+      rend_service_rendezvous_has_opened(circ);
+    }
+    //TODO: Send ticket here and split circuit
+    //use relay_send_command_from_edge
+    break;
   default:
     tor_assert(0);
   }
