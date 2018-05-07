@@ -229,7 +229,11 @@ typedef enum {
 /** Type for sockets listening for HTTP CONNECT tunnel connections. */
 #define CONN_TYPE_AP_HTTP_CONNECT_LISTENER 18
 
-#define CONN_TYPE_MAX_ 19
+//IOT
+#define CONN_TYPE_OR_UDP_LISTENER 19
+#define CONN_TYPE_OR_UDP 20
+
+#define CONN_TYPE_MAX_ 21
 /* !!!! If _CONN_TYPE_MAX is ever over 31, we must grow the type field in
  * connection_t. */
 
@@ -3724,6 +3728,10 @@ typedef struct {
   int ExtendAllowPrivateAddresses;
   char *User; /**< Name of user to run Tor as. */
   config_line_t *ORPort_lines; /**< Ports to listen on for OR connections. */
+
+  //IOT
+  config_line_t *ORUDPPort_lines; /**< Ports to listen on for ORUDP connections. */
+
   /** Ports to listen on for extended OR connections. */
   config_line_t *ExtORPort_lines;
   /** Ports to listen on for SOCKS connections. */
@@ -3776,6 +3784,10 @@ typedef struct {
    * @{
    */
   unsigned int ORPort_set : 1;
+
+  //IOT
+  unsigned int ORUDPPort_set : 1;
+
   unsigned int SocksPort_set : 1;
   unsigned int TransPort_set : 1;
   unsigned int NATDPort_set : 1;

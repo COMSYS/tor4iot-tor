@@ -1168,7 +1168,7 @@ connection_listener_new(const struct sockaddr *listensockaddr,
 
   if (listensockaddr->sa_family == AF_INET ||
       listensockaddr->sa_family == AF_INET6) {
-    int is_stream = (type != CONN_TYPE_AP_DNS_LISTENER);
+    int is_stream = (type != CONN_TYPE_AP_DNS_LISTENER && type != CONN_TYPE_OR_UDP_LISTENER);
     if (is_stream)
       start_reading = 1;
 
