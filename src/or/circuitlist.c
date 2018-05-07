@@ -649,6 +649,10 @@ circuit_purpose_to_controller_string(uint8_t purpose)
     case CIRCUIT_PURPOSE_S_REND_JOINED:
       return "HS_SERVICE_REND";
 
+    //IOT
+    case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
+      return "HS_SERVICE_REND_IOT";
+
     case CIRCUIT_PURPOSE_TESTING:
       return "TESTING";
     case CIRCUIT_PURPOSE_C_MEASURE_TIMEOUT:
@@ -719,6 +723,9 @@ circuit_purpose_to_controller_hs_state_string(uint8_t purpose)
       return "HSSR_CONNECTING";
     case CIRCUIT_PURPOSE_S_REND_JOINED:
       return "HSSR_JOINED";
+    //IOT
+    case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
+      return "HSSR_CONNECTING_IOT";
     }
 }
 
@@ -765,6 +772,8 @@ circuit_purpose_to_string(uint8_t purpose)
       return "Hidden service: Connecting to rendezvous point";
     case CIRCUIT_PURPOSE_S_REND_JOINED:
       return "Hidden service: Active rendezvous point";
+    case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
+      return "Hidden service: Connecting to rendezvous point with IoT capability";
 
     case CIRCUIT_PURPOSE_TESTING:
       return "Testing circuit";
