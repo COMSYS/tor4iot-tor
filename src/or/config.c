@@ -157,6 +157,7 @@ static config_abbrev_t option_abbrevs_[] = {
   { "MaxConn", "ConnLimit", 0, 1},
   { "MaxMemInCellQueues", "MaxMemInQueues", 0, 0},
   { "ORBindAddress", "ORListenAddress", 0, 0},
+  { "ORUDPBindAddress", "ORUDPListenAddress", 0, 0},
   { "DirBindAddress", "DirListenAddress", 0, 0},
   { "SocksBindAddress", "SocksListenAddress", 0, 0},
   { "UseHelperNodes", "UseEntryGuards", 0, 0},
