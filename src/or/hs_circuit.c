@@ -38,7 +38,7 @@ circuit_purpose_is_correct_for_rend(unsigned int circ_purpose,
                                     int is_service_side)
 {
   if (is_service_side) {
-    if (circ_purpose != CIRCUIT_PURPOSE_S_CONNECT_REND || circ_purpose != CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
+    if (circ_purpose != CIRCUIT_PURPOSE_S_CONNECT_REND && circ_purpose != CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
       log_warn(LD_BUG,
             "HS e2e circuit setup with wrong purpose (%d)", circ_purpose);
       return 0;
