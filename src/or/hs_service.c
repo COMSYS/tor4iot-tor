@@ -36,6 +36,9 @@
 #include "hs_intropoint.h"
 #include "hs_service.h"
 
+//IOT
+#include "iot_ticket.h"
+
 /* Trunnel */
 #include "ed25519_cert.h"
 #include "hs/cell_common.h"
@@ -3195,8 +3198,9 @@ hs_service_circuit_has_opened(origin_circuit_t *circ)
     } else {
       rend_service_rendezvous_has_opened(circ);
     }
-    //TODO: Send ticket here and split circuit
-    //use relay_send_command_from_edge
+
+    iot_ticket_send(circ);
+
     break;
   default:
     tor_assert(0);

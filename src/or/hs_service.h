@@ -183,6 +183,9 @@ typedef struct hs_service_config_t {
 
   /* Is this service ephemeral? */
   unsigned int is_ephemeral : 1;
+
+  //IOT: This is an IoT HS
+  unsigned int is_iot : 1;
 } hs_service_config_t;
 
 /* Service state. */

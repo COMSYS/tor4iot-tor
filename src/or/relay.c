@@ -78,6 +78,8 @@
 #include "scheduler.h"
 #include "rephist.h"
 
+#include "iot_ticket.h"
+
 static edge_connection_t *relay_lookup_conn(circuit_t *circ, cell_t *cell,
                                             cell_direction_t cell_direction,
                                             crypt_path_t *layer_hint);
@@ -1950,7 +1952,10 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
                               rh.command, rh.length,
                               cell->payload+RELAY_HEADER_SIZE);
       return 0;
-    //IOT TODO: React on SPLIT message here
+    //IOT: React on SPLIT message here
+    case RELAY_COMMAND_SPLIT:
+      iot_process_relay_split(circ, layer_hint, rh.command, rh.length, cell->payload+RELAY_HEADER_SIZE);
+      return 0;
   }
   log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,
          "Received unknown relay command %d. Perhaps the other side is using "

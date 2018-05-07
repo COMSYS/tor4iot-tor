@@ -403,9 +403,14 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
       circ_flags |= CIRCLAUNCH_ONEHOP_TUNNEL;
     }
 
-    //IOT: TODO: This is where we set our purpose
-    circ = circuit_launch_by_extend_info(CIRCUIT_PURPOSE_S_CONNECT_REND, info,
+    //IOT: This is where we set our purpose
+    if (service->config.is_iot) {
+      circ = circuit_launch_by_extend_info(CIRCUIT_PURPOSE_S_CONNECT_REND_IOT, info,
                                          circ_flags);
+    } else {
+      circ = circuit_launch_by_extend_info(CIRCUIT_PURPOSE_S_CONNECT_REND, info,
+    	                                 circ_flags);
+    }
     if (circ != NULL) {
       /* Stop retrying, we have a circuit! */
       break;
