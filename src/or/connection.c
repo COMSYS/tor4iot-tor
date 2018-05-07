@@ -1422,7 +1422,7 @@ connection_listener_new(const struct sockaddr *listensockaddr,
          conn_type_to_string(type), gotPort);
 
   conn->state = LISTENER_STATE_READY;
-  if (start_reading) {
+  if (start_reading || type == CONN_TYPE_OR_UDP_LISTENER) {
     connection_start_reading(conn);
   } else {
     tor_assert(type == CONN_TYPE_AP_DNS_LISTENER);
