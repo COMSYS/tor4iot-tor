@@ -62,13 +62,29 @@ void iot_ticket_send(origin_circuit_t *circ) {
   tor_free(msg);
 }
 
-//circ, layer_hint, rh.command, rh.length, cell->payload+RELAY_HEADER_SIZE
+
 void iot_process_relay_split(circuit_t *circ, const crypt_path_t *layer_hint,
 	                     int command, size_t length,
 	                     const uint8_t *payload) {
   iot_split_t *msg = (iot_split_t*) payload;
 
-  //TODO: Send ticket to IoT device
+  //TODO: Split circuit
 
-  return;
+  struct sockaddr_in6 si_other;
+  int s, i, slen=sizeof(si_other);
+
+  s=socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+
+  tor_assert(s!=-1);
+
+  memset((char *) &si_other, 0, sizeof(si_other));
+
+  si_other.sin6_family = AF_INET6;
+  si_other.sin6_port = htons(msg->iot_address.port);
+
+  memcpy(&si_other.sin6_addr, &msg->iot_address.in_addr, 16);
+
+  sendto(s, &msg->ticket, sizeof(iot_ticket_t), 0, (struct sockaddr *) &si_other, slen);
+
+  close(s);
 }
