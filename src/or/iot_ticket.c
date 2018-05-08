@@ -67,8 +67,20 @@ void iot_process_relay_split(circuit_t *circ, const crypt_path_t *layer_hint,
 	                     int command, size_t length,
 	                     const uint8_t *payload) {
   iot_split_t *msg = (iot_split_t*) payload;
+  iot_join_req_t join_req;
 
-  //TODO: Split circuit
+#define IOT_JOIN_ID 12
+
+  // Split circuit
+  circ->already_split = 1;
+  circ->join_id = IOT_JOIN_ID;
+
+  // Construct join req for IoT device
+  //TODO: insert own IP+Port UDP
+
+  join_req.join_id = IOT_JOIN_ID;
+
+  memcpy(&join_req.ticket, msg->ticket, sizeof(iot_ticket_t));
 
   struct sockaddr_in6 si_other;
   int s, i, slen=sizeof(si_other);
@@ -84,7 +96,12 @@ void iot_process_relay_split(circuit_t *circ, const crypt_path_t *layer_hint,
 
   memcpy(&si_other.sin6_addr, &msg->iot_address.in_addr, 16);
 
-  sendto(s, &msg->ticket, sizeof(iot_ticket_t), 0, (struct sockaddr *) &si_other, slen);
+  sendto(s, &join_req, sizeof(iot_join_req_t), 0, (struct sockaddr *) &si_other, slen);
 
   close(s);
+}
+
+
+void iot_join_circuit() {
+
 }

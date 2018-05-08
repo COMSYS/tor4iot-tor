@@ -3167,6 +3167,13 @@ typedef struct circuit_t {
    * cleared after being sent to control port. */
   smartlist_t *testing_cell_stats;
 
+  //IOT
+  int already_split:1;
+  iot_join_id_t join_id;
+
+  /** Buffer to store cells from client */
+  uint8_t iot_buffer[2048];
+
   /** If set, points to an HS token that this circuit might be carrying.
    *  Used by the HS circuitmap.  */
   hs_token_t *hs_token;

@@ -10,6 +10,8 @@
 
 #include "or.h"
 
+typedef uint16_t iot_join_id_t;
+
 typedef struct iot_crypto_t {
   uint8_t aes_key[16];
   uint8_t aes_iv[16];
@@ -45,6 +47,17 @@ typedef struct iot_split_t {
 
   iot_ticket_t ticket;
 } iot_split_t;
+
+typedef struct iot_join_req_t {
+  struct {
+    uint32_t in_addr[4];
+    uint16_t port;
+  } iot_address;
+
+  iot_join_id_t join_id;
+
+  iot_ticket_t ticket;
+} iot_join_req_t;
 
 void iot_ticket_send(origin_circuit_t *circ);
 
