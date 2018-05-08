@@ -31,6 +31,9 @@ typedef struct iot_ticket_t {
   iot_crypto_t exit_f;
   iot_crypto_t exit_b;
 
+  iot_crypto_t hidden_f;
+  iot_crypto_t hidden_b;
+
   uint8_t mac[16];
 } iot_ticket_t;
 
