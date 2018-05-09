@@ -59,8 +59,7 @@ typedef struct iot_join_req_t {
 
 void iot_ticket_send(origin_circuit_t *circ);
 
-void iot_process_relay_split(circuit_t *circ, const crypt_path_t *layer_hint,
-	                     int command, size_t length,
+void iot_process_relay_split(circuit_t *circ, size_t length,
 	                     const uint8_t *payload);
 
 #endif /* SRC_OR_IOT_TICKET_H_ */

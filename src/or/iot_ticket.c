@@ -32,7 +32,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   msg = tor_malloc(sizeof(iot_split_t));
 
   //Set SP IP:Port in ticket
-  memcpy(msg->ticket.sp_address.in_addr, split_point->extend_info->addr, 16);
+  memcpy(&msg->ticket.sp_address.in_addr, &split_point->extend_info->addr, 16);
   msg->ticket.sp_address.port = split_point->extend_info->port; //XXX: Host order?
 
   //TODO: Set key information in ticket
@@ -67,12 +67,12 @@ void iot_ticket_send(origin_circuit_t *circ) {
 }
 
 
-void iot_process_relay_split(circuit_t *circ, const crypt_path_t *layer_hint,
-	                     int command, size_t length,
+void iot_process_relay_split(circuit_t *circ, size_t length,
 	                     const uint8_t *payload) {
   iot_split_t *msg = (iot_split_t*) payload;
   iot_join_req_t join_req;
-  tor_addr_t *own_addr;
+
+  tor_assert(length == sizeof(iot_split_t));
 
 #define IOT_JOIN_ID 12
 
@@ -82,10 +82,10 @@ void iot_process_relay_split(circuit_t *circ, const crypt_path_t *layer_hint,
 
   // Construct join req for IoT device
   join_req.join_id = IOT_JOIN_ID;
-  memcpy(&join_req.ticket, msg->ticket, sizeof(iot_ticket_t));
+  memcpy(&join_req.ticket, &msg->ticket, sizeof(iot_ticket_t));
 
   struct sockaddr_in6 si_other;
-  int s, i, slen=sizeof(si_other);
+  int s, slen=sizeof(si_other);
 
   s=socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -101,9 +101,4 @@ void iot_process_relay_split(circuit_t *circ, const crypt_path_t *layer_hint,
   sendto(s, &join_req, sizeof(iot_join_req_t), 0, (struct sockaddr *) &si_other, slen);
 
   close(s);
-}
-
-
-void iot_join_circuit() {
-
 }
