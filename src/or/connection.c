@@ -164,7 +164,8 @@ static smartlist_t *outgoing_addrs = NULL;
     case CONN_TYPE_AP_TRANS_LISTENER: \
     case CONN_TYPE_AP_NATD_LISTENER: \
     case CONN_TYPE_AP_DNS_LISTENER: \
-    case CONN_TYPE_AP_HTTP_CONNECT_LISTENER
+    case CONN_TYPE_AP_HTTP_CONNECT_LISTENER: \
+    case CONN_TYPE_OR_UDP_LISTENER
 
 /**************************************************************/
 
@@ -178,6 +179,9 @@ conn_type_to_string(int type)
   switch (type) {
     case CONN_TYPE_OR_LISTENER: return "OR listener";
     case CONN_TYPE_OR: return "OR";
+    //IOT
+    case CONN_TYPE_OR_UDP: return "ORUDP";
+    case CONN_TYPE_OR_UDP_LISTENER: return "ORUDP listener";
     case CONN_TYPE_EXIT: return "Exit";
     case CONN_TYPE_AP_LISTENER: return "Socks listener";
     case CONN_TYPE_AP_TRANS_LISTENER:
