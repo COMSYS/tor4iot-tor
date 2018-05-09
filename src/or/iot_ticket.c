@@ -31,6 +31,10 @@ void iot_ticket_send(origin_circuit_t *circ) {
 
   msg = tor_malloc(sizeof(iot_split_t));
 
+  //Set SP IP:Port in ticket
+  memcpy(msg->ticket.sp_address.in_addr, split_point->extend_info->addr, 16);
+  msg->ticket.sp_address.port = split_point->extend_info->port; //XXX: Host order?
+
   //TODO: Set key information in ticket
   //memcpy(msg->ticket.sp_b.sha_state, split_point->b_digest->d.sha1, 20);
   //memcpy(msg->ticket.sp_b.sha_count, split_point->b_digest->d.sha1 + 20, 2);
@@ -68,6 +72,7 @@ void iot_process_relay_split(circuit_t *circ, const crypt_path_t *layer_hint,
 	                     const uint8_t *payload) {
   iot_split_t *msg = (iot_split_t*) payload;
   iot_join_req_t join_req;
+  tor_addr_t *own_addr;
 
 #define IOT_JOIN_ID 12
 
@@ -76,10 +81,7 @@ void iot_process_relay_split(circuit_t *circ, const crypt_path_t *layer_hint,
   circ->join_id = IOT_JOIN_ID;
 
   // Construct join req for IoT device
-  //TODO: insert own IP+Port UDP
-
   join_req.join_id = IOT_JOIN_ID;
-
   memcpy(&join_req.ticket, msg->ticket, sizeof(iot_ticket_t));
 
   struct sockaddr_in6 si_other;

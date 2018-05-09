@@ -475,6 +475,8 @@ command_process_relay_cell(cell_t *cell, channel_t *chan)
 
   circ = circuit_get_by_circid_channel(cell->circ_id, chan);
 
+  //IOT: TODO: Check here whether the circuit is already split. Buffer Data from client. Drop data from SM.
+
   if (!circ) {
     log_debug(LD_OR,
               "unknown circuit %u on connection from %s. Dropping.",

@@ -24,6 +24,11 @@ typedef struct iot_crypto_t {
 typedef struct iot_ticket_t {
   uint16_t nonce;
 
+  struct {
+    uint32_t in_addr[4];
+    uint16_t port;
+  } sp_address;
+
   iot_crypto_t sp_f;
   iot_crypto_t sp_b;
 
@@ -49,11 +54,6 @@ typedef struct iot_split_t {
 } iot_split_t;
 
 typedef struct iot_join_req_t {
-  struct {
-    uint32_t in_addr[4];
-    uint16_t port;
-  } iot_address;
-
   iot_join_id_t join_id;
 
   iot_ticket_t ticket;
