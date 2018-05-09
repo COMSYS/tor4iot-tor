@@ -2762,7 +2762,8 @@ service_rendezvous_circ_has_opened(origin_circuit_t *circ)
   tor_assert(circ->cpath);
   /* Getting here means this is a v3 rendezvous circuit. */
   tor_assert(circ->hs_ident);
-  tor_assert(TO_CIRCUIT(circ)->purpose == CIRCUIT_PURPOSE_S_CONNECT_REND);
+  tor_assert(TO_CIRCUIT(circ)->purpose == CIRCUIT_PURPOSE_S_CONNECT_REND ||
+	     TO_CIRCUIT(circ)->purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT);
 
   /* Declare the circuit dirty to avoid reuse, and for path-bias. We set the
    * timestamp regardless of its content because that circuit could have been
