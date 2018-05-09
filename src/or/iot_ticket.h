@@ -10,8 +10,6 @@
 
 #include "or.h"
 
-typedef uint16_t iot_join_id_t;
-
 typedef struct iot_crypto_t {
   uint8_t aes_key[16];
   uint8_t aes_iv[16];

@@ -83,6 +83,9 @@
 #include "util_format.h"
 #include "hs_circuitmap.h"
 
+//IOT
+typedef uint16_t iot_join_id_t;
+
 /* These signals are defined to help handle_control_signal work.
  */
 #ifndef SIGHUP
