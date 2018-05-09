@@ -5070,6 +5070,7 @@ assert_connection_ok(connection_t *conn, time_t now)
       tor_assert(conn->state == LISTENER_STATE_READY);
       break;
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP: //IOT
       tor_assert(conn->state >= OR_CONN_STATE_MIN_);
       tor_assert(conn->state <= OR_CONN_STATE_MAX_);
       break;
