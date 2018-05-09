@@ -1951,6 +1951,7 @@ circuit_launch_by_extend_info(uint8_t purpose,
           break;
         case CIRCUIT_PURPOSE_C_INTRODUCING:
         case CIRCUIT_PURPOSE_S_CONNECT_REND:
+        case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT: //IOT
         case CIRCUIT_PURPOSE_C_GENERAL:
         case CIRCUIT_PURPOSE_S_ESTABLISH_INTRO:
           /* need to add a new hop */
