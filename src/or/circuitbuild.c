@@ -2234,6 +2234,7 @@ warn_if_last_router_excluded(origin_circuit_t *circ,
     case CIRCUIT_PURPOSE_S_CONNECT_REND:
     case CIRCUIT_PURPOSE_S_REND_JOINED:
     case CIRCUIT_PURPOSE_TESTING:
+    case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT: //IOT
       return;
     case CIRCUIT_PURPOSE_C_ESTABLISH_REND:
     case CIRCUIT_PURPOSE_C_REND_READY:
