@@ -13,6 +13,7 @@
 #include "aes.h"
 #include "relay.h"
 #include "circuitlist.h"
+#include "torlog.h"
 
 const uint8_t key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 const uint8_t mac_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
@@ -25,6 +26,8 @@ void iot_ticket_send(origin_circuit_t *circ) {
   aes_cnt_cipher_t *encrypt;
 
   tor_assert(circ);
+
+  log_notice(LD_REND, "Sending ticket.");
 
   //Choose split point such that we have 3 relays left
   split_point = circ->cpath->prev->prev->prev;
