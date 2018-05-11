@@ -43,7 +43,7 @@ typedef struct iot_ticket_t {
   iot_crypto_t hidden_f;
   iot_crypto_t hidden_b;
 
-  uint8_t mac[16];
+  uint8_t mac[32];
 } __attribute__ ((packed)) iot_ticket_t;
 
 typedef struct iot_split_t {
