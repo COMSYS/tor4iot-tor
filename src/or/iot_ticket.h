@@ -10,9 +10,13 @@
 
 #include "or.h"
 
-typedef struct iot_crypto_t {
+typedef struct iot_crypto_aes_t {
   uint8_t aes_key[16];
   uint8_t aes_iv[16];
+} __attribute__ ((packed)) iot_crypto_aes_t;
+
+typedef struct iot_crypto_t {
+  iot_crypto_aes_t aes;
 
   uint32_t sha_state[5];
   uint32_t sha_count[2];
@@ -27,11 +31,11 @@ typedef struct iot_ticket_t {
     uint16_t port;
   } __attribute__ ((packed)) sp_address;
 
-  iot_crypto_t sp_f;
-  iot_crypto_t sp_b;
+  iot_crypto_aes_t sp_f;
+  iot_crypto_aes_t sp_b;
 
-  iot_crypto_t middle_f;
-  iot_crypto_t middle_b;
+  iot_crypto_aes_t middle_f;
+  iot_crypto_aes_t middle_b;
 
   iot_crypto_t exit_f;
   iot_crypto_t exit_b;
