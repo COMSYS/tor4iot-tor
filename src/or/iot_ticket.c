@@ -77,6 +77,8 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
 
   tor_assert(length == sizeof(iot_split_t));
 
+  log_info(LD_GENERAL, "Got IoT ticket. Send it to device now.");
+
 #define IOT_JOIN_ID 12
 
   // Split circuit
