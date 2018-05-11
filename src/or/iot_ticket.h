@@ -17,7 +17,7 @@ typedef struct iot_crypto_t {
   uint32_t sha_state[5];
   uint32_t sha_count[2];
   uint8_t sha_buffer[16];
-} iot_crypto_t;
+} __attribute__ ((packed)) iot_crypto_t;
 
 typedef struct iot_ticket_t {
   uint16_t nonce;
@@ -25,7 +25,7 @@ typedef struct iot_ticket_t {
   struct {
     uint32_t in_addr[4];
     uint16_t port;
-  } sp_address;
+  } __attribute__ ((packed)) sp_address;
 
   iot_crypto_t sp_f;
   iot_crypto_t sp_b;
@@ -40,22 +40,22 @@ typedef struct iot_ticket_t {
   iot_crypto_t hidden_b;
 
   uint8_t mac[16];
-} iot_ticket_t;
+} __attribute__ ((packed)) iot_ticket_t;
 
 typedef struct iot_split_t {
   struct {
     uint32_t in_addr[4];
     uint16_t port;
-  } iot_address;
+  } __attribute__ ((packed)) iot_address;
 
   iot_ticket_t ticket;
-} iot_split_t;
+} __attribute__ ((packed)) iot_split_t;
 
 typedef struct iot_join_req_t {
   iot_join_id_t join_id;
 
   iot_ticket_t ticket;
-} iot_join_req_t;
+} __attribute__ ((packed)) iot_join_req_t;
 
 void iot_ticket_send(origin_circuit_t *circ);
 

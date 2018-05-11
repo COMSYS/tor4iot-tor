@@ -1667,6 +1667,7 @@ circuit_has_opened(origin_circuit_t *circ)
       /* at the service, connecting to rend point */
       hs_service_circuit_has_opened(circ);
       break;
+    //IOT
     case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
       /* at the service, connecting to rend point */
       hs_service_circuit_has_opened(circ);
