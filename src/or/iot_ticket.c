@@ -57,7 +57,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   msg->iot_address.in_addr[2] = 0x00000000;
   msg->iot_address.in_addr[3] = 0x00000001;
 
-  msg->iot_address.port = htonl(10000);
+  msg->iot_address.port = htons(10000);
 
   //Send it!
   relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_SPLIT, (const char*) msg,
@@ -99,7 +99,7 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
   memset((char *) &si_other, 0, sizeof(si_other));
 
   si_other.sin6_family = AF_INET6;
-  si_other.sin6_port = htons(msg->iot_address.port);
+  si_other.sin6_port = msg->iot_address.port;
 
   memcpy(&si_other.sin6_addr, &msg->iot_address.in_addr, 16);
 
