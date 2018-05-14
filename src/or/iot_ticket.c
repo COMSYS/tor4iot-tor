@@ -53,6 +53,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   msg->iot_address.in_addr[2] = 0x00000000;
   msg->iot_address.in_addr[3] = 0x00000001;
 
+  inet_pton(AF_INET6, "::1", &(msg->iot_address.in_addr));
   msg->iot_address.port = htons(10000);
 
   //Send it!
@@ -70,6 +71,8 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
 	                     const uint8_t *payload) {
   iot_split_t *msg = (iot_split_t*) payload;
   iot_join_req_t join_req;
+
+  char ipstr[INET6_ADDRSTRLEN];
 
   tor_assert(length == sizeof(iot_split_t));
 
@@ -96,8 +99,11 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
 
   si_other.sin6_family = AF_INET6;
   si_other.sin6_port = msg->iot_address.port;
-
   memcpy(&si_other.sin6_addr, &msg->iot_address.in_addr, 16);
+
+  inet_ntop(AF_INET6, &(si_other.sin6_addr), ipstr, INET6_ADDRSTRLEN);
+
+  log_info(LD_GENERAL, "Sending it to %s at port %d", ipstr, nths(si_other.sin6_port));
 
   sendto(s, &join_req, sizeof(iot_join_req_t), 0, (struct sockaddr *) &si_other, slen);
 
