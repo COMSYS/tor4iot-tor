@@ -34,14 +34,33 @@ void iot_ticket_send(origin_circuit_t *circ) {
 
   msg = tor_malloc(sizeof(iot_split_t));
 
-  //TODO: Set key information in ticket
-  //memcpy(msg->ticket.sp_b.sha_state, split_point->b_digest->d.sha1, 20);
-  //memcpy(msg->ticket.sp_b.sha_count, split_point->b_digest->d.sha1 + 20, 2);
-  //memcpy(msg->ticket.sp_b.sha_buffer)
+  // Set SP address in ticket
+  // XXX: THIS IS NOT THE UDP PORT, WILL FAIL IF IT IS DIFFERENT FROM TCP PORT
+  tor_assert(split_point->extend_info->addr.family == AF_INET6);
+  memcpy(&msg->ticket.sp_address.in_addr, &split_point->extend_info->addr.addr.in6_addr, 4*32);
+  msg->ticket.sp_address.port = split_point->extend_info->port;
+
+  //Set key information in ticket
+  aes_get_iv(split_point->b_crypto, msg->ticket.sp_b.aes_iv);
+  aes_get_iv(split_point->f_crypto, msg->ticket.sp_f.aes_iv);
+  memcpy(&msg->ticket.sp_b.aes_key, split_point->b_aesctrkey, CIPHER_KEY_LEN);
+  memcpy(&msg->ticket.sp_f.aes_key, split_point->f_aesctrkey, CIPHER_KEY_LEN);
+
+  aes_get_iv(split_point->next->b_crypto, msg->ticket.middle_b.aes_iv);
+  aes_get_iv(split_point->next->f_crypto, msg->ticket.middle_f.aes_iv);
+  memcpy(&msg->ticket.middle_b.aes_key, split_point->next->b_aesctrkey, CIPHER_KEY_LEN);
+  memcpy(&msg->ticket.middle_f.aes_key, split_point->next->f_aesctrkey, CIPHER_KEY_LEN);
+
+  aes_get_iv(split_point->next->next->b_crypto, msg->ticket.exit_b.aes_iv);
+  aes_get_iv(split_point->next->next->f_crypto, msg->ticket.exit_f.aes_iv);
+  memcpy(&msg->ticket.exit_b.aes_key, split_point->next->next->b_aesctrkey, CIPHER_KEY_LEN);
+  memcpy(&msg->ticket.exit_f.aes_key, split_point->next->next->f_aesctrkey, CIPHER_KEY_LEN);
+
+
 
   //Encrypt ticket
   encrypt = aes_new_cipher(key, iv, 128);
-  aes_crypt_inplace(encrypt, (char*) &msg->ticket, sizeof(iot_ticket_t)-16);
+  aes_crypt_inplace(encrypt, (char*) &msg->ticket, sizeof(iot_ticket_t)-DIGEST256_LEN);
   aes_cipher_free(encrypt);
 
   //Compute MAC

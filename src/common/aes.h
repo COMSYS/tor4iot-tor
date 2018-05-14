@@ -20,6 +20,9 @@ aes_cnt_cipher_t* aes_new_cipher(const uint8_t *key, const uint8_t *iv,
 void aes_cipher_free(aes_cnt_cipher_t *cipher);
 void aes_crypt_inplace(aes_cnt_cipher_t *cipher, char *data, size_t len);
 
+//IOT:
+void aes_get_iv(aes_cnt_cipher_t *cipher_, uint8_t *iv);
+
 int evaluate_evp_for_aes(int force_value);
 int evaluate_ctr_for_aes(void);
 
