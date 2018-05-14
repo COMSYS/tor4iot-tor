@@ -103,7 +103,7 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
 
   inet_ntop(AF_INET6, &(si_other.sin6_addr), ipstr, INET6_ADDRSTRLEN);
 
-  log_info(LD_GENERAL, "Sending it to %s at port %d", ipstr, nths(si_other.sin6_port));
+  log_info(LD_GENERAL, "Sending it to %s at port %d", ipstr, ntohs(si_other.sin6_port));
 
   sendto(s, &join_req, sizeof(iot_join_req_t), 0, (struct sockaddr *) &si_other, slen);
 
