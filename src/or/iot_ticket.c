@@ -15,10 +15,10 @@
 #include "circuitlist.h"
 #include "torlog.h"
 
-const uint8_t key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-const uint8_t mac_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+const uint8_t iot_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+const uint8_t iot_mac_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 
-const uint8_t iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+const uint8_t iot_iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 void iot_ticket_send(origin_circuit_t *circ) {
   iot_split_t *msg;
@@ -57,12 +57,12 @@ void iot_ticket_send(origin_circuit_t *circ) {
   memcpy(&msg->ticket.exit_f.aes_key, split_point->next->next->f_aesctrkey, CIPHER_KEY_LEN);
 
   //Encrypt ticket
-  encrypt = aes_new_cipher(key, iv, 128);
+  encrypt = aes_new_cipher(iot_key, iot_iv, 128);
   aes_crypt_inplace(encrypt, (char*) &msg->ticket, sizeof(iot_ticket_t)-DIGEST256_LEN);
   aes_cipher_free(encrypt);
 
   //Compute MAC
-  crypto_hmac_sha256((char*) msg->ticket.mac, (char*) mac_key, 16, (char*) &msg->ticket, sizeof(iot_ticket_t)-DIGEST256_LEN);
+  crypto_hmac_sha256((char*) msg->ticket.mac, (char*) iot_mac_key, 16, (char*) &msg->ticket, sizeof(iot_ticket_t)-DIGEST256_LEN);
 
   //Set address and port information of IoT device
   inet_pton(AF_INET6, "::1", &(msg->iot_address.in_addr));
