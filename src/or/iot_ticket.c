@@ -34,10 +34,6 @@ void iot_ticket_send(origin_circuit_t *circ) {
 
   msg = tor_malloc(sizeof(iot_split_t));
 
-  //Set SP IP:Port in ticket
-  memcpy(&msg->ticket.sp_address.in_addr, &split_point->extend_info->addr, 16);
-  msg->ticket.sp_address.port = split_point->extend_info->port; //XXX: Host order?
-
   //TODO: Set key information in ticket
   //memcpy(msg->ticket.sp_b.sha_state, split_point->b_digest->d.sha1, 20);
   //memcpy(msg->ticket.sp_b.sha_count, split_point->b_digest->d.sha1 + 20, 2);
