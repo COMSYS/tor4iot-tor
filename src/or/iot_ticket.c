@@ -90,7 +90,7 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
 
   tor_assert(length == sizeof(iot_split_t));
 
-  log_info(LD_GENERAL, "Got IoT ticket with IoT address information of size %d.", sizeof(iot_split_t));
+  log_info(LD_GENERAL, "Got IoT ticket with IoT address information of size %ld.", sizeof(iot_split_t));
 
 #define IOT_JOIN_ID 12
 
@@ -117,7 +117,7 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
 
   inet_ntop(AF_INET6, &(si_other.sin6_addr), ipstr, INET6_ADDRSTRLEN);
 
-  log_info(LD_GENERAL, "Sending ticket of size %d to %s at port %d", sizeof(iot_join_req_t), ipstr, ntohs(si_other.sin6_port));
+  log_info(LD_GENERAL, "Sending ticket of size %ld to %s at port %d", sizeof(iot_join_req_t), ipstr, ntohs(si_other.sin6_port));
 
   sendto(s, &join_req, sizeof(iot_join_req_t), 0, (struct sockaddr *) &si_other, slen);
 
