@@ -8,14 +8,7 @@
 #ifndef SRC_OR_IOT_TICKET_H_
 #define SRC_OR_IOT_TICKET_H_
 
-#ifndef FROM_EXTERN
 #include "or.h"
-#else
-
-#define DIGEST256_LEN 32
-typedef uint16_t iot_join_id_t;
-
-#endif
 
 typedef struct iot_crypto_aes_t {
   uint8_t aes_key[16];
@@ -74,13 +67,9 @@ typedef struct iot_join_req_t {
   iot_ticket_t ticket;
 } iot_join_req_t;
 
-#ifndef FROM_EXTERN
-
 void iot_ticket_send(origin_circuit_t *circ);
 
 void iot_process_relay_split(circuit_t *circ, size_t length,
 	                     const uint8_t *payload);
-
-#endif
 
 #endif /* SRC_OR_IOT_TICKET_H_ */
