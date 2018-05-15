@@ -10,13 +10,11 @@
 
 #include "or.h"
 
-#pragma pack(1)
 typedef struct iot_crypto_aes_t {
   uint8_t aes_key[16];
   uint8_t aes_iv[16];
 } iot_crypto_aes_t;
 
-#pragma pack(1)
 typedef struct iot_crypto_t {
   iot_crypto_aes_t aes;
 
@@ -25,14 +23,12 @@ typedef struct iot_crypto_t {
   uint8_t sha_buffer[16];
 } iot_crypto_t;
 
-#pragma pack(1)
 typedef struct iot_crypto_hs_t {
   iot_crypto_aes_t aes;
 
   uint8_t digest_key[DIGEST256_LEN];
 } iot_crypto_hs_t;
 
-#pragma pack(1)
 typedef struct iot_ticket_t {
   uint16_t nonce;
 
@@ -56,7 +52,6 @@ typedef struct iot_ticket_t {
   uint8_t mac[DIGEST256_LEN];
 } iot_ticket_t;
 
-#pragma pack(1)
 typedef struct iot_split_t {
   struct {
     uint32_t in_addr[4];
@@ -66,7 +61,6 @@ typedef struct iot_split_t {
   iot_ticket_t ticket;
 } iot_split_t;
 
-#pragma pack(1)
 typedef struct {
   iot_join_id_t join_id;
 
