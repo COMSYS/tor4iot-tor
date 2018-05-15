@@ -84,6 +84,8 @@
 #include "hs_circuitmap.h"
 
 //IOT
+#include "hs_ntor.h"
+
 typedef uint16_t iot_join_id_t;
 
 /* These signals are defined to help handle_control_signal work.
@@ -2906,8 +2908,11 @@ typedef struct crypt_path_t {
    * step. */
   crypto_cipher_t *b_crypto;
 
+  //IOT
   uint8_t f_aesctrkey[16];
   uint8_t b_aesctrkey[16];
+
+  uint8_t hs_ntor_key[HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN];
 
   /** Digest state for cells heading towards the OR at this step. */
   crypto_digest_t *f_digest; /* for integrity checking */

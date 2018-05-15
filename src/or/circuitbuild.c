@@ -1434,10 +1434,6 @@ circuit_init_cpath_crypto(crypt_path_t *cpath,
 
   cpath->f_crypto = crypto_cipher_new_with_bits(key_data+(2*digest_len),
                                                 cipher_key_bits);
-  //IOT:
-  if (cipher_key_len == CIPHER_KEY_LEN) {
-    memcpy(cpath->f_aesctrkey, key_data+(2*digest_len), cipher_key_len);
-  }
 
   if (!cpath->f_crypto) {
     log_warn(LD_BUG,"Forward cipher initialization failed.");
@@ -1449,7 +1445,10 @@ circuit_init_cpath_crypto(crypt_path_t *cpath,
                                         cipher_key_bits);
   //IOT:
   if (cipher_key_len == CIPHER_KEY_LEN) {
+    memcpy(cpath->f_aesctrkey, key_data+(2*digest_len), cipher_key_len);
     memcpy(cpath->f_aesctrkey, key_data+(2*digest_len)+cipher_key_len, cipher_key_len);
+  } else if (key_data_len == HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN) {
+    memcpy(cpath->hs_ntor_key, key_data, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
   }
 
   if (!cpath->b_crypto) {
