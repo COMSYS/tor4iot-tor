@@ -20,6 +20,14 @@ const uint8_t iot_mac_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 
 const uint8_t iot_iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
+static void iot_ticket_set_relay_crypto(iot_crypto_aes_relay_t *iot_crypto, crypt_path_t *relay) {
+  aes_get_iv(relay->b_crypto, iot_crypto->b.aes_iv);
+  aes_get_iv(relay->f_crypto, iot_crypto->f.aes_iv);
+
+  memcpy(&iot_crypto->b.aes_key, relay->b_aesctrkey, CIPHER_KEY_LEN);
+  memcpy(&iot_crypto->f.aes_key, relay->f_aesctrkey, CIPHER_KEY_LEN);
+}
+
 void iot_ticket_send(origin_circuit_t *circ) {
   iot_split_t *msg;
   crypt_path_t *split_point;
@@ -41,22 +49,12 @@ void iot_ticket_send(origin_circuit_t *circ) {
   msg->ticket.sp_address.port = split_point->extend_info->port;
 
   //Set key information in ticket
-  aes_get_iv(split_point->b_crypto, msg->ticket.sp_b.aes_iv);
-  aes_get_iv(split_point->f_crypto, msg->ticket.sp_f.aes_iv);
-  memcpy(&msg->ticket.sp_b.aes_key, split_point->b_aesctrkey, CIPHER_KEY_LEN);
-  memcpy(&msg->ticket.sp_f.aes_key, split_point->f_aesctrkey, CIPHER_KEY_LEN);
+  iot_ticket_set_relay_crypto(&msg->ticket.sp, split_point);
+  iot_ticket_set_relay_crypto(&msg->ticket.middle, split_point->next);
+  iot_ticket_set_relay_crypto(&msg->ticket.rend, split_point->next->next);
 
-  aes_get_iv(split_point->next->b_crypto, msg->ticket.middle_b.aes_iv);
-  aes_get_iv(split_point->next->f_crypto, msg->ticket.middle_f.aes_iv);
-  memcpy(&msg->ticket.middle_b.aes_key, split_point->next->b_aesctrkey, CIPHER_KEY_LEN);
-  memcpy(&msg->ticket.middle_f.aes_key, split_point->next->f_aesctrkey, CIPHER_KEY_LEN);
-
-  aes_get_iv(split_point->next->next->b_crypto, msg->ticket.exit_b.aes_iv);
-  aes_get_iv(split_point->next->next->f_crypto, msg->ticket.exit_f.aes_iv);
-  memcpy(&msg->ticket.exit_b.aes_key, split_point->next->next->b_aesctrkey, CIPHER_KEY_LEN);
-  memcpy(&msg->ticket.exit_f.aes_key, split_point->next->next->f_aesctrkey, CIPHER_KEY_LEN);
-
-  //TODO: set HS material
+  //Set HS material
+  memcpy(&msg->ticket.hs_ntor_key, split_point->next->next->next->hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
 
   //Encrypt ticket
   encrypt = aes_new_cipher(iot_key, iot_iv, 128);
@@ -84,7 +82,6 @@ void iot_ticket_send(origin_circuit_t *circ) {
 void iot_process_relay_split(circuit_t *circ, size_t length,
 	                     const uint8_t *payload) {
   iot_split_t *msg = (iot_split_t*) payload;
-  iot_join_req_t join_req;
 
   char ipstr[INET6_ADDRSTRLEN];
 
@@ -94,13 +91,9 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
 
 #define IOT_JOIN_ID 12
 
-  // Split circuit
+  // TODO: Save cookie
   circ->already_split = 1;
   circ->join_id = IOT_JOIN_ID;
-
-  // Construct join req for IoT device
-  join_req.join_id = IOT_JOIN_ID;
-  memcpy(&join_req.ticket, &msg->ticket, sizeof(iot_ticket_t));
 
   struct sockaddr_in6 si_other;
   int s, slen=sizeof(si_other);
@@ -117,9 +110,9 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
 
   inet_ntop(AF_INET6, &(si_other.sin6_addr), ipstr, INET6_ADDRSTRLEN);
 
-  log_info(LD_GENERAL, "Sending ticket of size %ld to %s at port %d", sizeof(iot_join_req_t), ipstr, ntohs(si_other.sin6_port));
+  log_info(LD_GENERAL, "Sending ticket of size %ld to %s at port %d", sizeof(iot_ticket_t), ipstr, ntohs(si_other.sin6_port));
 
-  sendto(s, &join_req, sizeof(iot_join_req_t), 0, (struct sockaddr *) &si_other, slen);
+  sendto(s, &msg->ticket, sizeof(iot_ticket_t), 0, (struct sockaddr *) &si_other, slen);
 
   close(s);
 }
