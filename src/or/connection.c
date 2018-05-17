@@ -4531,6 +4531,7 @@ connection_process_inbuf(connection_t *conn, int package_partial)
 
   switch (conn->type) {
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
       return connection_or_process_inbuf(TO_OR_CONN(conn));
     case CONN_TYPE_EXT_OR:
       return connection_ext_or_process_inbuf(TO_OR_CONN(conn));
