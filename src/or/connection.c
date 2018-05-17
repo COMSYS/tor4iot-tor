@@ -232,6 +232,22 @@ conn_state_to_string(int type, int state)
         case OR_CONN_STATE_OPEN: return "open";
       }
       break;
+    case CONN_TYPE_OR_UDP:
+      switch (state) {
+        case OR_CONN_STATE_CONNECTING: return "connect()ing";
+        case OR_CONN_STATE_PROXY_HANDSHAKING: return "handshaking (proxy)";
+        case OR_CONN_STATE_TLS_HANDSHAKING: return "handshaking (TLS)";
+        case OR_CONN_STATE_TLS_CLIENT_RENEGOTIATING:
+          return "renegotiating (TLS, v2 handshake)";
+        case OR_CONN_STATE_TLS_SERVER_RENEGOTIATING:
+          return "waiting for renegotiation or V3 handshake";
+        case OR_CONN_STATE_OR_HANDSHAKING_V2:
+          return "handshaking (Tor, v2 handshake)";
+        case OR_CONN_STATE_OR_HANDSHAKING_V3:
+          return "handshaking (Tor, v3 handshake)";
+        case OR_CONN_STATE_OPEN: return "open";
+      }
+      break;
     case CONN_TYPE_EXT_OR:
       switch (state) {
         case EXT_OR_CONN_STATE_AUTH_WAIT_AUTH_TYPE:
@@ -312,7 +328,7 @@ or_connection_new(int type, int socket_family)
 {
   or_connection_t *or_conn = tor_malloc_zero(sizeof(or_connection_t));
   time_t now = time(NULL);
-  tor_assert(type == CONN_TYPE_OR || type == CONN_TYPE_EXT_OR);
+  tor_assert(type == CONN_TYPE_OR || type == CONN_TYPE_EXT_OR || type == CONN_TYPE_OR_UDP);
   connection_init(now, TO_CONN(or_conn), type, socket_family);
 
   connection_or_set_canonical(or_conn, 0);
@@ -389,6 +405,7 @@ connection_new(int type, int socket_family)
 {
   switch (type) {
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
     case CONN_TYPE_EXT_OR:
       return TO_CONN(or_connection_new(type, socket_family));
 
@@ -432,6 +449,7 @@ connection_init(time_t now, connection_t *conn, int type, int socket_family)
 
   switch (type) {
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
     case CONN_TYPE_EXT_OR:
       conn->magic = OR_CONNECTION_MAGIC;
       break;
@@ -515,6 +533,7 @@ connection_free_(connection_t *conn)
 
   switch (conn->type) {
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
     case CONN_TYPE_EXT_OR:
       tor_assert(conn->magic == OR_CONNECTION_MAGIC);
       mem = TO_OR_CONN(conn);
@@ -663,12 +682,12 @@ connection_free_(connection_t *conn)
     conn->s = TOR_INVALID_SOCKET;
   }
 
-  if (conn->type == CONN_TYPE_OR &&
+  if ((conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_OR_UDP) &&
       !tor_digest_is_zero(TO_OR_CONN(conn)->identity_digest)) {
     log_warn(LD_BUG, "called on OR conn with non-zeroed identity_digest");
     connection_or_clear_identity(TO_OR_CONN(conn));
   }
-  if (conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_EXT_OR) {
+  if (conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_OR_UDP || conn->type == CONN_TYPE_EXT_OR) {
     connection_or_remove_from_ext_or_id_map(TO_OR_CONN(conn));
     tor_free(TO_OR_CONN(conn)->ext_or_conn_id);
     tor_free(TO_OR_CONN(conn)->ext_or_auth_correct_client_hash);
@@ -743,6 +762,7 @@ connection_about_to_close_connection(connection_t *conn)
       connection_dir_about_to_close(TO_DIR_CONN(conn));
       break;
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
     case CONN_TYPE_EXT_OR:
       connection_or_about_to_close(TO_OR_CONN(conn));
       break;
@@ -806,7 +826,7 @@ connection_mark_for_close_(connection_t *conn, int line, const char *file)
   tor_assert(line < 1<<16); /* marked_for_close can only fit a uint16_t. */
   tor_assert(file);
 
-  if (conn->type == CONN_TYPE_OR) {
+  if (conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_OR_UDP) {
     /*
      * An or_connection should have been closed through one of the channel-
      * aware functions in connection_or.c.  We'll assume this is an error
@@ -849,7 +869,7 @@ connection_mark_for_close_internal_, (connection_t *conn,
     return;
   }
 
-  if (conn->type == CONN_TYPE_OR) {
+  if (conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_OR_UDP) {
     /*
      * Bad news if this happens without telling the controlling channel; do
      * this so we can find things that call this wrongly when the asserts hit.
