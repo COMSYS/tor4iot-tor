@@ -10,6 +10,7 @@
 
 #include "or.h"
 
+#pragma pack(push, 1)
 typedef struct iot_crypto_aes_t {
   uint8_t aes_key[16];
   uint8_t aes_iv[16];
@@ -51,6 +52,8 @@ typedef struct iot_split_t {
 
   iot_ticket_t ticket;
 } iot_split_t;
+
+#pragma pack(pop)
 
 void iot_ticket_send(origin_circuit_t *circ);
 
