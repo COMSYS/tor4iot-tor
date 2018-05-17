@@ -3449,6 +3449,7 @@ connection_handle_read_impl(connection_t *conn)
     case CONN_TYPE_OR_LISTENER:
       return connection_handle_listener_read(conn, CONN_TYPE_OR);
     case CONN_TYPE_OR_UDP_LISTENER:
+      return connection_handle_listener_read(conn, CONN_TYPE_OR_UDP);
     case CONN_TYPE_EXT_OR_LISTENER:
       return connection_handle_listener_read(conn, CONN_TYPE_EXT_OR);
     case CONN_TYPE_AP_LISTENER:
