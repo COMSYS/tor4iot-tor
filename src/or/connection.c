@@ -3444,6 +3444,7 @@ connection_handle_read_impl(connection_t *conn)
   switch (conn->type) {
     case CONN_TYPE_OR_LISTENER:
       return connection_handle_listener_read(conn, CONN_TYPE_OR);
+    case CONN_TYPE_OR_UDP_LISTENER:
     case CONN_TYPE_EXT_OR_LISTENER:
       return connection_handle_listener_read(conn, CONN_TYPE_EXT_OR);
     case CONN_TYPE_AP_LISTENER:
@@ -4369,6 +4370,7 @@ int
 connection_is_listener(connection_t *conn)
 {
   if (conn->type == CONN_TYPE_OR_LISTENER ||
+      conn->type == CONN_TYPE_OR_UDP_LISTENER ||
       conn->type == CONN_TYPE_EXT_OR_LISTENER ||
       conn->type == CONN_TYPE_AP_LISTENER ||
       conn->type == CONN_TYPE_AP_TRANS_LISTENER ||
