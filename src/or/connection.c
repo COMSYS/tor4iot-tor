@@ -1703,6 +1703,7 @@ connection_init_accepted_conn(connection_t *conn,
       /* Initiate Extended ORPort authentication. */
       return connection_ext_or_start_auth(TO_OR_CONN(conn));
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
       control_event_or_conn_status(TO_OR_CONN(conn), OR_CONN_EVENT_NEW, 0);
       rv = connection_tls_start_handshake(TO_OR_CONN(conn), 1);
       if (rv < 0) {
