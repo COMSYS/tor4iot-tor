@@ -1556,7 +1556,11 @@ connection_handle_listener_read(connection_t *conn, int new_type)
   tor_assert((size_t)remotelen >= sizeof(struct sockaddr_in));
   memset(&addrbuf, 0, sizeof(addrbuf));
 
-  news = tor_accept_socket_nonblocking(conn->s,remote,&remotelen);
+  if (new_type == CONN_TYPE_OR_UDP) {
+    news = tor_accept_socket(conn->s,remote,&remotelen);
+  } else {
+    news = tor_accept_socket_nonblocking(conn->s,remote,&remotelen);
+  }
   if (!SOCKET_OK(news)) { /* accept() error */
     int e = tor_socket_errno(conn->s);
     if (ERRNO_IS_ACCEPT_EAGAIN(e)) {
