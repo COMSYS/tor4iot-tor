@@ -169,14 +169,15 @@ MOCK_DECL(STATIC struct x509_st *, tor_tls_create_certificate,
                                                     const char *cname_sign,
                                                   unsigned int cert_lifetime));
 STATIC tor_tls_context_t *tor_tls_context_new(crypto_pk_t *identity,
-                   unsigned int key_lifetime, unsigned flags, int is_client);
+                   unsigned int key_lifetime, unsigned flags, int is_client, int is_dtls);
 MOCK_DECL(STATIC tor_x509_cert_t *, tor_x509_cert_new,
           (struct x509_st *x509_cert));
 STATIC int tor_tls_context_init_one(tor_tls_context_t **ppcontext,
                                     crypto_pk_t *identity,
                                     unsigned int key_lifetime,
                                     unsigned int flags,
-                                    int is_client);
+                                    int is_client,
+				    int is_dtls);
 STATIC void tls_log_errors(tor_tls_t *tls, int severity, int domain,
                            const char *doing);
 
@@ -210,7 +211,7 @@ int tor_tls_context_init(unsigned flags,
                          crypto_pk_t *client_identity,
                          crypto_pk_t *server_identity,
                          unsigned int key_lifetime);
-tor_tls_t *tor_tls_new(int sock, int is_server);
+tor_tls_t *tor_tls_new(int sock, int is_server, int is_dtls);
 void tor_tls_set_logged_address(tor_tls_t *tls, const char *address);
 void tor_tls_set_renegotiate_callback(tor_tls_t *tls,
                                       void (*cb)(tor_tls_t *, void *arg),

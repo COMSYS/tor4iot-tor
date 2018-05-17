@@ -146,6 +146,9 @@ static int check_cert_lifetime_internal(int severity, const X509 *cert,
  * @{ */
 STATIC tor_tls_context_t *server_tls_context = NULL;
 STATIC tor_tls_context_t *client_tls_context = NULL;
+
+//IOT:
+STATIC tor_tls_context_t *server_dtls_context = NULL;
 /**@}*/
 
 /** True iff tor_tls_init() has been called. */
@@ -412,6 +415,12 @@ tor_tls_free_all(void)
   if (client_tls_context) {
     tor_tls_context_t *ctx = client_tls_context;
     client_tls_context = NULL;
+    tor_tls_context_decref(ctx);
+  }
+  //IOT
+  if (server_dtls_context) {
+    tor_tls_context_t *ctx = server_dtls_context;
+    server_dtls_context = NULL;
     tor_tls_context_decref(ctx);
   }
 }
@@ -1015,7 +1024,7 @@ tor_tls_context_init(unsigned flags,
 
     rv1 = tor_tls_context_init_one(&server_tls_context,
                                    server_identity,
-                                   key_lifetime, flags, 0);
+                                   key_lifetime, flags, 0, 0);
 
     if (rv1 >= 0) {
       new_ctx = server_tls_context;
@@ -1033,7 +1042,7 @@ tor_tls_context_init(unsigned flags,
                                      server_identity,
                                      key_lifetime,
                                      flags,
-                                     0);
+                                     0, 0);
     } else {
       tor_tls_context_t *old_ctx = server_tls_context;
       server_tls_context = NULL;
@@ -1047,7 +1056,7 @@ tor_tls_context_init(unsigned flags,
                                    client_identity,
                                    key_lifetime,
                                    flags,
-                                   1);
+                                   1, 0);
   }
 
   tls_log_errors(NULL, LOG_WARN, LD_CRYPTO, "constructing a TLS context");
@@ -1060,17 +1069,20 @@ tor_tls_context_init(unsigned flags,
  * it generates new certificates; all new connections will use
  * the new SSL context.
  */
+//IOT:
 STATIC int
 tor_tls_context_init_one(tor_tls_context_t **ppcontext,
                          crypto_pk_t *identity,
                          unsigned int key_lifetime,
                          unsigned int flags,
-                         int is_client)
+                         int is_client,
+			 int is_dtls)
 {
   tor_tls_context_t *new_ctx = tor_tls_context_new(identity,
                                                    key_lifetime,
                                                    flags,
-                                                   is_client);
+                                                   is_client,
+						   is_dtls);
   tor_tls_context_t *old_ctx = *ppcontext;
 
   if (new_ctx != NULL) {
@@ -1098,7 +1110,7 @@ tor_tls_context_init_one(tor_tls_context_t **ppcontext,
  */
 STATIC tor_tls_context_t *
 tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
-                    unsigned flags, int is_client)
+                    unsigned flags, int is_client, int is_dtls)
 {
   crypto_pk_t *rsa = NULL, *rsa_auth = NULL;
   EVP_PKEY *pkey = NULL;
@@ -1153,23 +1165,29 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
     result->auth_key = crypto_pk_dup_key(rsa_auth);
   }
 
+  if (!is_dtls) {
 #if 0
-  /* Tell OpenSSL to only use TLS1.  This may have subtly different results
-   * from SSLv23_method() with SSLv2 and SSLv3 disabled, so we need to do some
-   * investigation before we consider adjusting it. It should be compatible
-   * with existing Tors. */
-  if (!(result->ctx = SSL_CTX_new(TLSv1_method())))
-    goto error;
+    /* Tell OpenSSL to only use TLS1.  This may have subtly different results
+     * from SSLv23_method() with SSLv2 and SSLv3 disabled, so we need to do some
+     * investigation before we consider adjusting it. It should be compatible
+     * with existing Tors. */
+    if (!(result->ctx = SSL_CTX_new(TLSv1_method())))
+      goto error;
 #endif /* 0 */
 
-  /* Tell OpenSSL to use TLS 1.0 or later but not SSL2 or SSL3. */
+    /* Tell OpenSSL to use TLS 1.0 or later but not SSL2 or SSL3. */
 #ifdef HAVE_TLS_METHOD
   if (!(result->ctx = SSL_CTX_new(TLS_method())))
     goto error;
 #else
-  if (!(result->ctx = SSL_CTX_new(SSLv23_method())))
-    goto error;
+    if (!(result->ctx = SSL_CTX_new(SSLv23_method())))
+      goto error;
 #endif /* defined(HAVE_TLS_METHOD) */
+  } else {
+    if (!(result->ctx = SSL_CTX_new(DTLS_method())))
+      goto error;
+  }
+
   SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv2);
   SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv3);
 
@@ -1650,12 +1668,13 @@ tor_tls_setup_session_secret_cb(tor_tls_t *tls)
 /** Create a new TLS object from a file descriptor, and a flag to
  * determine whether it is functioning as a server.
  */
+//IOT:
 tor_tls_t *
-tor_tls_new(int sock, int isServer)
+tor_tls_new(int sock, int isServer, int is_dtls)
 {
   BIO *bio = NULL;
   tor_tls_t *result = tor_malloc_zero(sizeof(tor_tls_t));
-  tor_tls_context_t *context = isServer ? server_tls_context :
+  tor_tls_context_t *context = isServer ? (is_dtls ? server_dtls_context : server_tls_context) :
     client_tls_context;
   result->magic = TOR_TLS_MAGIC;
 

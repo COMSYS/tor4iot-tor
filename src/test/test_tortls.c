@@ -129,13 +129,13 @@ test_tortls_tor_tls_new(void *data)
   tor_tls_t *tls = NULL;
   tt_int_op(tor_tls_context_init(TOR_TLS_CTX_IS_PUBLIC_SERVER,
                                  key1, key2, 86400), OP_EQ, 0);
-  tls = tor_tls_new(-1, 0);
+  tls = tor_tls_new(-1, 0, 0);
   tt_want(tls);
   tor_tls_free(tls); tls = NULL;
 
   SSL_CTX_free(client_tls_context->ctx);
   client_tls_context->ctx = NULL;
-  tls = tor_tls_new(-1, 0);
+  tls = tor_tls_new(-1, 0, 0);
   tt_ptr_op(tls, OP_EQ, NULL);
 
 #ifndef OPENSSL_OPAQUE
@@ -143,7 +143,7 @@ test_tortls_tor_tls_new(void *data)
   SSL_CTX *ctx = SSL_CTX_new(method);
   method->num_ciphers = fake_num_ciphers;
   client_tls_context->ctx = ctx;
-  tls = tor_tls_new(-1, 0);
+  tls = tor_tls_new(-1, 0, 0);
   tt_ptr_op(tls, OP_EQ, NULL);
 #endif /* !defined(OPENSSL_OPAQUE) */
 
@@ -187,7 +187,7 @@ test_tortls_tor_tls_get_error(void *data)
   tor_tls_t *tls = NULL;
   tt_int_op(tor_tls_context_init(TOR_TLS_CTX_IS_PUBLIC_SERVER,
                                  key1, key2, 86400), OP_EQ, 0);
-  tls = tor_tls_new(-1, 0);
+  tls = tor_tls_new(-1, 0, 0);
   NS_MOCK(logv);
   tt_int_op(CALLED(logv), OP_EQ, 0);
   tor_tls_get_error(tls, 0, 0,
@@ -2750,7 +2750,7 @@ test_tortls_context_init_one(void *ignored)
 
   fixed_crypto_pk_new_result_index = 0;
   fixed_crypto_pk_new_result[0] = NULL;
-  ret = tor_tls_context_init_one(&old, NULL, 0, 0, 0);
+  ret = tor_tls_context_init_one(&old, NULL, 0, 0, 0, 0);
   tt_int_op(ret, OP_EQ, -1);
 
  done:
