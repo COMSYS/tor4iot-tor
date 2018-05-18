@@ -1380,15 +1380,15 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     memcpy(&server_addr.sin6_addr, &TO_CONN(conn)->addr.addr.in6_addr, 16);
 
     /* Handle client connection */
-    int client_fd = socket(AF_INET6, SOCK_DGRAM, 0);
-    bind(client_fd, &server_addr, sizeof(struct sockaddr_in6));
-    connect(client_fd, &client_addr, sizeof(struct sockaddr_in6));
+    TO_CONN(conn)->s = socket(AF_INET6, SOCK_DGRAM, 0);
+    bind(TO_CONN(conn)->s, &server_addr, sizeof(struct sockaddr_in6));
+    connect(TO_CONN(conn)->s, &client_addr, sizeof(struct sockaddr_in6));
 
-    log_notice(LD_OR, "Connected to client with fd %d", client_fd);
+    log_notice(LD_OR, "Connected to client with fd %d", TO_CONN(conn)->s);
 
     /* Set new fd and set BIO to connected */
     BIO *cbio = tor_dtls_get_rbio(conn->tls);
-    BIO_set_fd(cbio, client_fd, BIO_NOCLOSE);
+    BIO_set_fd(cbio, TO_CONN(conn)->s, BIO_NOCLOSE);
     BIO_ctrl(cbio, BIO_CTRL_DGRAM_SET_CONNECTED, 0, &client_addr);
 
     log_notice(LD_OR, "Finishing DTLS handshake.");
