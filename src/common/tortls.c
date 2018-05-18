@@ -1158,10 +1158,6 @@ tor_tls_context_init(unsigned flags,
       if (old_ctx != NULL) {
         tor_tls_context_decref(old_ctx);
       }
-
-      SSL_CTX_set_read_ahead(new_ctx->ctx, 1);
-      SSL_CTX_set_cookie_generate_cb(new_ctx->ctx, tor_dtls_generate_cookie);
-      SSL_CTX_set_cookie_verify_cb(new_ctx->ctx, &tor_dtls_verify_cookie);
     }
   } else {
     if (server_identity != NULL) {
@@ -1311,8 +1307,20 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
       goto error;
 #endif /* defined(HAVE_TLS_METHOD) */
   } else {
-    if (!(result->ctx = SSL_CTX_new(DTLS_method())))
+    if (!(result->ctx = SSL_CTX_new(DTLS_server_method())))
       goto error;
+
+    SSL_CTX_set_cipher_list(result->ctx, "ALL:NULL:eNULL:aNULL");
+    SSL_CTX_set_session_cache_mode(result->ctx, SSL_SESS_CACHE_OFF);
+
+    /* Client has to authenticate */
+    //SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, dtls_verify_callback);
+
+    SSL_CTX_set_read_ahead(result->ctx, 1);
+    SSL_CTX_set_cookie_generate_cb(result->ctx, tor_dtls_generate_cookie);
+    SSL_CTX_set_cookie_verify_cb(result->ctx, &tor_dtls_verify_cookie);
+
+    return result;
   }
 
   SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv2);
