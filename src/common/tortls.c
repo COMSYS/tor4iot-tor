@@ -1036,6 +1036,20 @@ tor_tls_context_init(unsigned flags,
         tor_tls_context_decref(old_ctx);
       }
     }
+
+    old_ctx = server_dtls_context;
+    rv2 = tor_tls_context_init_one(&server_dtls_context,
+                                   server_identity,
+                                   key_lifetime, flags, 0, 1);
+
+    if (rv1 >= 0) {
+      new_ctx = server_dtls_context;
+      tor_tls_context_incref(new_ctx);
+
+      if (old_ctx != NULL) {
+        tor_tls_context_decref(old_ctx);
+      }
+    }
   } else {
     if (server_identity != NULL) {
       rv1 = tor_tls_context_init_one(&server_tls_context,

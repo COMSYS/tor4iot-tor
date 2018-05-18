@@ -332,16 +332,20 @@ channel_tls_handle_incoming(or_connection_t *orconn)
   tlschan->conn = orconn;
   orconn->chan = tlschan;
 
-  if (is_local_addr(&(TO_CONN(orconn)->addr))) {
-    log_debug(LD_CHANNEL,
-              "Marking new incoming channel " U64_FORMAT " at %p as local",
-              U64_PRINTF_ARG(chan->global_identifier), chan);
-    channel_mark_local(chan);
+  if(TO_CONN(orconn)->type == CONN_TYPE_OR_UDP) {
+      channel_mark_remote(chan);
   } else {
-    log_debug(LD_CHANNEL,
-              "Marking new incoming channel " U64_FORMAT " at %p as remote",
-              U64_PRINTF_ARG(chan->global_identifier), chan);
-    channel_mark_remote(chan);
+    if (is_local_addr(&(TO_CONN(orconn)->addr))) {
+      log_debug(LD_CHANNEL,
+		"Marking new incoming channel " U64_FORMAT " at %p as local",
+		U64_PRINTF_ARG(chan->global_identifier), chan);
+      channel_mark_local(chan);
+    } else {
+      log_debug(LD_CHANNEL,
+		"Marking new incoming channel " U64_FORMAT " at %p as remote",
+		U64_PRINTF_ARG(chan->global_identifier), chan);
+      channel_mark_remote(chan);
+    }
   }
 
   channel_mark_incoming(chan);
