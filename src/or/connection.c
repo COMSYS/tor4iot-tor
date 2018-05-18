@@ -1553,14 +1553,18 @@ connection_handle_listener_read(connection_t *conn, int new_type)
   socklen_t remotelen = (socklen_t)sizeof(addrbuf);
   const or_options_t *options = get_options();
 
+  //IOT:
+  if (new_type == CONN_TYPE_OR_UDP) {
+      newconn = connection_new(new_type, conn->socket_family);
+
+      return connection_tls_start_handshake(TO_OR_CONN(newconn), 1);
+  }
+
   tor_assert((size_t)remotelen >= sizeof(struct sockaddr_in));
   memset(&addrbuf, 0, sizeof(addrbuf));
 
-  if (new_type == CONN_TYPE_OR_UDP) {
-    news = tor_accept_socket(conn->s,remote,&remotelen);
-  } else {
-    news = tor_accept_socket_nonblocking(conn->s,remote,&remotelen);
-  }
+  news = tor_accept_socket_nonblocking(conn->s,remote,&remotelen);
+
   if (!SOCKET_OK(news)) { /* accept() error */
     int e = tor_socket_errno(conn->s);
     if (ERRNO_IS_ACCEPT_EAGAIN(e)) {

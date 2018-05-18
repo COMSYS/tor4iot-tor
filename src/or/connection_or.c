@@ -1329,6 +1329,7 @@ connection_or_close_for_error,(or_connection_t *orconn, int flush))
   }
 }
 
+
 /** Begin the tls handshake with <b>conn</b>. <b>receiving</b> is 0 if
  * we initiated the connection, else it's 1.
  *
@@ -1367,12 +1368,37 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
   tor_tls_set_logged_address(conn->tls, // XXX client and relay?
       escaped_safe_str(conn->base_.address));
 
-  connection_start_reading(TO_CONN(conn));
-  log_debug(LD_HANDSHAKE,"starting TLS handshake on fd "TOR_SOCKET_T_FORMAT,
-            conn->base_.s);
+  if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+    struct sockaddr_in6 server_addr, client_addr;
 
-  if (connection_tls_continue_handshake(conn) < 0)
-    return -1;
+    while (!tor_dtls_listen(conn->tls, (BIO_ADDR*) &client_addr));
+
+    server_addr.sin6_family = TO_CONN(conn)->addr.family;
+    server_addr.sin6_port = TO_CONN(conn)->port;
+    memcpy(&server_addr.sin6_addr, &TO_CONN(conn)->addr.addr.in6_addr, 16);
+
+    /* Handle client connection */
+    int client_fd = socket(AF_INET6, SOCK_DGRAM, 0);
+    bind(client_fd, &server_addr, sizeof(struct sockaddr_in6));
+    connect(client_fd, &client_addr, sizeof(struct sockaddr_in6));
+
+    /* Set new fd and set BIO to connected */
+    BIO *cbio = tor_dtls_get_rbio(conn->tls);
+    BIO_set_fd(cbio, client_fd, BIO_NOCLOSE);
+    BIO_ctrl(cbio, BIO_CTRL_DGRAM_SET_CONNECTED, 0, &client_addr);
+
+    /* Finish handshake */
+    //SSL_accept(conn->tls->ssl);
+    tor_tls_handshake(conn->tls);
+
+  } else {
+    connection_start_reading(TO_CONN(conn));
+    log_debug(LD_HANDSHAKE,"starting TLS handshake on fd "TOR_SOCKET_T_FORMAT,
+	      conn->base_.s);
+
+    if (connection_tls_continue_handshake(conn) < 0)
+      return -1;
+  }
 
   return 0;
 }

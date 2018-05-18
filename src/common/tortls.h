@@ -289,5 +289,9 @@ const char *tor_tls_get_ciphersuite_name(tor_tls_t *tls);
 
 int evaluate_ecgroup_for_tls(const char *ecgroup);
 
+int tor_dtls_listen (tor_tls_t *tls, BIO_ADDR *client);
+
+BIO * tor_dtls_get_rbio (tor_tls_t *tls);
+
 #endif /* !defined(TOR_TORTLS_H) */
 

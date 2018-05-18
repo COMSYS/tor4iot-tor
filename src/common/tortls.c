@@ -1936,6 +1936,16 @@ tor_tls_write(tor_tls_t *tls, const char *cp, size_t n)
   return err;
 }
 
+int
+tor_dtls_listen (tor_tls_t *tls, BIO_ADDR *client) {
+  return DTLSv1_listen(tls->ssl, client);
+}
+
+BIO *
+tor_dtls_get_rbio (tor_tls_t *tls) {
+  return SSL_get_rbio(tls->ssl);
+}
+
 /** Perform initial handshake on <b>tls</b>.  When finished, returns
  * TOR_TLS_DONE.  On failure, returns TOR_TLS_ERROR, TOR_TLS_WANTREAD,
  * or TOR_TLS_WANTWRITE.
