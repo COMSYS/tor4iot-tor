@@ -1720,7 +1720,12 @@ tor_tls_new(int sock, int isServer, int is_dtls)
     goto err;
   }
   result->socket = sock;
-  bio = BIO_new_socket(sock, BIO_NOCLOSE);
+
+  if (is_dtls) {
+    bio = BIO_new_dgram(sock, BIO_NOCLOSE);
+  } else {
+    bio = BIO_new_socket(sock, BIO_NOCLOSE);
+  }
   if (! bio) {
     tls_log_errors(NULL, LOG_WARN, LD_NET, "opening BIO");
 #ifdef SSL_set_tlsext_host_name
