@@ -1365,8 +1365,6 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     log_warn(LD_BUG,"tor_tls_new failed. Closing.");
     return -1;
   }
-  tor_tls_set_logged_address(conn->tls, // XXX client and relay?
-      escaped_safe_str(conn->base_.address));
 
   if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
     struct sockaddr_in6 server_addr, client_addr;
@@ -1392,6 +1390,9 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     tor_tls_handshake(conn->tls);
 
   } else {
+    tor_tls_set_logged_address(conn->tls, // XXX client and relay?
+    escaped_safe_str(conn->base_.address));
+
     connection_start_reading(TO_CONN(conn));
     log_debug(LD_HANDSHAKE,"starting TLS handshake on fd "TOR_SOCKET_T_FORMAT,
 	      conn->base_.s);
