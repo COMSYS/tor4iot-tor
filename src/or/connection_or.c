@@ -1369,7 +1369,11 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
   if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
     struct sockaddr_in6 server_addr, client_addr;
 
+    log_notice(LD_OR, "Trying to listen to DTLS.");
+
     while (!tor_dtls_listen(conn->tls, (BIO_ADDR*) &client_addr));
+
+    log_notice(LD_OR, "Got DTLS connection request. Handling.");
 
     server_addr.sin6_family = TO_CONN(conn)->addr.family;
     server_addr.sin6_port = TO_CONN(conn)->port;
@@ -1380,10 +1384,14 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     bind(client_fd, &server_addr, sizeof(struct sockaddr_in6));
     connect(client_fd, &client_addr, sizeof(struct sockaddr_in6));
 
+    log_notice(LD_OR, "Connected to client with fd %d", client_fd);
+
     /* Set new fd and set BIO to connected */
     BIO *cbio = tor_dtls_get_rbio(conn->tls);
     BIO_set_fd(cbio, client_fd, BIO_NOCLOSE);
     BIO_ctrl(cbio, BIO_CTRL_DGRAM_SET_CONNECTED, 0, &client_addr);
+
+    log_notice(LD_OR, "Finishing DTLS handshake.");
 
     /* Finish handshake */
     //SSL_accept(conn->tls->ssl);
