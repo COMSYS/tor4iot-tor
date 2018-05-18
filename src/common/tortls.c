@@ -158,6 +158,115 @@ static int tls_library_is_initialized = 0;
 #define TOR_TLS_SYSCALL_    (MIN_TOR_TLS_ERROR_VAL_ - 2)
 #define TOR_TLS_ZERORETURN_ (MIN_TOR_TLS_ERROR_VAL_ - 1)
 
+
+
+//IOT:
+
+#define COOKIE_SECRET_LENGTH 16
+
+STATIC unsigned char cookie_secret[COOKIE_SECRET_LENGTH];
+STATIC int cookie_initialized=0;
+
+static int tor_dtls_generate_cookie (SSL *ssl, unsigned char *cookie, unsigned int *cookie_len)
+{
+  unsigned char *buffer, result[EVP_MAX_MD_SIZE];
+  unsigned int length = 0, resultlength;
+
+  union {
+    struct sockaddr_storage ss;
+    struct sockaddr_in6 s6;
+    struct sockaddr_in s4;
+  } peer;
+
+  /* Initialize a random secret */
+  if (!cookie_initialized) {
+    if (!RAND_bytes(cookie_secret, COOKIE_SECRET_LENGTH))
+      {
+	log_warn(LD_NET, "error setting random cookie secret");
+	return 0;
+      }
+    cookie_initialized = 1;
+  }
+
+
+  /* Read peer information */
+  (void) BIO_dgram_get_peer(SSL_get_rbio(ssl), &peer);
+
+  /* Create buffer with peer's address and port */
+  length = 0;
+  length += sizeof(struct in6_addr);
+  length += sizeof(in_port_t);
+
+  buffer = (unsigned char*) tor_malloc(length);
+
+  memcpy(buffer,
+	 &peer.s6.sin6_port,
+	 sizeof(in_port_t));
+
+  memcpy(buffer + sizeof(in_port_t),
+	 &peer.s6.sin6_addr,
+	 sizeof(struct in6_addr));
+
+  /* Calculate HMAC of buffer using the secret */
+  HMAC(EVP_sha1(), (const void*) cookie_secret, COOKIE_SECRET_LENGTH,
+       (const unsigned char*) buffer, length, result, &resultlength);
+
+  tor_free(buffer);
+
+  memcpy(cookie, result, resultlength);
+  *cookie_len = resultlength;
+
+  return 1;
+}
+
+static int tor_dtls_verify_cookie (SSL *ssl, const unsigned char *cookie, unsigned int cookie_len)
+{
+  unsigned char *buffer, result[EVP_MAX_MD_SIZE];
+  unsigned int length = 0, resultlength;
+  union {
+    struct sockaddr_storage ss;
+    struct sockaddr_in6 s6;
+    struct sockaddr_in s4;
+  } peer;
+
+  /* If secret isn't initialized yet, the cookie can't be valid */
+  if (!cookie_initialized)
+    return 0;
+
+  /* Read peer information */
+  (void) BIO_dgram_get_peer(SSL_get_rbio(ssl), &peer);
+
+  /* Create buffer with peer's address and port */
+  length = 0;
+
+  length += sizeof(struct in6_addr);
+  length += sizeof(in_port_t);
+
+  buffer = (unsigned char*) tor_malloc(length);
+
+  memcpy(buffer,
+	 &peer.s6.sin6_port,
+	 sizeof(in_port_t));
+
+  memcpy(buffer + sizeof(in_port_t),
+	 &peer.s6.sin6_addr,
+	 sizeof(struct in6_addr));
+
+  /* Calculate HMAC of buffer using the secret */
+  HMAC(EVP_sha1(), (const void*) cookie_secret, COOKIE_SECRET_LENGTH,
+       (const unsigned char*) buffer, length, result, &resultlength);
+
+  tor_free(buffer);
+
+  if (cookie_len == resultlength && memcmp(result, cookie, resultlength) == 0)
+    return 1;
+
+  return 0;
+}
+
+// END IOT
+
+
 /** Write a description of the current state of <b>tls</b> into the
  * <b>sz</b>-byte buffer at <b>buf</b>. */
 void
@@ -1042,13 +1151,17 @@ tor_tls_context_init(unsigned flags,
                                    server_identity,
                                    key_lifetime, flags, 0, 1);
 
-    if (rv1 >= 0) {
+    if (rv2 >= 0) {
       new_ctx = server_dtls_context;
       tor_tls_context_incref(new_ctx);
 
       if (old_ctx != NULL) {
         tor_tls_context_decref(old_ctx);
       }
+
+      SSL_CTX_set_read_ahead(new_ctx->ctx, 1);
+      SSL_CTX_set_cookie_generate_cb(new_ctx->ctx, tor_dtls_generate_cookie);
+      SSL_CTX_set_cookie_verify_cb(new_ctx->ctx, &tor_dtls_verify_cookie);
     }
   } else {
     if (server_identity != NULL) {
@@ -2693,4 +2806,3 @@ evaluate_ecgroup_for_tls(const char *ecgroup)
 
   return ret;
 }
-
