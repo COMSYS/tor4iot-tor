@@ -1957,7 +1957,11 @@ tor_dtls_listen (tor_tls_t *tls, BIO_ADDR *client) {
 
 BIO *
 tor_dtls_get_rbio (tor_tls_t *tls) {
-  return SSL_get_rbio(tls->ssl);
+  BIO *result;
+
+  result = SSL_get_rbio(tls->ssl);
+
+  return result;
 }
 
 /** Perform initial handshake on <b>tls</b>.  When finished, returns
