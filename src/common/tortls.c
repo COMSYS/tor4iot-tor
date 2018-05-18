@@ -1981,7 +1981,7 @@ tor_tls_handshake(tor_tls_t *tls)
               SSL_state_string_long(tls->ssl));
     r = SSL_accept(tls->ssl);
 
-    log_debug(LD_HANDSHAKE, "Return value of SSL_accept() was %d");
+    log_debug(LD_HANDSHAKE, "Return value of SSL_accept() was %d", r);
   } else {
     log_debug(LD_HANDSHAKE, "About to call SSL_connect on %p (%s)", tls,
               SSL_state_string_long(tls->ssl));
