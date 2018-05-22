@@ -1573,9 +1573,10 @@ connection_handle_listener_read(connection_t *conn, int new_type)
 
   //IOT:
   if (new_type == CONN_TYPE_OR_UDP) {
-      log_notice(LD_NET, "Incoming UDP connection. Starting DTLS handshake.");
+      log_notice(LD_NET, "Incoming UDP connection on fd %d. Starting DTLS handshake.", conn->s);
 
       newconn = connection_new(new_type, conn->socket_family);
+      newconn->s = conn->s;
 
       return connection_tls_start_handshake(TO_OR_CONN(newconn), 1);
   }
