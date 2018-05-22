@@ -1389,9 +1389,10 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
     log_notice(LD_OR, "Got DTLS connection request. Handling.");
 
-    server_addr.sin6_family = TO_CONN(conn)->addr.family;
+    server_addr.sin6_family = AF_INET6; //TO_CONN(conn)->addr.family;
     server_addr.sin6_port = htons(TO_CONN(conn)->port);
-    memcpy(&server_addr.sin6_addr, &TO_CONN(conn)->addr.addr.in6_addr, 16);
+    //memcpy(&server_addr.sin6_addr, &TO_CONN(conn)->addr.addr.in6_addr, 16);
+    server_addr.sin6_addr = in6addr_any;
 
     inet_ntop(AF_INET6, &server_addr.sin6_addr, straddr_server, sizeof(straddr_server));
     log_notice(LD_OR, "Try binding socket on IP %s and port %d.",
@@ -1404,11 +1405,9 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     setsockopt(TO_CONN(conn)->s, SOL_SOCKET, SO_REUSEADDR, (const void*) &one, (socklen_t) sizeof(one));
     setsockopt(TO_CONN(conn)->s, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&zero, sizeof(zero));
 
-    server_addr.sin6_addr = in6addr_any;
-
     err = bind(TO_CONN(conn)->s, &server_addr, sizeof(struct sockaddr_in6));
     if (err) {
-	log_err(LD_OR, "UDP bind of fd %d failed with error %d.", TO_CONN(conn)->s, err);
+	log_err(LD_OR, "UDP bind of fd %d failed with error %d.", TO_CONN(conn)->s, errno);
 	tor_assert(0);
     }
 
