@@ -1368,6 +1368,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
   if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
     struct sockaddr_in6 server_addr, client_addr;
+    char straddr_server[INET6_ADDRSTRLEN], straddr_client[INET6_ADDRSTRLEN];
 
     log_notice(LD_OR, "Trying to listen to DTLS.");
 
@@ -1389,7 +1390,13 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     bind(TO_CONN(conn)->s, &server_addr, sizeof(struct sockaddr_in6));
     connect(TO_CONN(conn)->s, &client_addr, sizeof(struct sockaddr_in6));
 
-    log_notice(LD_OR, "Connected to client with fd %d", TO_CONN(conn)->s);
+    inet_ntop(AF_INET6, &client_addr.sin6_addr, straddr_client, sizeof(straddr_client));
+    inet_ntop(AF_INET6, &server_addr.sin6_addr, straddr_server, sizeof(straddr_server));
+
+    log_notice(LD_OR, "Connected to client %s on port %d with fd %d. Our IP is %s. Our port is %d.",
+	       straddr_client, ntohs(client_addr.sin6_port),
+	       TO_CONN(conn)->s,
+	       straddr_server, ntohs(server_addr.sin6_port));
 
     /* Set new fd and set BIO to connected */
     BIO *cbio = tor_dtls_get_rbio(conn->tls);
