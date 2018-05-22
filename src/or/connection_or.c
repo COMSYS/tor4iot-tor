@@ -1390,7 +1390,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     log_notice(LD_OR, "Got DTLS connection request. Handling.");
 
     server_addr.sin6_family = TO_CONN(conn)->addr.family;
-    server_addr.sin6_port = TO_CONN(conn)->port;
+    server_addr.sin6_port = htons(TO_CONN(conn)->port);
     memcpy(&server_addr.sin6_addr, &TO_CONN(conn)->addr.addr.in6_addr, 16);
 
     inet_ntop(AF_INET6, &server_addr.sin6_addr, straddr_server, sizeof(straddr_server));
