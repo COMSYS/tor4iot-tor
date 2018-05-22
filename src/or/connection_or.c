@@ -1372,7 +1372,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
     log_notice(LD_OR, "Trying to listen to DTLS.");
 
-    while (!tor_dtls_listen(conn->tls, (BIO_ADDR*) &client_addr));
+    while (tor_dtls_listen(conn->tls, (BIO_ADDR*) &client_addr) <= 0);
 
     log_notice(LD_OR, "Got DTLS connection request. Handling.");
 
