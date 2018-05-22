@@ -1400,8 +1400,16 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     setsockopt(TO_CONN(conn)->s, SOL_SOCKET, SO_REUSEADDR, (const void*) &one, (socklen_t) sizeof(one));
     setsockopt(TO_CONN(conn)->s, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&zero, sizeof(zero));
 
-    bind(TO_CONN(conn)->s, &server_addr, sizeof(struct sockaddr_in6));
-    connect(TO_CONN(conn)->s, &client_addr, sizeof(struct sockaddr_in6));
+    if (bind(TO_CONN(conn)->s, &server_addr, sizeof(struct sockaddr_in6))) {
+	log_err(LD_OR, "UDP bind of fd %d failed.", TO_CONN(conn)->s);
+	tor_assert(0);
+    }
+
+    if (connect(TO_CONN(conn)->s, &client_addr, sizeof(struct sockaddr_in6))) {
+    	log_err(LD_OR, "UDP connect of fd %d failed.", TO_CONN(conn)->s);
+    	tor_assert(0);
+    }
+
 
     inet_ntop(AF_INET6, &client_addr.sin6_addr, straddr_client, sizeof(straddr_client));
     inet_ntop(AF_INET6, &server_addr.sin6_addr, straddr_server, sizeof(straddr_server));
