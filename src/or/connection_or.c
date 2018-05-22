@@ -1390,7 +1390,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     log_notice(LD_OR, "Got DTLS connection request. Handling.");
 
     server_addr.sin6_family = TO_CONN(conn)->addr.family;
-    server_addr.sin6_port = TO_CONN(conn)->port;
+    server_addr.sin6_port = 0; //TO_CONN(conn)->port;
     memcpy(&server_addr.sin6_addr, &TO_CONN(conn)->addr.addr.in6_addr, 16);
 
     /* Handle client connection */
@@ -1398,7 +1398,6 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
     int one = 1, zero = 0;
     setsockopt(TO_CONN(conn)->s, SOL_SOCKET, SO_REUSEADDR, (const void*) &one, (socklen_t) sizeof(one));
-    setsockopt(TO_CONN(conn)->s, SOL_SOCKET, SO_REUSEPORT, (const void*) &one, (socklen_t) sizeof(one));
     setsockopt(TO_CONN(conn)->s, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&zero, sizeof(zero));
 
 
