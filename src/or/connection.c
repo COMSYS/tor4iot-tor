@@ -1571,6 +1571,9 @@ connection_handle_listener_read(connection_t *conn, int new_type)
       newconn = connection_new(new_type, conn->socket_family);
       newconn->s = conn->s;
 
+      newconn->port = conn->port;
+      memcpy(&newconn->addr.addr.in6_addr, &conn->addr.addr.in6_addr, 16);
+
       return connection_tls_start_handshake(TO_OR_CONN(newconn), 1);
   }
 
