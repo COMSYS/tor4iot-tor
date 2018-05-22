@@ -1378,7 +1378,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
 	if (listen < 0) {
 	    //FATAL ERROR
-	    log_error(LD_OR, "Fatal Error in DTLSv1_listen. %d.", listen);
+	    log_err(LD_OR, "Fatal Error in DTLSv1_listen. %d.", listen);
 
 	    return 0;
 	}
