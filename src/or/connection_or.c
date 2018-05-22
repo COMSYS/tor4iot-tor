@@ -1381,6 +1381,11 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
     /* Handle client connection */
     TO_CONN(conn)->s = socket(AF_INET6, SOCK_DGRAM, 0);
+
+    int one = 1, zero = 0;
+    setsockopt(TO_CONN(conn)->s, SOL_SOCKET, SO_REUSEADDR, (const void*) &one, (socklen_t) sizeof(one));
+    setsockopt(TO_CONN(conn)->s, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&zero, sizeof(zero));
+
     bind(TO_CONN(conn)->s, &server_addr, sizeof(struct sockaddr_in6));
     connect(TO_CONN(conn)->s, &client_addr, sizeof(struct sockaddr_in6));
 

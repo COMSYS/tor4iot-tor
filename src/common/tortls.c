@@ -1317,6 +1317,7 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
     //SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, dtls_verify_callback);
 
     SSL_CTX_set_read_ahead(result->ctx, 1);
+    SSL_CTX_set_verify_depth(result->ctx, 2);
     SSL_CTX_set_cookie_generate_cb(result->ctx, tor_dtls_generate_cookie);
     SSL_CTX_set_cookie_verify_cb(result->ctx, &tor_dtls_verify_cookie);
 
@@ -1843,7 +1844,13 @@ tor_tls_new(int sock, int isServer, int is_dtls)
   result->socket = sock;
 
   if (is_dtls) {
+    struct timeval timeout;
+
     bio = BIO_new_dgram(sock, BIO_NOCLOSE);
+
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 0;
+    BIO_ctrl(bio, BIO_CTRL_DGRAM_SET_RECV_TIMEOUT, 0, &timeout);
   } else {
     bio = BIO_new_socket(sock, BIO_NOCLOSE);
   }
@@ -1865,6 +1872,11 @@ tor_tls_new(int sock, int isServer, int is_dtls)
     }
   }
   SSL_set_bio(result->ssl, bio, bio);
+
+  if (is_dtls) {
+    SSL_set_options(result->ssl, SSL_OP_COOKIE_EXCHANGE);
+  }
+
   tor_tls_context_incref(context);
   result->context = context;
   result->state = TOR_TLS_ST_HANDSHAKE;

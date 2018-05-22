@@ -1265,6 +1265,24 @@ connection_listener_new(const struct sockaddr *listensockaddr,
     }
 #endif /* defined(IPV6_V6ONLY) */
 
+    if (type == CONN_TYPE_OR_UDP_LISTENER) {
+      int one = 1, zero=0;
+      if (setsockopt(s,IPPROTO_IPV6, IPV6_V6ONLY,
+		     (void*)&zero, (socklen_t)sizeof(zero)) < 0) {
+	int e = tor_socket_errno(s);
+	log_warn(LD_NET, "Error setting IPV6_V6ONLY flag: %s",
+	         tor_socket_strerror(e));
+	/* Keep going; probably not harmful. */
+      }
+      if (setsockopt(s,IPPROTO_IPV6, IPV6_V6ONLY,
+      		     (void*)&one, (socklen_t)sizeof(one)) < 0) {
+        int e = tor_socket_errno(s);
+        log_warn(LD_NET, "Error setting IPV6_V6ONLY flag: %s",
+      	         tor_socket_strerror(e));
+        /* Keep going; probably not harmful. */
+      }
+    }
+
     if (bind(s,listensockaddr,socklen) < 0) {
       const char *helpfulhint = "";
       int e = tor_socket_errno(s);
