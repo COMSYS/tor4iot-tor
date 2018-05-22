@@ -1266,7 +1266,7 @@ connection_listener_new(const struct sockaddr *listensockaddr,
 #endif /* defined(IPV6_V6ONLY) */
 
     if (type == CONN_TYPE_OR_UDP_LISTENER) {
-      int one = 1, zero=0;
+      int zero=0;
       if (setsockopt(s,IPPROTO_IPV6, IPV6_V6ONLY,
 		     (void*)&zero, (socklen_t)sizeof(zero)) < 0) {
 	int e = tor_socket_errno(s);
