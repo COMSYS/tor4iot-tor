@@ -2090,7 +2090,13 @@ tor_tls_write(tor_tls_t *tls, const char *cp, size_t n)
 
 int
 tor_dtls_listen (tor_tls_t *tls, BIO_ADDR *client) {
-  return DTLSv1_listen(tls->ssl, client);
+  int result = DTLSv1_listen(tls->ssl, client);
+
+  if (result < 0) {
+      tor_tls_get_error(tls,result,0, "pre_handshaking", LOG_INFO, LD_HANDSHAKE);
+  }
+
+  return result;
 }
 
 BIO *

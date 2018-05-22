@@ -1380,11 +1380,6 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 	    //FATAL ERROR
 	    log_err(LD_OR, "Fatal Error in DTLSv1_listen. %d.", listen);
 
-	    unsigned long err = ERR_get_error();
-
-	    log_err(LD_OR, "SSL connect err code:[%lu](%s)\n", err, ERR_error_string(err, NULL));
-	    log_err(LD_OR, "Error is %s \n",ERR_reason_error_string(err));
-
 	    while(1);
 
 	    return 0;
