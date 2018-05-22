@@ -1274,10 +1274,10 @@ connection_listener_new(const struct sockaddr *listensockaddr,
 	         tor_socket_strerror(e));
 	/* Keep going; probably not harmful. */
       }
-      if (setsockopt(s,IPPROTO_IPV6, IPV6_V6ONLY,
+      if (setsockopt(s, SOL_SOCKET, SO_REUSEPORT,
       		     (void*)&one, (socklen_t)sizeof(one)) < 0) {
         int e = tor_socket_errno(s);
-        log_warn(LD_NET, "Error setting IPV6_V6ONLY flag: %s",
+        log_warn(LD_NET, "Error setting SO_REUSEPORT flag: %s",
       	         tor_socket_strerror(e));
         /* Keep going; probably not harmful. */
       }

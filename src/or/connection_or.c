@@ -1398,6 +1398,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
     int one = 1, zero = 0;
     setsockopt(TO_CONN(conn)->s, SOL_SOCKET, SO_REUSEADDR, (const void*) &one, (socklen_t) sizeof(one));
+    setsockopt(TO_CONN(conn)->s, SOL_SOCKET, SO_REUSEPORT, (const void*) &one, (socklen_t) sizeof(one));
     setsockopt(TO_CONN(conn)->s, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&zero, sizeof(zero));
 
 
