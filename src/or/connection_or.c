@@ -1404,6 +1404,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     setsockopt(TO_CONN(conn)->s, SOL_SOCKET, SO_REUSEADDR, (const void*) &one, (socklen_t) sizeof(one));
     setsockopt(TO_CONN(conn)->s, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&zero, sizeof(zero));
 
+    server_addr.sin6_addr = in6addr_any;
 
     err = bind(TO_CONN(conn)->s, &server_addr, sizeof(struct sockaddr_in6));
     if (err) {
