@@ -1816,12 +1816,10 @@ tor_tls_new(int sock, int isServer, int is_dtls)
 
   check_no_tls_errors();
   tor_assert(context); /* make sure somebody made it first */
-  if(!is_dtls) {
-    if (!(result->ssl = SSL_new(context->ctx))) {
-      tls_log_errors(NULL, LOG_WARN, LD_NET, "creating SSL object");
-      tor_free(result);
-      goto err;
-    }
+  if (!(result->ssl = SSL_new(context->ctx))) {
+    tls_log_errors(NULL, LOG_WARN, LD_NET, "creating SSL object");
+    tor_free(result);
+    goto err;
   }
 
 #ifdef SSL_set_tlsext_host_name
@@ -1833,15 +1831,17 @@ tor_tls_new(int sock, int isServer, int is_dtls)
   }
 #endif /* defined(SSL_set_tlsext_host_name) */
 
-  if (!SSL_set_cipher_list(result->ssl,
-                     isServer ? SERVER_CIPHER_LIST : CLIENT_CIPHER_LIST)) {
-    tls_log_errors(NULL, LOG_WARN, LD_NET, "setting ciphers");
+  if (!is_dtls) {
+    if (!SSL_set_cipher_list(result->ssl,
+		       isServer ? SERVER_CIPHER_LIST : CLIENT_CIPHER_LIST)) {
+      tls_log_errors(NULL, LOG_WARN, LD_NET, "setting ciphers");
 #ifdef SSL_set_tlsext_host_name
-    SSL_set_tlsext_host_name(result->ssl, NULL);
+      SSL_set_tlsext_host_name(result->ssl, NULL);
 #endif
-    SSL_free(result->ssl);
-    tor_free(result);
-    goto err;
+      SSL_free(result->ssl);
+      tor_free(result);
+      goto err;
+    }
   }
   result->socket = sock;
 
