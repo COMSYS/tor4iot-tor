@@ -1373,13 +1373,13 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
     log_notice(LD_OR, "Trying to listen to DTLS.");
 
-    int listen = 0;
-    while (listen == 0) {
-	listen = tor_dtls_listen(conn->tls, (BIO_ADDR*) &client_addr);
+    int err = 0;
+    while (err == 0) {
+	err = tor_dtls_listen(conn->tls, (BIO_ADDR*) &client_addr);
 
-	if (listen < 0) {
+	if (err < 0) {
 	    //FATAL ERROR
-	    log_err(LD_OR, "Fatal Error in DTLSv1_listen. %d.", listen);
+	    log_err(LD_OR, "Fatal Error in DTLSv1_listen. %d.", err);
 
 	    tor_assert(0);
 
@@ -1400,13 +1400,16 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     setsockopt(TO_CONN(conn)->s, SOL_SOCKET, SO_REUSEADDR, (const void*) &one, (socklen_t) sizeof(one));
     setsockopt(TO_CONN(conn)->s, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&zero, sizeof(zero));
 
-    if (bind(TO_CONN(conn)->s, &server_addr, sizeof(struct sockaddr_in6))) {
-	log_err(LD_OR, "UDP bind of fd %d failed.", TO_CONN(conn)->s);
+
+    err = bind(TO_CONN(conn)->s, &server_addr, sizeof(struct sockaddr_in6));
+    if (err) {
+	log_err(LD_OR, "UDP bind of fd %d failed with error %d.", TO_CONN(conn)->s, err);
 	tor_assert(0);
     }
 
-    if (connect(TO_CONN(conn)->s, &client_addr, sizeof(struct sockaddr_in6))) {
-    	log_err(LD_OR, "UDP connect of fd %d failed.", TO_CONN(conn)->s);
+    err = connect(TO_CONN(conn)->s, &client_addr, sizeof(struct sockaddr_in6));
+    if (err) {
+    	log_err(LD_OR, "UDP connect of fd %d failed with error %d.", TO_CONN(conn)->s, err);
     	tor_assert(0);
     }
 
