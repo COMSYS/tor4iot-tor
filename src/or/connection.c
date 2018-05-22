@@ -1569,8 +1569,8 @@ connection_handle_listener_read(connection_t *conn, int new_type)
       log_notice(LD_NET, "Incoming UDP connection on fd %d. Starting DTLS handshake.", conn->s);
 
       newconn = connection_new(new_type, conn->socket_family);
-      newconn->s = conn->s;
 
+      newconn->s = conn->s;
       newconn->port = conn->port;
       memcpy(&newconn->addr.addr.in6_addr, &conn->addr.addr.in6_addr, 16);
 

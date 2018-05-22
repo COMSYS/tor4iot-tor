@@ -1816,10 +1816,12 @@ tor_tls_new(int sock, int isServer, int is_dtls)
 
   check_no_tls_errors();
   tor_assert(context); /* make sure somebody made it first */
-  if (!(result->ssl = SSL_new(context->ctx))) {
-    tls_log_errors(NULL, LOG_WARN, LD_NET, "creating SSL object");
-    tor_free(result);
-    goto err;
+  if(!is_dtls) {
+    if (!(result->ssl = SSL_new(context->ctx))) {
+      tls_log_errors(NULL, LOG_WARN, LD_NET, "creating SSL object");
+      tor_free(result);
+      goto err;
+    }
   }
 
 #ifdef SSL_set_tlsext_host_name
