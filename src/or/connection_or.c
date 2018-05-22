@@ -1380,6 +1380,8 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 	    //FATAL ERROR
 	    log_err(LD_OR, "Fatal Error in DTLSv1_listen. %d.", listen);
 
+	    connection_mark_for_close(TO_CONN(conn));
+
 	    return 0;
 	}
     }
