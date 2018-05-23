@@ -1434,7 +1434,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
     /* Finish handshake */
     //SSL_accept(conn->tls->ssl);
-    tor_tls_handshake(conn->tls);
+    assert(tor_tls_handshake(conn->tls) == -1);
 
   } else {
     tor_tls_set_logged_address(conn->tls, // XXX client and relay?
