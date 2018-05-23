@@ -1429,23 +1429,19 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     BIO_set_fd(cbio, TO_CONN(conn)->s, BIO_NOCLOSE);
     BIO_ctrl(cbio, BIO_CTRL_DGRAM_SET_CONNECTED, 0, &client_addr);
 
-    log_notice(LD_OR, "Finishing DTLS handshake.");
+    log_notice(LD_OR, "Starting DTLS handshake.");
 
-    /* Finish handshake */
-    //SSL_accept(conn->tls->ssl);
-    tor_assert(tor_tls_handshake(conn->tls) != -1);
-
-  } else {
-    tor_tls_set_logged_address(conn->tls, // XXX client and relay?
-    escaped_safe_str(conn->base_.address));
-
-    connection_start_reading(TO_CONN(conn));
-    log_debug(LD_HANDSHAKE,"starting TLS handshake on fd "TOR_SOCKET_T_FORMAT,
-	      conn->base_.s);
-
-    if (connection_tls_continue_handshake(conn) < 0)
-      return -1;
   }
+  tor_tls_set_logged_address(conn->tls, // XXX client and relay?
+  escaped_safe_str(conn->base_.address));
+
+  connection_start_reading(TO_CONN(conn));
+  log_debug(LD_HANDSHAKE,"starting TLS handshake on fd "TOR_SOCKET_T_FORMAT,
+            conn->base_.s);
+
+  if (connection_tls_continue_handshake(conn) < 0)
+    return -1;
+
 
   return 0;
 }
