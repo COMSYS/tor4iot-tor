@@ -1346,8 +1346,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
   /* Incoming connections will need a new channel passed to the
    * channel_tls_listener */
-  // TODO:
-  if (receiving && !(TO_CONN(conn)->type == CONN_TYPE_OR_UDP)) {
+  if (receiving) {
     /* It shouldn't already be set */
     tor_assert(!(conn->chan));
     chan_listener = channel_tls_get_listener();
