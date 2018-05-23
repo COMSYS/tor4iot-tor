@@ -1431,9 +1431,10 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
     log_notice(LD_OR, "Starting DTLS handshake.");
 
+  } else {
+      tor_tls_set_logged_address(conn->tls, // XXX client and relay?
+				 escaped_safe_str(conn->base_.address));
   }
-  tor_tls_set_logged_address(conn->tls, // XXX client and relay?
-  escaped_safe_str(conn->base_.address));
 
   connection_start_reading(TO_CONN(conn));
   log_debug(LD_HANDSHAKE,"starting TLS handshake on fd "TOR_SOCKET_T_FORMAT,
