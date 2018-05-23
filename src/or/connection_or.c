@@ -1429,6 +1429,11 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     BIO_set_fd(cbio, TO_CONN(conn)->s, BIO_NOCLOSE);
     BIO_ctrl(cbio, BIO_CTRL_DGRAM_SET_CONNECTED, 0, &client_addr);
 
+    if (connection_add(TO_CONN(conn)) < 0) { /* no space, forget it */
+      connection_free(TO_CONN(conn));
+      return 0; /* no need to tear down the parent */
+    }
+
     log_notice(LD_OR, "Starting DTLS handshake.");
 
   } else {
