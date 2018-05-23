@@ -1321,7 +1321,6 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
     SSL_CTX_set_cookie_generate_cb(result->ctx, &tor_dtls_generate_cookie);
     SSL_CTX_set_cookie_verify_cb(result->ctx, &tor_dtls_verify_cookie);
 
-    return result;
   }
 
   SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv2);
