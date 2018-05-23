@@ -5022,6 +5022,7 @@ assert_connection_ok(connection_t *conn, time_t now)
   switch (conn->type) {
     case CONN_TYPE_OR:
     case CONN_TYPE_EXT_OR:
+    case CONN_TYPE_OR_UDP:
       tor_assert(conn->magic == OR_CONNECTION_MAGIC);
       break;
     case CONN_TYPE_AP:
@@ -5075,7 +5076,7 @@ assert_connection_ok(connection_t *conn, time_t now)
   if (conn->outbuf)
     buf_assert_ok(conn->outbuf);
 
-  if (conn->type == CONN_TYPE_OR) {
+  if (conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_OR_UDP) {
     or_connection_t *or_conn = TO_OR_CONN(conn);
     if (conn->state == OR_CONN_STATE_OPEN) {
       /* tor_assert(conn->bandwidth > 0); */
