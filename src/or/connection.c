@@ -1574,7 +1574,14 @@ connection_handle_listener_read(connection_t *conn, int new_type)
       newconn->port = conn->port;
       memcpy(&newconn->addr.addr.in6_addr, &conn->addr.addr.in6_addr, 16);
 
-      return connection_tls_start_handshake(TO_OR_CONN(newconn), 1);
+      connection_tls_start_handshake(TO_OR_CONN(newconn), 1);
+
+      // TODO: We need to change the fd of the listener here!
+      connection_close_immediate(conn);
+
+      retry_all_listeners(NULL, NULL, 0);
+
+      return 0;
   }
 
   tor_assert((size_t)remotelen >= sizeof(struct sockaddr_in));
