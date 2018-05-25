@@ -1553,7 +1553,8 @@ int
 connection_or_nonopen_was_started_here(or_connection_t *conn)
 {
   tor_assert(conn->base_.type == CONN_TYPE_OR ||
-             conn->base_.type == CONN_TYPE_EXT_OR);
+             conn->base_.type == CONN_TYPE_EXT_OR ||
+	     conn->base_.type == CONN_TYPE_OR_UDP);
   if (!conn->tls)
     return 1; /* it's still in proxy states or something */
   if (conn->handshake_state)
