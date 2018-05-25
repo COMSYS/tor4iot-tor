@@ -16,11 +16,6 @@
 #include "torlog.h"
 #include "connection.h"
 
-#include <openssl/conf.h>
-#include <openssl/evp.h>
-#include <openssl/err.h>
-#include <openssl/hmac.h>
-
 const uint8_t iot_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 const uint8_t iot_mac_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 
@@ -72,7 +67,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   msg->iot_address.port = htons(10000);
 
   //Compute MAC
-  HMAC(EVP_sha256(), iot_mac_key, 16, (unsigned char *)&(msg->ticket), sizeof(iot_ticket_t)-DIGEST256_LEN, msg->ticket.mac, NULL);
+  crypto_hmac_sha256((char*) (msg->ticket.mac), (char*) iot_mac_key, 16, (char*) &(msg->ticket), sizeof(iot_ticket_t)-DIGEST256_LEN);
 
   //Send it!
   relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_SPLIT, (const char*) msg,
