@@ -560,6 +560,7 @@ connection_or_process_inbuf(or_connection_t *conn)
     case OR_CONN_STATE_OPEN:
     case OR_CONN_STATE_OR_HANDSHAKING_V2:
     case OR_CONN_STATE_OR_HANDSHAKING_V3:
+    case OR_CONN_STATE_OR_JOINING:
       return connection_or_process_cells_from_inbuf(conn);
     default:
       break; /* don't do anything */
