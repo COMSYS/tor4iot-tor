@@ -1517,17 +1517,28 @@ connection_tls_continue_handshake(or_connection_t *conn)
           tor_assert(conn->base_.state == OR_CONN_STATE_TLS_HANDSHAKING);
           return connection_or_launch_v3_or_handshake(conn);
         } else {
-          /* v2/v3 handshake, but we are not a client. */
-          log_debug(LD_OR, "Done with initial SSL handshake (server-side). "
-                           "Expecting renegotiation or VERSIONS cell");
-          tor_tls_set_renegotiate_callback(conn->tls,
-                                           connection_or_tls_renegotiated_cb,
-                                           conn);
-          connection_or_change_state(conn,
-              OR_CONN_STATE_TLS_SERVER_RENEGOTIATING);
-          connection_stop_writing(TO_CONN(conn));
-          connection_start_reading(TO_CONN(conn));
-          return 0;
+          if (TO_CONN(conn)->type != CONN_TYPE_OR_UDP) {
+	    /* v2/v3 handshake, but we are not a client. */
+	    log_debug(LD_OR, "Done with initial SSL handshake (server-side). "
+	              "Expecting renegotiation or VERSIONS cell");
+	    tor_tls_set_renegotiate_callback(conn->tls,
+					     connection_or_tls_renegotiated_cb,
+					     conn);
+            connection_or_change_state(conn,
+				       OR_CONN_STATE_TLS_SERVER_RENEGOTIATING);
+	    connection_stop_writing(TO_CONN(conn));
+	    connection_start_reading(TO_CONN(conn));
+	    return 0;
+          } else {
+            //IOT:
+            log_debug(LD_OR, "Done with DTLS handshake. Expecting JOIN cell now.");
+            connection_or_change_state(conn, OR_CONN_STATE_OR_JOINING);
+
+            connection_stop_writing(TO_CONN(conn));
+            connection_start_reading(TO_CONN(conn));
+
+            return 0;
+          }
         }
       }
       tor_assert(tor_tls_is_server(conn->tls));

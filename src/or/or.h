@@ -306,7 +306,12 @@ typedef enum {
 #define OR_CONN_STATE_OR_HANDSHAKING_V3 7
 /** State for an OR connection: Ready to send/receive cells. */
 #define OR_CONN_STATE_OPEN 8
-#define OR_CONN_STATE_MAX_ 8
+
+//IOT:
+/** State for an connection to an IoT device, awaiting a join cell */
+#define OR_CONN_STATE_OR_JOINING 9
+
+#define OR_CONN_STATE_MAX_ 9
 
 /** States of the Extended ORPort protocol. Be careful before changing
  *  the numbers: they matter. */
