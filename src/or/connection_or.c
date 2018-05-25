@@ -1388,6 +1388,15 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
     log_notice(LD_OR, "Got DTLS connection request. Handling.");
 
+    /* remember the remote address */
+    tor_addr_t addr;
+    uint16_t port;
+
+    tor_addr_from_sockaddr(&addr, (struct sockaddr *)&client_addr, &port);
+
+    tor_addr_copy(&TO_CONN(conn)->addr, &addr);
+    TO_CONN(conn)->address = tor_addr_to_str_dup(&addr);
+
     server_addr.sin6_family = AF_INET6;
     server_addr.sin6_port = htons(TO_CONN(conn)->port);
     server_addr.sin6_addr = in6addr_any;
