@@ -67,7 +67,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   msg->iot_address.port = htons(10000);
 
   //Compute MAC
-  crypto_hmac_sha256((char*) (msg->ticket.mac), (char*) iot_mac_key, 16, (char*) &(msg->ticket), sizeof(iot_ticket_t)-DIGEST256_LEN);
+  HMAC(EVP_sha256(), iot_mac_key, 16, (unsigned char *)&(msg->ticket), sizeof(iot_ticket_t)-DIGEST256_LEN, msg->ticket.mac, NULL);
 
   log_info(LD_GENERAL, "Generated checksum:");
   for (int i=0; i<DIGEST256_LEN; i++) {
