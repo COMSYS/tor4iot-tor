@@ -74,11 +74,6 @@ void iot_ticket_send(origin_circuit_t *circ) {
   //Compute MAC
   HMAC(EVP_sha256(), iot_mac_key, 16, (unsigned char *)&(msg->ticket), sizeof(iot_ticket_t)-DIGEST256_LEN, msg->ticket.mac, NULL);
 
-  log_info(LD_GENERAL, "Generated checksum:");
-  for (int i=0; i<DIGEST256_LEN; i++) {
-      log_info(LD_GENERAL, "%X", msg->ticket.mac[i]);
-  }
-
   //Send it!
   relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_SPLIT, (const char*) msg,
                                sizeof(iot_split_t), split_point);
