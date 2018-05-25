@@ -14,6 +14,7 @@
 #include "relay.h"
 #include "circuitlist.h"
 #include "torlog.h"
+#include "connection.h"
 
 const uint8_t iot_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 const uint8_t iot_mac_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
