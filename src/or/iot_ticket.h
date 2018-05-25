@@ -60,4 +60,6 @@ void iot_ticket_send(origin_circuit_t *circ);
 void iot_process_relay_split(circuit_t *circ, size_t length,
 	                     const uint8_t *payload);
 
+void iot_join(or_connection_t *conn, const var_cell_t *cell);
+
 #endif /* SRC_OR_IOT_TICKET_H_ */

@@ -61,6 +61,8 @@
 #include "channelpadding_negotiation.h"
 #include "channelpadding.h"
 
+#include "iot_ticket.h"
+
 /** How many CELL_PADDING cells have we received, ever? */
 uint64_t stats_n_padding_cells_processed = 0;
 /** How many CELL_VERSIONS cells have we received, ever? */
@@ -1292,6 +1294,10 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
                (int)(conn->link_proto));
         return;
       }
+      break;
+    //IoT:
+    case OR_CONN_STATE_OR_JOINING:
+      iot_join(conn, var_cell);
       break;
     default:
       log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,
