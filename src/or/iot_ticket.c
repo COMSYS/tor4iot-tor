@@ -49,8 +49,6 @@ void iot_ticket_send(origin_circuit_t *circ) {
   memcpy(&msg->ticket.sp_address.in_addr, &split_point->extend_info->sp.addr.addr.in6_addr, 4*32);
   msg->ticket.sp_address.port = htons(split_point->extend_info->sp.port);
 
-  log_info(LD_GENERAL, "IoT device has to connect to SP on port %d", ntohs(msg->ticket.sp_address.port));
-
   //Set key information in ticket
   iot_ticket_set_relay_crypto(&msg->ticket.sp, split_point);
   iot_ticket_set_relay_crypto(&msg->ticket.middle, split_point->next);
@@ -58,6 +56,8 @@ void iot_ticket_send(origin_circuit_t *circ) {
 
   //Set HS material
   memcpy(&msg->ticket.hs_ntor_key, split_point->next->next->next->hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
+
+  log_info(LD_GENERAL, "IoT device has to connect to SP on port %d", ntohs(msg->ticket.sp_address.port));
 
   //Encrypt ticket
   encrypt = aes_new_cipher(iot_key, iot_iv, 128);
