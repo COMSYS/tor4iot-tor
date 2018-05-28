@@ -2612,10 +2612,10 @@ onion_extend_cpath(origin_circuit_t *circ)
     return -1;
   }
 
+
+  //IOT:
   //if (cur_len == state->desired_path_len - 3) {
-      fascist_firewall_choose_address_node(r,
-                                           FIREWALL_OR_CONNECTION,
-                                           0, &info->sp);
+  node_get_pref_ipv6_orport(r, &info->sp);
   //}
 
   log_debug(LD_CIRC,"Chose router %s for hop #%d (exit is %s)",
