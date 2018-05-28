@@ -2614,7 +2614,7 @@ onion_extend_cpath(origin_circuit_t *circ)
 
 
   //IOT:
-  if (circ->base_.purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT && cur_len == state->desired_path_len - 3) {
+  if (circ->base_.purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT && cur_len < state->desired_path_len - 1) {
     log_debug(LD_CIRC, "Save SPs IP");
     node_get_pref_ipv6_orport(r, &info->sp);
   }
