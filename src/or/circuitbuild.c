@@ -2612,11 +2612,11 @@ onion_extend_cpath(origin_circuit_t *circ)
     return -1;
   }
 
-  if (cur_len == state->desired_path_len - 3) {
+  //if (cur_len == state->desired_path_len - 3) {
       fascist_firewall_choose_address_node(r,
                                            FIREWALL_OR_CONNECTION,
                                            0, &info->sp);
-  }
+  //}
 
   log_debug(LD_CIRC,"Chose router %s for hop #%d (exit is %s)",
             extend_info_describe(info),
