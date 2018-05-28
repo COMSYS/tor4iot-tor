@@ -43,6 +43,13 @@ void iot_ticket_send(origin_circuit_t *circ) {
 
   msg = tor_malloc(sizeof(iot_split_t));
 
+  // Fill nonce
+  crypto_rand(msg->ticket.nonce, 2);
+
+  // Fill cookies
+  crypto_rand(msg->cookie, 4);
+  memcpy(&msg->ticket.cookie, &msg->cookie, 4);
+
   // Set SP address in ticket
   // XXX: THIS IS NOT THE UDP PORT, WILL FAIL IF IT IS DIFFERENT FROM TCP PORT
   //tor_assert(split_point->extend_info->addr.family == AF_INET6);
