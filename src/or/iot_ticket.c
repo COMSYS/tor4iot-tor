@@ -38,8 +38,8 @@ void iot_ticket_send(origin_circuit_t *circ) {
 
   log_notice(LD_REND, "Sending ticket.");
 
-  //Choose split point such that we have 3 relays left
-  split_point = circ->cpath->prev->prev->prev;
+  //Choose split point such that we have 3 relays left + HS
+  split_point = circ->cpath->prev->prev->prev->prev;
 
   msg = tor_malloc(sizeof(iot_split_t));
 
