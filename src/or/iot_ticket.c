@@ -44,10 +44,10 @@ void iot_ticket_send(origin_circuit_t *circ) {
   msg = tor_malloc(sizeof(iot_split_t));
 
   // Fill nonce
-  crypto_rand(msg->ticket.nonce, 2);
+  crypto_rand((char *)&msg->ticket.nonce, 2);
 
   // Fill cookies
-  crypto_rand(msg->cookie, 4);
+  crypto_rand((char *)&msg->cookie, 4);
   memcpy(&msg->ticket.cookie, &msg->cookie, 4);
 
   // Set SP address in ticket
