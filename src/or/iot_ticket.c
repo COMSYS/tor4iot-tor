@@ -46,8 +46,8 @@ void iot_ticket_send(origin_circuit_t *circ) {
   // Set SP address in ticket
   // XXX: THIS IS NOT THE UDP PORT, WILL FAIL IF IT IS DIFFERENT FROM TCP PORT
   //tor_assert(split_point->extend_info->addr.family == AF_INET6);
-  memcpy(&msg->ticket.sp_address.in_addr, &split_point->extend_info->addr.addr.in6_addr, 4*32);
-  msg->ticket.sp_address.port = split_point->extend_info->port;
+  memcpy(&msg->ticket.sp_address.in_addr, &split_point->extend_info->sp.addr.addr.in6_addr, 4*32);
+  msg->ticket.sp_address.port = split_point->extend_info->sp.port;
 
   //Set key information in ticket
   iot_ticket_set_relay_crypto(&msg->ticket.sp, split_point);
