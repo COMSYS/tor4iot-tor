@@ -2839,6 +2839,9 @@ typedef struct extend_info_t {
   tor_addr_t addr; /**< IP address. */
   crypto_pk_t *onion_key; /**< Current onionskin key. */
   curve25519_public_key_t curve25519_onion_key;
+
+  //IOT:
+  tor_addr_port_t sp;
 } extend_info_t;
 
 /** Certificate for v3 directory protocol: binds long-term authority identity

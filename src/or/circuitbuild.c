@@ -2573,6 +2573,7 @@ onion_extend_cpath(origin_circuit_t *circ)
   cpath_build_state_t *state = circ->build_state;
   int cur_len = circuit_get_cpath_len(circ);
   extend_info_t *info = NULL;
+  const node_t *r = NULL;
 
   if (cur_len >= state->desired_path_len) {
     log_debug(LD_CIRC, "Path is complete: %d steps long",
@@ -2586,7 +2587,7 @@ onion_extend_cpath(origin_circuit_t *circ)
   if (cur_len == state->desired_path_len - 1) { /* Picking last node */
     info = extend_info_dup(state->chosen_exit);
   } else if (cur_len == 0) { /* picking first node */
-    const node_t *r = choose_good_entry_server(purpose, state,
+    r = choose_good_entry_server(purpose, state,
                                                &circ->guard_state);
     if (r) {
       /* If we're a client, use the preferred address rather than the
@@ -2598,8 +2599,7 @@ onion_extend_cpath(origin_circuit_t *circ)
       tor_assert_nonfatal(info || client);
     }
   } else {
-    const node_t *r =
-      choose_good_middle_server(purpose, state, circ->cpath, cur_len);
+    r = choose_good_middle_server(purpose, state, circ->cpath, cur_len);
     if (r) {
       info = extend_info_from_node(r, 0);
       tor_assert_nonfatal(info);
@@ -2610,6 +2610,12 @@ onion_extend_cpath(origin_circuit_t *circ)
     log_warn(LD_CIRC,"Failed to find node for hop #%d of our path. Discarding "
              "this circuit.", cur_len+1);
     return -1;
+  }
+
+  if (cur_len == state->desired_path_len - 3) {
+      fascist_firewall_choose_address_node(r,
+                                           FIREWALL_OR_CONNECTION,
+                                           0, &info->sp);
   }
 
   log_debug(LD_CIRC,"Chose router %s for hop #%d (exit is %s)",
