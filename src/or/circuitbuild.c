@@ -2615,8 +2615,8 @@ onion_extend_cpath(origin_circuit_t *circ)
 
   //IOT:
   if (circ->base_.purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT && cur_len < state->desired_path_len - 1) {
-    log_debug(LD_CIRC, "Save SPs IP");
     node_get_pref_ipv6_orport(r, &info->sp);
+    log_info(LD_CIRC, "Transmitted SP connection information is %s on port %d", "[IP not printed]", info->sp.port);
   }
 
   log_debug(LD_CIRC,"Chose router %s for hop #%d (exit is %s)",
