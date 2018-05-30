@@ -1533,6 +1533,9 @@ connection_tls_continue_handshake(or_connection_t *conn)
           } else {
             //IOT:
             log_debug(LD_OR, "Done with DTLS handshake. Expecting JOIN cell now.");
+
+            conn->link_proto = MIN_LINK_PROTO_FOR_WIDE_CIRC_IDS; // Make sure we interpret with wide circ ids.
+
             connection_or_change_state(conn, OR_CONN_STATE_OR_JOINING);
 
             connection_stop_writing(TO_CONN(conn));
