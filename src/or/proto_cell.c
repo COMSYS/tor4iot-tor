@@ -60,6 +60,7 @@ fetch_var_cell_from_buf(buf_t *buf, var_cell_t **out, int linkproto)
   buf_peek(buf, hdr, header_len);
 
   command = get_uint8(hdr + circ_id_len);
+  log_info(LD_GENERAL, "Command of incoming var cell is %d", command);
   if (!(cell_command_is_var_length(command, linkproto)))
     return 0;
 
