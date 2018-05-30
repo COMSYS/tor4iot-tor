@@ -64,6 +64,7 @@ fetch_var_cell_from_buf(buf_t *buf, var_cell_t **out, int linkproto)
     return 0;
 
   length = ntohs(get_uint16(hdr + circ_id_len + 1));
+  log_info(LD_GENERAL, "Size of incoming var cell payload is %d", length);
   if (buf_datalen(buf) < (size_t)(header_len+length))
     return 1;
 
