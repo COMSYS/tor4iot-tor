@@ -130,7 +130,7 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
 void
 iot_join(or_connection_t *conn, const var_cell_t *cell)
 {
-  log_debug(LD_GENERAL,
+  log_info(LD_GENERAL,
 	    "Received a variable-length cell with command %d in orconn "
             "state %s [%d].",
             (int)(cell->command),
