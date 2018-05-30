@@ -1563,10 +1563,44 @@ connection_handle_listener_read(connection_t *conn, int new_type)
 
       connection_tls_start_handshake(TO_OR_CONN(newconn), 1);
 
-      // TODO: We need to change the fd of the listener here!
-      connection_close_immediate(conn);
+      // Remove old socket from poll queue of libevent.
+      connection_remove(conn);
 
-      retry_all_listeners(NULL, NULL, 0);
+      // Now bind new socket to IP port for next DTLS connection attempt.
+      struct sockaddr_in6 server_addr;
+      char straddr_server[INET6_ADDRSTRLEN];
+      int err;
+
+      //server_addr.sin6_family = AF_INET6;
+      //server_addr.sin6_port = htons(conn->port);
+
+      tor_addr_to_sockaddr(&conn->addr,
+                           conn->port,
+                           (struct sockaddr*)&server_addr,
+                           sizeof(struct sockaddr_in6));
+
+      inet_ntop(AF_INET6, &server_addr.sin6_addr, straddr_server, sizeof(straddr_server));
+      log_notice(LD_OR, "Rebinding UDP listener socket on IP %s and port %d..",
+      	       straddr_server, ntohs(server_addr.sin6_port));
+
+      /* Handle client connection */
+      conn->s = socket(AF_INET6, SOCK_DGRAM, 0);
+
+      int one = 1, zero = 0;
+      setsockopt(conn->s, SOL_SOCKET, SO_REUSEADDR, (const void*) &one, (socklen_t) sizeof(one));
+      setsockopt(conn->s, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&zero, sizeof(zero));
+
+      err = bind(conn->s, &server_addr, sizeof(struct sockaddr_in6));
+      if (err) {
+  	log_err(LD_OR, "UDP bind of fd %d failed with error %d.", conn->s, errno);
+  	tor_assert(0);
+      }
+
+
+      // Make new socket known to libevent.
+      connection_add(conn);
+      connection_start_reading(conn);
+      connection_check_oos(get_n_open_sockets(), 0);
 
       return 0;
   }
