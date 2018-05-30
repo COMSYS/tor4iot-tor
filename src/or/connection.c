@@ -1566,6 +1566,8 @@ connection_handle_listener_read(connection_t *conn, int new_type)
       // Remove old socket from poll queue of libevent.
       connection_remove(conn);
 
+      conn->conn_array_index = -1; /* also default to 'not used' */
+
       // Now bind new socket to IP port for next DTLS connection attempt.
       struct sockaddr_in6 server_addr;
       char straddr_server[INET6_ADDRSTRLEN];
