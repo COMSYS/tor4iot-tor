@@ -150,11 +150,11 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
             conn_state_to_string(CONN_TYPE_OR, TO_CONN(conn)->state),
             (int)(TO_CONN(conn)->state));
 
-  log_info("Ticket has cookie %" PRIu32, ((uint32_t*)cell->payload)[0]);
+  log_info(LD_GENERAL, "Ticket has cookie %" PRIu32, ((uint32_t*)cell->payload)[0]);
 
   // Find circuit by cookie from our smartlist
   SMARTLIST_FOREACH_BEGIN(splitted_circuits, circuit_t *, c) {
-    log_info("We have a splitted circuit ready to join with cookie %" PRIu32, c->join_cookie);
+    log_info(LD_GENERAL, "We have a splitted circuit ready to join with cookie %" PRIu32, c->join_cookie);
     if (c->already_split && (c->join_cookie == ((uint32_t*)cell->payload)[0])) {
       circ = c;
       break;
