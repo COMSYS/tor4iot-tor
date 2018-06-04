@@ -812,6 +812,10 @@ init_circuit_base(circuit_t *circ)
 {
   tor_gettimeofday(&circ->timestamp_created);
 
+  //IOT:
+  circ->already_split = 0;
+  circ->iot_buffer = smartlist_new();
+
   // Gets reset when we send CREATE_FAST.
   // circuit_expire_building() expects these to be equal
   // until the orconn is built.
