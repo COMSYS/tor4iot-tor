@@ -54,6 +54,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   // Fill cookies
   crypto_rand((char *)&msg->cookie, 4);
   memcpy(&msg->ticket.cookie, &msg->cookie, 4);
+  log_info(LD_GENERAL, "Chosen cookie: 0x%08x  0x%08x", msg->ticket.cookie, msg->cookie);
 
   // Set SP address in ticket
   // XXX: THIS IS NOT THE UDP PORT, WILL FAIL IF IT IS DIFFERENT FROM TCP PORT
