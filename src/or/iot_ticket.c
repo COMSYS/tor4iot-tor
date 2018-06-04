@@ -16,6 +16,7 @@
 #include "torlog.h"
 #include "connection.h"
 #include "container.h"
+#include "channeltls.h"
 
 const uint8_t iot_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 const uint8_t iot_mac_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
@@ -139,7 +140,7 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
 void
 iot_join(or_connection_t *conn, const var_cell_t *cell)
 {
-  circuit_t *circ;
+  circuit_t *circ = NULL;
 
 
   log_info(LD_GENERAL,
@@ -151,21 +152,25 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
   // Find circuit by cookie from our smartlist
   SMARTLIST_FOREACH_BEGIN(splitted_circuits, circuit_t *, c) {
-    if (c->already_split && (c->join_cookie == (uint32_t) cell->payload)) {
+    if (c->already_split && (c->join_cookie == (uint32_t) cell->payload[0])) {
       circ = c;
       break;
     }
   } SMARTLIST_FOREACH_END(c);
 
-  // Join circuits
-  circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
+  if (circ) {
+    // Join circuits
+    circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), (circid_t) cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
 
-  smartlist_remove(splitted_circuits, circ);
+    smartlist_remove(splitted_circuits, circ);
 
-  // Send buffer
-  SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c);
-    c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
-    append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c, CELL_DIRECTION_IN, 0);
-    // XXX: FREE cells?
-  SMARTLIST_FOREACH_END(c);
+    // Send buffer
+    SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c);
+      c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
+      append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c, CELL_DIRECTION_IN, 0);
+      // XXX: FREE cells?
+    SMARTLIST_FOREACH_END(c);
+  } else {
+      log_info(LD_GENERAL, "Tried to join circuit, but cookies didnt match.");
+  }
 }
