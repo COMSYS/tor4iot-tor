@@ -169,11 +169,13 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
     // Send buffer
     SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c);
-      log_info(LD_GENERAL, "Send cell");
+      log_info(LD_GENERAL, "Queue cell with command %d", c->command);
       c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
       append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c, CELL_DIRECTION_IN, 0);
       // XXX: FREE cells?
     SMARTLIST_FOREACH_END(c);
+
+    connection_start_writing(TO_CONN(conn));
   } else {
       log_info(LD_GENERAL, "Tried to join circuit, but cookies didnt match.");
   }
