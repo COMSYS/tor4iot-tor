@@ -151,11 +151,8 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
             conn_state_to_string(CONN_TYPE_OR, TO_CONN(conn)->state),
             (int)(TO_CONN(conn)->state));
 
-  log_info(LD_GENERAL, "Ticket has cookie 0x%08x", ((uint32_t*)cell->payload)[0]);
-
   // Find circuit by cookie from our smartlist
   SMARTLIST_FOREACH_BEGIN(splitted_circuits, circuit_t *, c) {
-    log_info(LD_GENERAL, "We have a splitted circuit ready to join with cookie 0x%08x", c->join_cookie);
     if (c->already_split && (c->join_cookie == ((uint32_t*)cell->payload)[0])) {
       circ = c;
       break;
@@ -163,6 +160,8 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
   } SMARTLIST_FOREACH_END(c);
 
   if (circ) {
+    log_info(LD_GENERAL, "Join circuits by cookie 0x%08x", ((uint32_t*)cell->payload)[0]);
+
     // Join circuits
     circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), (circid_t) cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
 
@@ -170,6 +169,7 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
     // Send buffer
     SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c);
+      log_info(LD_GENERAL, "Send cell");
       c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
       append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c, CELL_DIRECTION_IN, 0);
       // XXX: FREE cells?
