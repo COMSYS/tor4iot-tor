@@ -164,6 +164,7 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
     // Join circuits
     circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), (circid_t) cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
+    TO_CONN(conn)->state = OR_CONN_STATE_OPEN;
 
     smartlist_remove(splitted_circuits, circ);
 
