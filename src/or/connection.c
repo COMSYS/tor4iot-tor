@@ -4669,6 +4669,7 @@ connection_finished_flushing(connection_t *conn)
 
   switch (conn->type) {
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
       return connection_or_finished_flushing(TO_OR_CONN(conn));
     case CONN_TYPE_EXT_OR:
       return connection_ext_or_finished_flushing(TO_OR_CONN(conn));

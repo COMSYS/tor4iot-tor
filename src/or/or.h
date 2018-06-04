@@ -947,7 +947,9 @@ typedef enum {
 #define CELL_AUTH_CHALLENGE 130
 #define CELL_AUTHENTICATE 131
 #define CELL_AUTHORIZE 132
-#define CELL_COMMAND_MAX_ 132
+
+#define CELL_JOIN 133
+#define CELL_COMMAND_MAX_ 133
 
 /** How long to test reachability before complaining to the user. */
 #define TIMEOUT_UNTIL_UNREACHABILITY_COMPLAINT (20*60)

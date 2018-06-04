@@ -1343,6 +1343,9 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
       ++stats_n_authorize_cells_processed;
       /* Ignored so far. */
       break;
+    case CELL_JOIN:
+      //done before
+      break;
     default:
       log_fn(LOG_INFO, LD_PROTOCOL,
              "Variable-length cell of unknown type (%d) received.",
