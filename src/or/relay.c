@@ -353,8 +353,13 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
     cell->circ_id = circ->n_circ_id; /* switch it */
     chan = circ->n_chan;
   } else if (! CIRCUIT_IS_ORIGIN(circ)) {
-    cell->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
-    chan = TO_OR_CIRCUIT(circ)->p_chan;
+    if (circ->already_split) {
+      smartlist_add(circ->iot_buffer, cell);
+      return 0;
+    } else {
+      cell->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
+      chan = TO_OR_CIRCUIT(circ)->p_chan;
+    }
   } else {
     log_fn(LOG_PROTOCOL_WARN, LD_OR,
            "Dropping unrecognized inbound cell on origin circuit.");

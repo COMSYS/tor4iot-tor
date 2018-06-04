@@ -3188,10 +3188,10 @@ typedef struct circuit_t {
 
   //IOT
   int already_split:1;
-  iot_join_id_t join_id;
+  uint32_t join_cookie;
 
   /** Buffer to store cells from client */
-  uint8_t iot_buffer[2048];
+  smartlist_t *iot_buffer;
 
   /** If set, points to an HS token that this circuit might be carrying.
    *  Used by the HS circuitmap.  */

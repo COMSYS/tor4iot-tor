@@ -15,11 +15,15 @@
 #include "circuitlist.h"
 #include "torlog.h"
 #include "connection.h"
+#include "container.h"
 
 const uint8_t iot_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 const uint8_t iot_mac_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 
 const uint8_t iot_iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+STATIC smartlist_t *splitted_circuits = NULL;
+
 
 static void iot_ticket_set_relay_crypto(iot_crypto_aes_relay_t *iot_crypto, crypt_path_t *relay) {
   aes_get_iv(relay->b_crypto, iot_crypto->b.aes_iv);
@@ -88,7 +92,6 @@ void iot_ticket_send(origin_circuit_t *circ) {
   tor_free(msg);
 }
 
-
 void iot_process_relay_split(circuit_t *circ, size_t length,
 	                     const uint8_t *payload) {
   iot_split_t *msg = (iot_split_t*) payload;
@@ -99,14 +102,20 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
 
   log_info(LD_GENERAL, "Got IoT ticket with IoT address information of size %ld.", sizeof(iot_split_t));
 
-#define IOT_JOIN_ID 12
-
-  // TODO: Save cookie
-  circ->already_split = 1;
-  circ->join_id = IOT_JOIN_ID;
-
   struct sockaddr_in6 si_other;
   int s, slen=sizeof(si_other);
+
+
+  if (!splitted_circuits) {
+      splitted_circuits = smartlist_new();
+  }
+
+  circ->already_split = 1;
+  circ->join_cookie = msg->cookie;
+  smartlist_add(splitted_circuits, circ);
+
+
+  // Now send the ticket to IoT device
 
   s=socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -130,6 +139,9 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
 void
 iot_join(or_connection_t *conn, const var_cell_t *cell)
 {
+  circuit_t *circ;
+
+
   log_info(LD_GENERAL,
 	    "Received a variable-length cell with command %d in orconn "
             "state %s [%d].",
@@ -137,5 +149,23 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
             conn_state_to_string(CONN_TYPE_OR, TO_CONN(conn)->state),
             (int)(TO_CONN(conn)->state));
 
-  //TODO: Find circuit by JOIN ID. Then join it.
+  // Find circuit by cookie from our smartlist
+  SMARTLIST_FOREACH_BEGIN(splitted_circuits, circuit_t *, c) {
+    if (c->already_split && (c->join_cookie == (uint32_t) cell->payload)) {
+      circ = c;
+      break;
+    }
+  } SMARTLIST_FOREACH_END(c);
+
+  // Join circuits
+  circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
+
+  smartlist_remove(splitted_circuits, circ);
+
+  // Send buffer
+  SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c);
+    c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
+    append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c, CELL_DIRECTION_IN, 0);
+    // XXX: FREE cells?
+  SMARTLIST_FOREACH_END(c);
 }
