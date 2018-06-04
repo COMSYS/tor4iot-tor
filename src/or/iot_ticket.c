@@ -62,13 +62,19 @@ void iot_ticket_send(origin_circuit_t *circ) {
   memcpy(&msg->ticket.sp_address.in_addr, &split_point->extend_info->sp.addr.addr.in6_addr, 4*32);
   msg->ticket.sp_address.port = htons(split_point->extend_info->sp.port);
 
+  log_info(LD_GENERAL, "Chosen cookie: 0x%08x  0x%08x", msg->ticket.cookie, msg->cookie);
+
   //Set key information in ticket
   iot_ticket_set_relay_crypto(&msg->ticket.sp, split_point);
   iot_ticket_set_relay_crypto(&msg->ticket.middle, split_point->next);
   iot_ticket_set_relay_crypto(&msg->ticket.rend, split_point->next->next);
 
+  log_info(LD_GENERAL, "Chosen cookie: 0x%08x  0x%08x", msg->ticket.cookie, msg->cookie);
+
   //Set HS material
   memcpy(&msg->ticket.hs_ntor_key, split_point->next->next->next->hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
+
+  log_info(LD_GENERAL, "Chosen cookie: 0x%08x  0x%08x", msg->ticket.cookie, msg->cookie);
 
   log_info(LD_GENERAL, "IoT device has to connect to SP on port %d", ntohs(msg->ticket.sp_address.port));
 
@@ -77,9 +83,13 @@ void iot_ticket_send(origin_circuit_t *circ) {
   aes_crypt_inplace(encrypt, (char*) &msg->ticket, sizeof(iot_ticket_t)-DIGEST256_LEN);
   aes_cipher_free(encrypt);
 
+  log_info(LD_GENERAL, "Chosen cookie: 0x%08x  0x%08x", msg->ticket.cookie, msg->cookie);
+
   //Set address and port information of IoT device
   inet_pton(AF_INET6, "::1", &(msg->iot_address.in_addr));
   msg->iot_address.port = htons(10000);
+
+  log_info(LD_GENERAL, "Chosen cookie: 0x%08x  0x%08x", msg->ticket.cookie, msg->cookie);
 
   //Compute MAC
   crypto_hmac_sha256((char*) (msg->ticket.mac), (char*) iot_mac_key, 16, (char*) &(msg->ticket), sizeof(iot_ticket_t)-DIGEST256_LEN);
