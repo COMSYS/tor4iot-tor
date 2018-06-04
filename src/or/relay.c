@@ -354,6 +354,7 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
     chan = circ->n_chan;
   } else if (! CIRCUIT_IS_ORIGIN(circ)) {
     if (circ->already_split) {
+      log_info(LD_GENERAL, "Added cell to buffer");
       smartlist_add(circ->iot_buffer, cell);
       return 0;
     } else {
