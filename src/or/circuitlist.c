@@ -393,8 +393,8 @@ circuit_set_p_circid_chan(or_circuit_t *or_circ, circid_t id,
   circuit_set_circid_chan_helper(circ, CELL_DIRECTION_IN, id, chan);
 
   if (chan) {
-    log_info(LD_GENERAL, "p_chan_cells.n: %d, next_active_on_p_chan: 0x%llx", or_circ->p_chan_cells.n,
-             or_circ->next_active_on_p_chan);
+    log_info(LD_GENERAL, "p_chan_cells.n: %d, next_active_on_p_chan: 0x%016lx", or_circ->p_chan_cells.n,
+             (uint64_t)or_circ->next_active_on_p_chan);
     tor_assert(bool_eq(or_circ->p_chan_cells.n,
                        or_circ->next_active_on_p_chan));
 
