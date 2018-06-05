@@ -166,7 +166,7 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
   // Find circuit by cookie from our smartlist
   SMARTLIST_FOREACH_BEGIN(splitted_circuits, circuit_t *, c) {
     log_info(LD_GENERAL, "Looking for joinable circuit.. Cookie: 0x%08x", c->join_cookie);
-    if (c->already_split && (c->join_cookie == ((uint32_t*)cell->payload)[0])) {
+    if (c->already_split && memcmp(&(c->join_cookie), cell->payload, 4)) {
       circ = c;
       break;
     }
