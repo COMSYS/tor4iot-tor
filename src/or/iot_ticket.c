@@ -179,10 +179,11 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
     // Join circuits
     circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), (circid_t) cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
-    TO_CONN(conn)->state = OR_CONN_STATE_OPEN;
     circ->already_split = 0;
 
     smartlist_remove(splitted_circuits, circ);
+
+    connection_or_set_state_open(conn);
 
     // Send buffer
     SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c);
@@ -192,8 +193,6 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
       // XXX: FREE cells?
       tor_free(c);
     SMARTLIST_FOREACH_END(c);
-
-    connection_start_writing(TO_CONN(conn));
   } else {
       log_info(LD_GENERAL, "Tried to join circuit, but cookies didnt match. 0x%08x ?", ((uint32_t*)cell->payload)[0]);
   }
