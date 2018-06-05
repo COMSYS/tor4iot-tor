@@ -126,6 +126,8 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
   circ->join_cookie = msg->cookie;
   smartlist_add(splitted_circuits, circ);
 
+  log_info(LD_GENERAL, "Added circuit for joining with cookie 0x%08x", circ->join_cookie);
+
 
   // Now send the ticket to IoT device
 
@@ -163,6 +165,7 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
   // Find circuit by cookie from our smartlist
   SMARTLIST_FOREACH_BEGIN(splitted_circuits, circuit_t *, c) {
+    log_info(LD_GENERAL, "Looking for joinable circuit.. Cookie: 0x%08x", c->join_cookie);
     if (c->already_split && (c->join_cookie == ((uint32_t*)cell->payload)[0])) {
       circ = c;
       break;
@@ -190,6 +193,6 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
     connection_start_writing(TO_CONN(conn));
   } else {
-      log_info(LD_GENERAL, "Tried to join circuit, but cookies didnt match.");
+      log_info(LD_GENERAL, "Tried to join circuit, but cookies didnt match. 0x%08x ?", ((uint32_t*)cell->payload)[0]);
   }
 }
