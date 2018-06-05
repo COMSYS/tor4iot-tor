@@ -8,6 +8,7 @@
 #include "iot_ticket.h"
 #include "or.h"
 
+#include "channel.h"
 #include "crypto.h"
 #include "main.h"
 #include "aes.h"
@@ -44,6 +45,7 @@ void iot_inform_split(origin_circuit_t *circ) {
 
 void iot_process_relay_split(circuit_t *circ) {
   circ->already_split = 1; // Start buffering data
+  //channel_flush_cells(TO_OR_CIRCUIT(circ)->p_chan);
 }
 
 void iot_ticket_send(origin_circuit_t *circ) {
