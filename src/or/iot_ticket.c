@@ -25,6 +25,8 @@ const uint8_t iot_iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 STATIC smartlist_t *splitted_circuits = NULL;
 
+#define SPLITPOINT(circ) circ->cpath->prev->prev->prev->prev
+
 
 static void iot_ticket_set_relay_crypto(iot_crypto_aes_relay_t *iot_crypto, crypt_path_t *relay) {
   aes_get_iv(relay->b_crypto, iot_crypto->b.aes_iv);
@@ -32,6 +34,15 @@ static void iot_ticket_set_relay_crypto(iot_crypto_aes_relay_t *iot_crypto, cryp
 
   memcpy(&iot_crypto->b.aes_key, relay->b_aesctrkey, CIPHER_KEY_LEN);
   memcpy(&iot_crypto->f.aes_key, relay->f_aesctrkey, CIPHER_KEY_LEN);
+}
+
+void iot_inform_split(origin_circuit_t *circ) {
+  relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_SPLIT, NULL,
+                                 0, SPLITPOINT(circ));
+}
+
+void iot_process_relay_split(circuit_t *circ) {
+  circ->already_split = 1; // Start buffering data
 }
 
 void iot_ticket_send(origin_circuit_t *circ) {
@@ -44,7 +55,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   log_notice(LD_REND, "Sending ticket.");
 
   //Choose split point such that we have 3 relays left + HS
-  split_point = circ->cpath->prev->prev->prev->prev;
+  split_point = SPLITPOINT(circ);
 
   msg = tor_malloc(sizeof(iot_split_t));
 
@@ -85,7 +96,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   crypto_hmac_sha256((char*) (msg->ticket.mac), (char*) iot_mac_key, 16, (char*) &(msg->ticket), sizeof(iot_ticket_t)-DIGEST256_LEN);
 
   //Send it!
-  relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_SPLIT, (const char*) msg,
+  relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET1, (const char*) msg,
                                sizeof(iot_split_t), split_point);
 
   //Close circuit until SP
@@ -94,8 +105,8 @@ void iot_ticket_send(origin_circuit_t *circ) {
   tor_free(msg);
 }
 
-void iot_process_relay_split(circuit_t *circ, size_t length,
-	                     const uint8_t *payload) {
+void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
+	                      const uint8_t *payload) {
   iot_split_t *msg = (iot_split_t*) payload;
 
   char ipstr[INET6_ADDRSTRLEN];
@@ -112,7 +123,6 @@ void iot_process_relay_split(circuit_t *circ, size_t length,
       splitted_circuits = smartlist_new();
   }
 
-  circ->already_split = 1;
   circ->join_cookie = msg->cookie;
   smartlist_add(splitted_circuits, circ);
 

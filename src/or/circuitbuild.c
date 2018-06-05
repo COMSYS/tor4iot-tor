@@ -2599,6 +2599,7 @@ onion_extend_cpath(origin_circuit_t *circ)
       tor_assert_nonfatal(info || client);
     }
   } else {
+    //TODO: This is where we need to choose our split relay.
     r = choose_good_middle_server(purpose, state, circ->cpath, cur_len);
     if (r) {
       info = extend_info_from_node(r, 0);
@@ -2611,7 +2612,6 @@ onion_extend_cpath(origin_circuit_t *circ)
              "this circuit.", cur_len+1);
     return -1;
   }
-
 
   //IOT:
   if (cur_len < state->desired_path_len - 1) {

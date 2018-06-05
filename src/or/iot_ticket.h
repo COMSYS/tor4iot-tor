@@ -57,7 +57,11 @@ typedef struct iot_split_t {
 
 void iot_ticket_send(origin_circuit_t *circ);
 
-void iot_process_relay_split(circuit_t *circ, size_t length,
+void iot_inform_split(origin_circuit_t *circ);
+
+void iot_process_relay_split(circuit_t *circ);
+
+void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 	                     const uint8_t *payload);
 
 void iot_join(or_connection_t *conn, const var_cell_t *cell);

@@ -1960,7 +1960,10 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
       return 0;
     //IOT: React on SPLIT message here
     case RELAY_COMMAND_SPLIT:
-      iot_process_relay_split(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
+      iot_process_relay_split(circ);
+      return 0;
+    case RELAY_COMMAND_TICKET1:
+      iot_process_relay_ticket(circ, 1, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
   }
   log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,

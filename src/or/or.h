@@ -619,6 +619,7 @@ typedef enum {
 
 //IOT
 #define RELAY_COMMAND_SPLIT 50
+#define RELAY_COMMAND_TICKET1 51
 
 /* Reasons why an OR connection is closed. */
 #define END_OR_CONN_REASON_DONE           1
