@@ -575,7 +575,7 @@ command_process_destroy_cell(cell_t *cell, channel_t *chan)
   int reason;
 
   circ = circuit_get_by_circid_channel(cell->circ_id, chan);
-  if (!circ) {
+  if (!circ || circ->already_split) {
     log_info(LD_OR,"unknown circuit %u on connection from %s. Dropping.",
              (unsigned)cell->circ_id,
              channel_get_canonical_remote_descr(chan));
