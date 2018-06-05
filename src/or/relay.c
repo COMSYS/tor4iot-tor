@@ -355,7 +355,11 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
   } else if (! CIRCUIT_IS_ORIGIN(circ)) {
     if (circ->already_split) {
       log_info(LD_GENERAL, "Added cell to buffer");
-      smartlist_add(circ->iot_buffer, cell);
+      cell_t *cell_cpy;
+      cell_cpy = tor_malloc(sizeof(cell_t));
+      memcpy(cell_cpy, cell, sizeof(cell_t));
+
+      smartlist_add(circ->iot_buffer, cell_cpy);
       return 0;
     } else {
       cell->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */

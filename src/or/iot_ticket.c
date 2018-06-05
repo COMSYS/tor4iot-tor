@@ -185,6 +185,7 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
       c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
       append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c, CELL_DIRECTION_IN, 0);
       // XXX: FREE cells?
+      tor_free(c);
     SMARTLIST_FOREACH_END(c);
 
     connection_start_writing(TO_CONN(conn));
