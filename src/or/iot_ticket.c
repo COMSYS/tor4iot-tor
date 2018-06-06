@@ -45,6 +45,10 @@ void iot_inform_split(origin_circuit_t *circ) {
 
 void iot_process_relay_split(circuit_t *circ) {
   circ->already_split = 1; // Start buffering data
+  log_info(LD_GENERAL, "Circuit %u (id: %" PRIu32 ") marked for split",
+             circ->n_circ_id,
+             CIRCUIT_IS_ORIGIN(circ) ?
+                TO_ORIGIN_CIRCUIT(circ)->global_identifier : 0);
   //channel_flush_cells(TO_OR_CIRCUIT(circ)->p_chan);
 }
 

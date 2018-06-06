@@ -356,9 +356,6 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
 	log_info(LD_GENERAL, "RENDEZVOUS CELL RECOGNIZED, MAYBE");
     }
   } else if (! CIRCUIT_IS_ORIGIN(circ)) {
-      if (circ->purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
-	  log_info(LD_GENERAL, "RECOGNIZED CELL TO ORIGIN");
-      }
     if (circ->already_split) {
       log_info(LD_GENERAL, "Added cell to buffer");
       cell_t *cell_cpy;
