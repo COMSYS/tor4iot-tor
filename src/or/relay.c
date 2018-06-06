@@ -352,7 +352,13 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
   if (cell_direction == CELL_DIRECTION_OUT) {
     cell->circ_id = circ->n_circ_id; /* switch it */
     chan = circ->n_chan;
+    if (circ->already_split) {
+	log_info(LD_GENERAL, "RENDEZVOUS CELL RECOGNIZED, MAYBE");
+    }
   } else if (! CIRCUIT_IS_ORIGIN(circ)) {
+      if (circ->purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
+	  log_info(LD_GENERAL, "RECOGNIZED CELL TO ORIGIN");
+      }
     if (circ->already_split) {
       log_info(LD_GENERAL, "Added cell to buffer");
       cell_t *cell_cpy;
