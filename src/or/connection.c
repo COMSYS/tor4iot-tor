@@ -748,8 +748,12 @@ connection_about_to_close_connection(connection_t *conn)
     case CONN_TYPE_DIR:
       connection_dir_about_to_close(TO_DIR_CONN(conn));
       break;
-    case CONN_TYPE_OR:
     case CONN_TYPE_OR_UDP:
+      // IOT: A UDP connection is not closed properly, stateless. Set closing state here.
+      TLS_CHAN_TO_BASE(TO_OR_CONN(conn)->chan)->state = CHANNEL_STATE_CLOSING;
+      connection_or_about_to_close(TO_OR_CONN(conn));
+      break;
+    case CONN_TYPE_OR:
     case CONN_TYPE_EXT_OR:
       connection_or_about_to_close(TO_OR_CONN(conn));
       break;
