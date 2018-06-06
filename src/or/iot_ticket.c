@@ -27,7 +27,8 @@ const uint8_t iot_iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 STATIC smartlist_t *splitted_circuits = NULL;
 
-#define SPLITPOINT(circ) circ->cpath->prev->prev->prev->prev
+#define SPLITPOINT_BEFORE_HS(circ) circ->cpath->prev->prev->prev
+#define SPLITPOINT(circ) SPLITPOINT_BEFORE_HS(circ)->prev
 
 
 static void iot_ticket_set_relay_crypto(iot_crypto_aes_relay_t *iot_crypto, crypt_path_t *relay) {
