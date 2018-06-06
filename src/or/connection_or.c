@@ -1532,6 +1532,7 @@ connection_tls_continue_handshake(or_connection_t *conn)
 	    return 0;
           } else {
             //IOT:
+            TLS_CHAN_TO_BASE(conn->chan)->wide_circ_ids = 1;
             log_debug(LD_OR, "Done with DTLS handshake. Expecting JOIN cell now.");
 
             conn->link_proto = MIN_LINK_PROTO_FOR_WIDE_CIRC_IDS; // Make sure we interpret with wide circ ids.
