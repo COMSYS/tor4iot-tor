@@ -191,7 +191,10 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
     tor_assert(circ->state == CIRCUIT_STATE_JOIN_WAIT);
 
     // Join circuits
-    circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), (circid_t) cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
+    circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
+
+    tor_assert(TO_OR_CIRCUIT(circ)->p_chan == TLS_CHAN_TO_BASE(conn->chan));
+
     circ->state = CIRCUIT_STATE_OPEN;
 
     smartlist_remove(splitted_circuits, circ);
