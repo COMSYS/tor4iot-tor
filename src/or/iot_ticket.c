@@ -39,8 +39,11 @@ static void iot_ticket_set_relay_crypto(iot_crypto_aes_relay_t *iot_crypto, cryp
 }
 
 void iot_inform_split(origin_circuit_t *circ) {
-  relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_SPLIT, NULL,
-                                 0, SPLITPOINT(circ));
+#define DUMMY_SIZE 10
+
+  const char dummy[DUMMY_SIZE];
+  relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_SPLIT, dummy,
+                                 DUMMY_SIZE, SPLITPOINT(circ));
 }
 
 void iot_process_relay_split(circuit_t *circ) {
