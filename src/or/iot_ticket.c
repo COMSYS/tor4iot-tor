@@ -44,7 +44,7 @@ void iot_inform_split(origin_circuit_t *circ) {
 
   const char dummy[DUMMY_SIZE];
   relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_SPLIT, dummy,
-                                 DUMMY_SIZE, SPLITPOINT(circ));
+                                 DUMMY_SIZE, SPLITPOINT_BEFORE_HS(circ));
 }
 
 void iot_process_relay_split(circuit_t *circ) {
@@ -187,6 +187,8 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
   if (circ) {
     log_info(LD_GENERAL, "Join circuits by cookie 0x%08x", ((uint32_t*)cell->payload)[0]);
+
+    tor_assert(circ->already_split);
 
     // Join circuits
     circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), (circid_t) cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
