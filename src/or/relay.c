@@ -356,7 +356,10 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
 	log_info(LD_GENERAL, "RENDEZVOUS CELL RECOGNIZED, MAYBE");
     }
   } else if (! CIRCUIT_IS_ORIGIN(circ)) {
-    if (circ->already_split) {
+      if (circ->already_split) {
+	  log_info(LD_GENERAL, "RECOGNIZED CELL FOR IOT DEVICE");
+      }
+    if (circ->state == CIRCUIT_STATE_JOIN_WAIT) {
       log_info(LD_GENERAL, "Added cell to buffer");
       cell_t *cell_cpy;
       cell_cpy = tor_malloc(sizeof(cell_t));

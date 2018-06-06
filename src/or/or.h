@@ -481,6 +481,9 @@ typedef enum {
 /** Circuit state: onionskin(s) processed, ready to send/receive cells. */
 #define CIRCUIT_STATE_OPEN 4
 
+//IOT
+#define CIRCUIT_STATE_JOIN_WAIT 5
+
 #define CIRCUIT_PURPOSE_MIN_ 1
 
 /* these circuits were initiated elsewhere */

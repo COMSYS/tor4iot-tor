@@ -48,7 +48,8 @@ void iot_inform_split(origin_circuit_t *circ) {
 }
 
 void iot_process_relay_split(circuit_t *circ) {
-  circ->already_split = 1; // Start buffering data
+  circ->already_split = 1; // For logging
+  circ->state = CIRCUIT_STATE_JOIN_WAIT;
   log_info(LD_GENERAL, "Circuit %u (id: %" PRIu32 ") marked for split",
              circ->n_circ_id,
              CIRCUIT_IS_ORIGIN(circ) ?
@@ -168,11 +169,10 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
 
   log_info(LD_GENERAL,
-	    "Received a variable-length cell with command %d in orconn "
-            "state %s [%d].",
-            (int)(cell->command),
-            conn_state_to_string(CONN_TYPE_OR, TO_CONN(conn)->state),
-            (int)(TO_CONN(conn)->state));
+              "Got a JOIN cell for circ_id %u on channel " U64_FORMAT
+              " (%p)",
+              (unsigned)cell->circ_id,
+              U64_PRINTF_ARG(TLS_CHAN_TO_BASE(conn->chan)->global_identifier), TLS_CHAN_TO_BASE(conn->chan));
 
   // Find circuit by cookie from our smartlist
   SMARTLIST_FOREACH_BEGIN(splitted_circuits, circuit_t *, c) {
@@ -188,11 +188,11 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
   if (circ) {
     log_info(LD_GENERAL, "Join circuits by cookie 0x%08x", ((uint32_t*)cell->payload)[0]);
 
-    tor_assert(circ->already_split);
+    tor_assert(circ->state == CIRCUIT_STATE_JOIN_WAIT);
 
     // Join circuits
     circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), (circid_t) cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
-    circ->already_split = 0;
+    circ->state = CIRCUIT_STATE_OPEN;
 
     smartlist_remove(splitted_circuits, circ);
 
@@ -207,6 +207,6 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
       tor_free(c);
     SMARTLIST_FOREACH_END(c);
   } else {
-      log_info(LD_GENERAL, "Tried to join circuit, but cookies didnt match. 0x%08x ?", ((uint32_t*)cell->payload)[0]);
+    log_info(LD_GENERAL, "Tried to join circuit, but cookies didnt match. 0x%08x ?", ((uint32_t*)cell->payload)[0]);
   }
 }
