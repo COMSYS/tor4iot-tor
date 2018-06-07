@@ -2923,6 +2923,9 @@ typedef struct crypt_path_t {
   crypto_cipher_t *b_crypto;
 
   //IOT
+  uint16_t f_crypted_bytes;
+  uint16_t b_crypted_bytes;
+
   uint8_t f_aesctrkey[16];
   uint8_t b_aesctrkey[16];
 

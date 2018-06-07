@@ -32,8 +32,8 @@ STATIC smartlist_t *splitted_circuits = NULL;
 
 
 static void iot_ticket_set_relay_crypto(iot_crypto_aes_relay_t *iot_crypto, crypt_path_t *relay) {
-  aes_get_iv(relay->b_crypto, iot_crypto->b.aes_iv);
-  aes_get_iv(relay->f_crypto, iot_crypto->f.aes_iv);
+  iot_crypto->b.crypted_bytes = htons(relay->b_crypted_bytes);
+  iot_crypto->f.crypted_bytes = htons(relay->f_crypted_bytes);
 
   memcpy(&iot_crypto->b.aes_key, relay->b_aesctrkey, CIPHER_KEY_LEN);
   memcpy(&iot_crypto->f.aes_key, relay->f_aesctrkey, CIPHER_KEY_LEN);

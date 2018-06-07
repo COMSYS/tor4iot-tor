@@ -1411,6 +1411,9 @@ circuit_init_cpath_crypto(crypt_path_t *cpath,
     return -1;
   }
 
+  cpath->f_crypted_bytes = 0;
+  cpath->b_crypted_bytes = 0;
+
   /* If we are using this cpath for next gen onion services use SHA3-256,
      otherwise use good ol' SHA1 */
   if (is_hs_v3) {

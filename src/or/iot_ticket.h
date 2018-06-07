@@ -13,7 +13,7 @@
 #pragma pack(push, 1)
 typedef struct iot_crypto_aes_t {
   uint8_t aes_key[16];
-  uint8_t aes_iv[16];
+  uint16_t crypted_bytes;
 
   //TODO: num needed?
 } iot_crypto_aes_t;

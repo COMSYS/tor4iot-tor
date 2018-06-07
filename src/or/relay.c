@@ -464,6 +464,7 @@ relay_crypt(circuit_t *circ, cell_t *cell, cell_direction_t cell_direction,
 
         /* decrypt one layer */
         relay_crypt_one_payload(thishop->b_crypto, cell->payload);
+        thishop->b_crypted_bytes += CELL_PAYLOAD_SIZE;
 
         relay_header_unpack(&rh, cell->payload);
         if (rh.recognized == 0) {
@@ -488,6 +489,7 @@ relay_crypt(circuit_t *circ, cell_t *cell, cell_direction_t cell_direction,
     /* We're in the middle. Decrypt one layer. */
 
     relay_crypt_one_payload(TO_OR_CIRCUIT(circ)->n_crypto, cell->payload);
+
 
     relay_header_unpack(&rh, cell->payload);
     if (rh.recognized == 0) {
@@ -550,6 +552,7 @@ circuit_package_relay_cell(cell_t *cell, circuit_t *circ,
       tor_assert(thishop);
       log_debug(LD_OR,"encrypting a layer of the relay cell.");
       relay_crypt_one_payload(thishop->f_crypto, cell->payload);
+      thishop->f_crypted_bytes += CELL_PAYLOAD_SIZE;
 
       thishop = thishop->prev;
     } while (thishop != TO_ORIGIN_CIRCUIT(circ)->cpath->prev);
