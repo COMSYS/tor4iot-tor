@@ -88,7 +88,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   //Set key information in ticket
   iot_ticket_set_relay_crypto(&msg->ticket.sp, split_point);
   // Split point is receiver of our ticket. Add payload size.
-  msg->ticket.sp.f.crypted_bytes += CELL_PAYLOAD_SIZE;
+  msg->ticket.sp.f.crypted_bytes = htons(ntohs(msg->ticket.sp.f.crypted_bytes) + CELL_PAYLOAD_SIZE);
 
   iot_ticket_set_relay_crypto(&msg->ticket.middle, split_point->next);
   iot_ticket_set_relay_crypto(&msg->ticket.rend, split_point->next->next);
