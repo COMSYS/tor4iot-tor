@@ -554,6 +554,8 @@ circuit_package_relay_cell(cell_t *cell, circuit_t *circ,
       relay_crypt_one_payload(thishop->f_crypto, cell->payload);
       thishop->f_crypted_bytes += CELL_PAYLOAD_SIZE;
 
+      log_info("Layer of encryption added. Starts with: %02x", cell->payload[0]);
+
       thishop = thishop->prev;
     } while (thishop != TO_ORIGIN_CIRCUIT(circ)->cpath->prev);
 
