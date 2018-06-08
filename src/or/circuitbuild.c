@@ -1411,6 +1411,10 @@ circuit_init_cpath_crypto(crypt_path_t *cpath,
     return -1;
   }
 
+  memset(cpath->f_aesctrkey, 0, 16);
+  memset(cpath->b_aesctrkey, 0, 16);
+  memset(cpath->hs_ntor_key, 0, 128);
+
   cpath->f_crypted_bytes = 0;
   cpath->b_crypted_bytes = 0;
 
