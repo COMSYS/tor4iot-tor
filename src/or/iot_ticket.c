@@ -37,6 +37,8 @@ static void iot_ticket_set_relay_crypto(iot_crypto_aes_relay_t *iot_crypto, cryp
 
   memcpy(&iot_crypto->b.aes_key, relay->b_aesctrkey, CIPHER_KEY_LEN);
   memcpy(&iot_crypto->f.aes_key, relay->f_aesctrkey, CIPHER_KEY_LEN);
+
+  log_info("Forward key starts with %02x, backward key starts with %02x.", relay->f_aesctrkey[0], relay->b_aesctrkey[0]);
 }
 
 void iot_inform_split(origin_circuit_t *circ) {
