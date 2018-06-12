@@ -202,6 +202,8 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
     circ->state = CIRCUIT_STATE_OPEN;
 
+    conn->wide_circ_ids = 1;
+
     smartlist_remove(splitted_circuits, circ);
 
     connection_or_set_state_open(conn);
