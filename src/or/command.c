@@ -475,8 +475,6 @@ command_process_relay_cell(cell_t *cell, channel_t *chan)
 
   circ = circuit_get_by_circid_channel(cell->circ_id, chan);
 
-  //IOT: TODO: Check here whether the circuit is already split. Buffer Data from client. Drop data from SM.
-
   if (!circ) {
     log_debug(LD_OR,
               "unknown circuit %u on connection from %s. Dropping.",
@@ -503,6 +501,8 @@ command_process_relay_cell(cell_t *cell, channel_t *chan)
     direction = CELL_DIRECTION_OUT;
   else
     direction = CELL_DIRECTION_IN;
+
+  log_info(LD_OR, "Got a relay cell on circ %d sending %s.", cell->circ_id, (direction == CELL_DIRECTION_OUT) ? "forward" : "backward");
 
   /* If we have a relay_early cell, make sure that it's outbound, and we've
    * gotten no more than MAX_RELAY_EARLY_CELLS_PER_CIRCUIT of them. */
