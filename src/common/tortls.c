@@ -163,6 +163,7 @@ static int tls_library_is_initialized = 0;
 
 //IOT:
 
+#define PSK
 #define COOKIE_SECRET_LENGTH 16
 
 STATIC unsigned char cookie_secret[COOKIE_SECRET_LENGTH];
@@ -1371,12 +1372,16 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
     /* Client has to authenticate */
     //SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, dtls_verify_callback);
 
+#ifdef ECDH
     SSL_CTX_set_read_ahead(result->ctx, 1);
     SSL_CTX_set_verify_depth(result->ctx, 2);
+#endif
     SSL_CTX_set_cookie_generate_cb(result->ctx, &tor_dtls_generate_cookie);
     SSL_CTX_set_cookie_verify_cb(result->ctx, &tor_dtls_verify_cookie);
 
+#ifdef PSK
     SSL_CTX_set_psk_server_callback(result->ctx, &psk_server_cb);
+#endif
 
   }
 
@@ -1403,8 +1408,10 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
   }
 #endif
 
+if (!is_dtls) {
   SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_DH_USE);
   SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_ECDH_USE);
+}
 
 #ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
   SSL_CTX_set_options(result->ctx,
@@ -1434,7 +1441,7 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
 #ifdef SSL_MODE_RELEASE_BUFFERS
   SSL_CTX_set_mode(result->ctx, SSL_MODE_RELEASE_BUFFERS);
 #endif
-  if (! is_client) {
+  if (! is_client && !is_dtls) {
     if (cert && !SSL_CTX_use_certificate(result->ctx,cert))
       goto error;
     X509_free(cert); /* We just added a reference to cert. */
