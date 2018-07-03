@@ -1390,7 +1390,7 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
 
   /* Prefer the server's ordering of ciphers: the client's ordering has
   * historically been chosen for fingerprinting resistance. */
-  SSL_CTX_set_options(result->ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
+  //SSL_CTX_set_options(result->ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
 
   /* Disable TLS tickets if they're supported.  We never want to use them;
    * using them can make our perfect forward secrecy a little worse, *and*
