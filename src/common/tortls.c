@@ -55,6 +55,7 @@ ENABLE_GCC_WARNING(redundant-decls)
 #include "torlog.h"
 #include "container.h"
 #include <string.h>
+#include <ctype.h>
 
 #define X509_get_notBefore_const(cert) \
   ((const ASN1_TIME*) X509_get_notBefore((X509 *)cert))
@@ -168,8 +169,8 @@ STATIC unsigned char cookie_secret[COOKIE_SECRET_LENGTH];
 STATIC int cookie_initialized=0;
 
 
-static char *psk_identity = "Client_identity";
-char *psk_key = "secretPSK";
+static const char *psk_identity = "Client_identity";
+static const char *psk_key = "secretPSK";
 
 static int tor_dtls_generate_cookie (SSL *ssl, unsigned char *cookie, unsigned int *cookie_len)
 {
@@ -276,7 +277,7 @@ static inline int cval(char c)
 }
 
 /* return value: number of bytes in out, <=0 if error */
-static int hex2bin(char *str, unsigned char *out)
+static int hex2bin(const char *str, unsigned char *out)
 {
 	int i;
 	for(i = 0; str[i] && str[i+1]; i+=2){
@@ -295,24 +296,24 @@ static unsigned int psk_server_cb(SSL * ssl, const char *identity,
 	(void)(ssl);
 
 	if (!identity) {
-		log_error("Error: client did not send PSK identity\n");
+		log_info(LD_GENERAL, "Error: client did not send PSK identity\n");
 		return 0;
 	}
 
 	if (strcmp(identity, psk_identity) != 0) {
-		log_info("PSK error: (got '%s' expected '%s')\n",
+		log_info(LD_GENERAL, "PSK error: (got '%s' expected '%s')\n",
 				identity, psk_identity);
 		return 0;
 	}
 	if (strlen(psk_key)>=(max_psk_len*2)){
-		log_error("Error, psk_key too long\n");
+		log_info(LD_GENERAL, "Error, psk_key too long\n");
 		return 0;
 	}
 
 	/* convert the PSK key to binary */
 	ret = hex2bin(psk_key,psk);
 	if (ret<=0) {
-		log_error( "Could not convert PSK key '%s' to binary key\n", psk_key);
+		log_info(LD_GENERAL, "Could not convert PSK key '%s' to binary key\n", psk_key);
 		return 0;
 	}
 	return ret;
