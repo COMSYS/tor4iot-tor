@@ -1572,6 +1572,9 @@ STATIC uint16_t v2_cipher_list[] = {
   0xc003, /* TLS1_TXT_ECDH_ECDSA_WITH_DES_192_CBC3_SHA */
   0xfeff, /* SSL3_TXT_RSA_FIPS_WITH_3DES_EDE_CBC_SHA */
   0x000a, /* SSL3_TXT_RSA_DES_192_CBC3_SHA */
+  //IOT
+  0xc0ae,
+  0xc0a8,
   0
 };
 /** Have we removed the unrecognized ciphers from v2_cipher_list yet? */
