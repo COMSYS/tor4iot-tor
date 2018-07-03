@@ -1366,7 +1366,7 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
     if (!(result->ctx = SSL_CTX_new(DTLS_server_method())))
       goto error;
 
-    SSL_CTX_set_cipher_list(result->ctx, "ALL:NULL:eNULL:aNULL");
+    SSL_CTX_set_cipher_list(result->ctx, "PSK-AES128-CCM8"); //ALL:NULL:eNULL:aNULL");
     SSL_CTX_set_session_cache_mode(result->ctx, SSL_SESS_CACHE_OFF);
 
     /* Client has to authenticate */
