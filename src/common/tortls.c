@@ -167,6 +167,10 @@ static int tls_library_is_initialized = 0;
 STATIC unsigned char cookie_secret[COOKIE_SECRET_LENGTH];
 STATIC int cookie_initialized=0;
 
+
+static char *psk_identity = "Client_identity";
+char *psk_key = "secretPSK";
+
 static int tor_dtls_generate_cookie (SSL *ssl, unsigned char *cookie, unsigned int *cookie_len)
 {
   unsigned char *buffer, result[EVP_MAX_MD_SIZE];
@@ -262,6 +266,37 @@ static int tor_dtls_verify_cookie (SSL *ssl, const unsigned char *cookie, unsign
     return 1;
 
   return 0;
+}
+
+static unsigned int psk_server_cb(SSL * ssl, const char *identity,
+	      unsigned char *psk, unsigned int max_psk_len)
+{
+	int ret;
+
+	(void)(ssl);
+
+	if (!identity) {
+		log_error("Error: client did not send PSK identity\n");
+		return 0;
+	}
+
+	if (strcmp(identity, psk_identity) != 0) {
+		log_info("PSK error: (got '%s' expected '%s')\n",
+				identity, psk_identity);
+		return 0;
+	}
+	if (strlen(psk_key)>=(max_psk_len*2)){
+		log_error("Error, psk_key too long\n");
+		return 0;
+	}
+
+	/* convert the PSK key to binary */
+	ret = hex2bin(psk_key,psk);
+	if (ret<=0) {
+		log_error( "Could not convert PSK key '%s' to binary key\n", psk_key);
+		return 0;
+	}
+	return ret;
 }
 
 // END IOT
@@ -1320,6 +1355,8 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
     SSL_CTX_set_verify_depth(result->ctx, 2);
     SSL_CTX_set_cookie_generate_cb(result->ctx, &tor_dtls_generate_cookie);
     SSL_CTX_set_cookie_verify_cb(result->ctx, &tor_dtls_verify_cookie);
+
+    SSL_CTX_set_psk_server_callback(result->ctx, &psk_server_cb);
 
   }
 
