@@ -1455,7 +1455,7 @@ if (!is_dtls) {
     }
   }
   SSL_CTX_set_session_cache_mode(result->ctx, SSL_SESS_CACHE_OFF);
-  if (!is_client) {
+  if (!is_client && !is_dtls) {
     tor_assert(rsa);
     if (!(pkey = crypto_pk_get_evp_pkey_(rsa,1)))
       goto error;
@@ -1472,7 +1472,7 @@ if (!is_dtls) {
     SSL_CTX_set_tmp_dh(result->ctx, crypto_dh_get_dh_(dh));
     crypto_dh_free(dh);
   }
-  if (! is_client) {
+  if (! is_client && !is_dtls) {
     int nid;
     EC_KEY *ec_key;
     if (flags & TOR_TLS_CTX_USE_ECDHE_P224)
