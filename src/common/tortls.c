@@ -1855,8 +1855,11 @@ tor_tls_session_secret_cb(SSL *ssl, void *secret, int *secret_len,
   (void) cipher;
   (void) arg;
 
+  log_debug(LD_GENERAL, "Checking ciphers...");
+
   if (tor_tls_classify_client_ciphers(ssl, peer_ciphers) ==
        CIPHERS_UNRESTRICTED) {
+    log_debug(LD_GENERAL, "Recognized unrestricted cipherlist.");
     SSL_set_cipher_list(ssl, UNRESTRICTED_SERVER_CIPHER_LIST);
   }
 
