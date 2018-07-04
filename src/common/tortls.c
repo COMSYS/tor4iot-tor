@@ -1804,8 +1804,11 @@ tor_tls_server_info_callback(const SSL *ssl, int type, int val)
     return;
   }
 
+  log_debug(LD_GENERAL, "V2 ciphers?");
+
   /* Now check the cipher list. */
   if (tor_tls_client_is_using_v2_ciphers(ssl)) {
+    log_debug(LD_GENERAL, "V2!");
     if (tls->wasV2Handshake)
       return; /* We already turned this stuff off for the first handshake;
                * This is a renegotiation. */
