@@ -1713,13 +1713,15 @@ tor_tls_classify_client_ciphers(const SSL *ssl,
       if (id == 0x00ff) /* extended renegotiation indicator. */
         continue;
       if (!id || id != *v2_cipher) {
-        res = CIPHERS_UNRESTRICTED;
+        //res = CIPHERS_UNRESTRICTED;
+	res = CIPHERS_V2;
         goto dump_ciphers;
       }
       ++v2_cipher;
     }
     if (*v2_cipher != 0) {
-      res = CIPHERS_UNRESTRICTED;
+      //res = CIPHERS_UNRESTRICTED;
+      res = CIPHERS_V2;
       goto dump_ciphers;
     }
     res = CIPHERS_V2;
