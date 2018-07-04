@@ -160,6 +160,11 @@ static int tls_library_is_initialized = 0;
 #define TOR_TLS_ZERORETURN_ (MIN_TOR_TLS_ERROR_VAL_ - 1)
 
 
+/*
+ * Partly taken from:
+ * - https://bitbucket.org/tiebingzhang/tls-psk-server-client-example
+ */
+
 
 //IOT:
 
@@ -171,7 +176,7 @@ STATIC int cookie_initialized=0;
 
 
 static const char *psk_identity = "Client_identity";
-static const char *psk_key = "secretPSK";
+static const char *psk_key = "73656372657450534b";
 
 static int tor_dtls_generate_cookie (SSL *ssl, unsigned char *cookie, unsigned int *cookie_len)
 {
