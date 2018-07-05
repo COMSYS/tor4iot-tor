@@ -308,10 +308,12 @@ typedef enum {
 #define OR_CONN_STATE_OPEN 8
 
 //IOT:
+/** State for an connection to an IoT device, awaiting a info cell */
+#define OR_CONN_STATE_OR_INFO 9
 /** State for an connection to an IoT device, awaiting a join cell */
-#define OR_CONN_STATE_OR_JOINING 9
+#define OR_CONN_STATE_OR_JOINING 10
 
-#define OR_CONN_STATE_MAX_ 9
+#define OR_CONN_STATE_MAX_ 10
 
 /** States of the Extended ORPort protocol. Be careful before changing
  *  the numbers: they matter. */
@@ -952,8 +954,10 @@ typedef enum {
 #define CELL_AUTHENTICATE 131
 #define CELL_AUTHORIZE 132
 
+//IOT
 #define CELL_JOIN 133
-#define CELL_COMMAND_MAX_ 133
+#define CELL_IOT_INFO 134
+#define CELL_COMMAND_MAX_ 134
 
 /** How long to test reachability before complaining to the user. */
 #define TIMEOUT_UNTIL_UNREACHABILITY_COMPLAINT (20*60)
@@ -1679,6 +1683,8 @@ typedef struct or_connection_t {
    * bytes TLS actually sent - used for overhead estimation for scheduling.
    */
   uint64_t bytes_xmitted, bytes_xmitted_by_tls;
+
+  uint8_t iot_id[32];
 } or_connection_t;
 
 /** Subtype of connection_t for an "edge connection" -- that is, an entry (ap)

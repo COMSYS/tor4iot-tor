@@ -1296,6 +1296,9 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
       }
       break;
     //IoT:
+    case OR_CONN_STATE_OR_INFO:
+      iot_info(conn, var_cell);
+      break;
     case OR_CONN_STATE_OR_JOINING:
       iot_join(conn, var_cell);
       break;

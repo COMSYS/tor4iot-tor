@@ -231,6 +231,8 @@ conn_state_to_string(int type, int state)
         case OR_CONN_STATE_OR_HANDSHAKING_V3:
           return "handshaking (Tor, v3 handshake)";
         case OR_CONN_STATE_OPEN: return "open";
+        case OR_CONN_STATE_OR_INFO:
+          return "info (Tor, IoT device)";
         case OR_CONN_STATE_OR_JOINING:
           return "joining (Tor, IoT device)";
       }
