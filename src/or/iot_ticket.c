@@ -25,6 +25,8 @@ const uint8_t iot_mac_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 
 const uint8_t iot_iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
+const char iot_id[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
+
 STATIC smartlist_t *splitted_circuits = NULL;
 STATIC smartlist_t *connected_iot_dev = NULL;
 
@@ -107,8 +109,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   aes_cipher_free(encrypt);
 
   //Set address and port information of IoT device
-  inet_pton(AF_INET6, "::1", &(msg->iot_address.in_addr));
-  msg->iot_address.port = htons(10000);
+  memcpy(msg->iot_id, iot_id, IOT_ID_LEN);
 
   //Compute MAC
   crypto_hmac_sha256((char*) (msg->ticket.mac), (char*) iot_mac_key, 16, (char*) &(msg->ticket), sizeof(iot_ticket_t)-DIGEST256_LEN);
@@ -127,15 +128,9 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 	                      const uint8_t *payload) {
   iot_split_t *msg = (iot_split_t*) payload;
 
-  char ipstr[INET6_ADDRSTRLEN];
-
   tor_assert(length == sizeof(iot_split_t));
 
   log_info(LD_GENERAL, "Got IoT ticket with IoT address information of size %ld.", sizeof(iot_split_t));
-
-  struct sockaddr_in6 si_other;
-  int s, slen=sizeof(si_other);
-
 
   if (!splitted_circuits) {
       splitted_circuits = smartlist_new();
@@ -149,35 +144,34 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 
   // Now send the ticket to IoT device
 
+  or_connection_t* conn = NULL;
+
   SMARTLIST_FOREACH_BEGIN(connected_iot_dev, or_connection_t *, c) {
-    /*
-    //log_info(LD_GENERAL, "Looking for connected IoT device.. ID: %s == %s ?", c->iot_id, ((uint32_t*)cell->payload)[0]);
-    if (memcmp(c->iot_id, )) {
+    log_info(LD_GENERAL, "Looking for connected IoT device.."); // ID: %s == %s ?", c->iot_id, ((uint32_t*)cell->payload)[0]);
+    if (!memcmp(c->iot_id, msg->iot_id, IOT_ID_LEN)) {
       log_info(LD_GENERAL, "FOUND!");
-      circ = c;
+      conn = c;
       break;
     }
     log_info(LD_GENERAL, "DIDNT MATCH");
-    */
+    return;
   } SMARTLIST_FOREACH_END(c);
 
   var_cell_t *cell;
-  int i;
-  int n_versions = 0;
 
+  cell = var_cell_new(sizeof(iot_ticket_t));
 
+  cell->circ_id = 0;
+  cell->command = CELL_IOT_TICKET;
+  memcpy(cell->payload, (uint8_t *)&msg->ticket, sizeof(iot_ticket_t));
 
   connection_or_write_var_cell_to_buf(cell, conn);
-  conn->handshake_state->sent_versions_at = time(NULL);
-
   var_cell_free(cell);
 }
 
 void
 iot_info(or_connection_t *conn, const var_cell_t *cell)
 {
-  circuit_t *circ = NULL;
-
   log_info(LD_GENERAL,
               "Got a INFO cell for circ_id %u on channel " U64_FORMAT
               " (%p)",
@@ -191,6 +185,8 @@ iot_info(or_connection_t *conn, const var_cell_t *cell)
   memcpy(conn->iot_id, cell->payload, 32);
 
   smartlist_add(connected_iot_dev, conn);
+
+  connection_or_set_state_joining(conn);
 }
 
 void

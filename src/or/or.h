@@ -86,6 +86,8 @@
 //IOT
 #include "hs_ntor.h"
 
+#define IOT_ID_LEN 32
+
 typedef uint16_t iot_join_id_t;
 
 /* These signals are defined to help handle_control_signal work.
@@ -957,7 +959,8 @@ typedef enum {
 //IOT
 #define CELL_JOIN 133
 #define CELL_IOT_INFO 134
-#define CELL_COMMAND_MAX_ 134
+#define CELL_IOT_TICKET 135
+#define CELL_COMMAND_MAX_ 135
 
 /** How long to test reachability before complaining to the user. */
 #define TIMEOUT_UNTIL_UNREACHABILITY_COMPLAINT (20*60)
@@ -1684,7 +1687,7 @@ typedef struct or_connection_t {
    */
   uint64_t bytes_xmitted, bytes_xmitted_by_tls;
 
-  uint8_t iot_id[32];
+  uint8_t iot_id[IOT_ID_LEN];
 } or_connection_t;
 
 /** Subtype of connection_t for an "edge connection" -- that is, an entry (ap)

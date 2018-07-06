@@ -43,10 +43,7 @@ typedef struct iot_ticket_t {
 } iot_ticket_t;
 
 typedef struct iot_split_t {
-  struct {
-    uint32_t in_addr[4];
-    uint16_t port;
-  } iot_address;
+  uint8_t iot_id[IOT_ID_LEN];
 
   uint32_t cookie;
 
@@ -63,6 +60,8 @@ void iot_process_relay_split(circuit_t *circ);
 
 void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 	                     const uint8_t *payload);
+
+void iot_info(or_connection_t *conn, const var_cell_t *cell);
 
 void iot_join(or_connection_t *conn, const var_cell_t *cell);
 

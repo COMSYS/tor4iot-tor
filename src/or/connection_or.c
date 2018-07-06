@@ -390,6 +390,13 @@ connection_or_change_state(or_connection_t *conn, uint8_t state)
                                               old_state, state);
 }
 
+//IOT:
+void
+connection_or_set_state_joining(or_connection_t *conn)
+{
+  connection_or_change_state(conn, OR_CONN_STATE_OR_JOINING);
+}
+
 /** Return the number of circuits using an or_connection_t; this used to
  * be an or_connection_t field, but it got moved to channel_t and we
  * shouldn't maintain two copies. */
