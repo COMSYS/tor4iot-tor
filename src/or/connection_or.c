@@ -658,6 +658,9 @@ connection_or_finished_flushing(or_connection_t *conn)
     case OR_CONN_STATE_OPEN:
     case OR_CONN_STATE_OR_HANDSHAKING_V2:
     case OR_CONN_STATE_OR_HANDSHAKING_V3:
+      //IOT:
+    case OR_CONN_STATE_OR_INFO:
+    case OR_CONN_STATE_OR_JOINING:
       break;
     default:
       log_err(LD_BUG,"Called in unexpected state %d.", conn->base_.state);
