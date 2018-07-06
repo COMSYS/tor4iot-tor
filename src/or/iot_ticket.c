@@ -100,7 +100,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   aes_crypt_inplace(encrypt, (char*) &msg->ticket, sizeof(iot_ticket_t)-DIGEST256_LEN);
   aes_cipher_free(encrypt);
 
-  //Set address and port information of IoT device
+  //Set ID of IoT device
   memcpy(msg->iot_id, iot_id, IOT_ID_LEN);
 
   //Compute MAC
@@ -122,7 +122,7 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 
   tor_assert(length == sizeof(iot_split_t));
 
-  log_info(LD_GENERAL, "Got IoT ticket with IoT address information of size %ld.", sizeof(iot_split_t));
+  log_notice(LD_GENERAL, "Got IoT ticket with IoT address information of size %ld.", sizeof(iot_split_t));
 
   if (!splitted_circuits) {
       splitted_circuits = smartlist_new();
