@@ -182,7 +182,7 @@ iot_info(or_connection_t *conn, const var_cell_t *cell)
       connected_iot_dev = smartlist_new();
   }
 
-  memcpy(conn->iot_id, cell->payload, 32);
+  memcpy(conn->iot_id, cell->payload, IOT_ID_LEN);
 
   smartlist_add(connected_iot_dev, conn);
 
