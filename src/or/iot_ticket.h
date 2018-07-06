@@ -26,11 +26,6 @@ typedef struct iot_crypto_aes_relay_t {
 typedef struct iot_ticket_t {
   uint16_t nonce;
 
-  struct {
-    uint32_t in_addr[4];
-    uint16_t port;
-  } sp_address;
-
   uint32_t cookie;
 
   iot_crypto_aes_relay_t sp;

@@ -84,12 +84,6 @@ void iot_ticket_send(origin_circuit_t *circ) {
   memcpy(&msg->ticket.cookie, &msg->cookie, 4);
   log_info(LD_GENERAL, "Chosen cookie: 0x%08x  0x%08x", msg->ticket.cookie, msg->cookie);
 
-  // Set SP address in ticket
-  // XXX: THIS IS NOT THE UDP PORT, WILL FAIL IF IT IS DIFFERENT FROM TCP PORT
-  //tor_assert(split_point->extend_info->addr.family == AF_INET6);
-  memcpy(&msg->ticket.sp_address.in_addr, &split_point->extend_info->sp.addr.addr.in6_addr, 4*4);
-  msg->ticket.sp_address.port = htons(split_point->extend_info->sp.port);
-
   //Set key information in ticket
   iot_ticket_set_relay_crypto(&msg->ticket.sp, split_point);
   // Split point is receiver of our ticket. Add payload size.
@@ -100,8 +94,6 @@ void iot_ticket_send(origin_circuit_t *circ) {
 
   //Set HS material
   memcpy(&msg->ticket.hs_ntor_key, split_point->next->next->next->hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
-
-  log_info(LD_GENERAL, "IoT device has to connect to SP on port %d", ntohs(msg->ticket.sp_address.port));
 
   //Encrypt ticket
   encrypt = aes_new_cipher(iot_key, iot_iv, 128);
@@ -182,6 +174,8 @@ iot_info(or_connection_t *conn, const var_cell_t *cell)
       connected_iot_dev = smartlist_new();
   }
 
+  conn->wide_circ_ids = 1;
+
   memcpy(conn->iot_id, cell->payload, IOT_ID_LEN);
 
   smartlist_add(connected_iot_dev, conn);
@@ -222,8 +216,6 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
     tor_assert(TO_OR_CIRCUIT(circ)->p_chan == TLS_CHAN_TO_BASE(conn->chan));
 
     circ->state = CIRCUIT_STATE_OPEN;
-
-    conn->wide_circ_ids = 1;
 
     smartlist_remove(splitted_circuits, circ);
 
