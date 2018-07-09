@@ -95,7 +95,7 @@ typedef struct node_t node_t;
 typedef struct iot_circ_info_t {
   uint8_t is_set;
 
-  node_t *split;
+  const node_t *split;
   uint8_t after;
 } iot_circ_info_t;
 

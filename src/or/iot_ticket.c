@@ -27,7 +27,7 @@ const uint8_t iot_mac_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 
 const uint8_t iot_iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-const char sp_identity_digest[] = "3A08B33E626B6FB48F2943D2AE3BE7A5B535EB97";
+const char sp_rsa_id_hex[] = "3A08B33E626B6FB48F2943D2AE3BE7A5B535EB97";
 const char iot_id[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
 
 STATIC smartlist_t *splitted_circuits = NULL;
@@ -38,16 +38,16 @@ STATIC smartlist_t *connected_iot_dev = NULL;
 
 
 int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info) {
-  char digest[DIGEST_LEN];
-  const char *pos = sp_identity_digest;
+  char sp_rsa_id[DIGEST_LEN];
+  const char *pos = sp_rsa_id_hex;
 
   for (size_t i = 0; i < DIGEST_LEN; i++) {
-      sscanf(pos, "%2hhx", &digest[i]);
+      sscanf(pos, "%2hhx", &sp_rsa_id[i]);
       pos += 2;
   }
 
   info->after = 2;
-  info->split = node_get_mutable_by_id(sp_identity_digest);
+  info->split = node_get_by_hex_id(sp_rsa_id_hex, 0);
 
   if (!info->split) {
       return -1;
