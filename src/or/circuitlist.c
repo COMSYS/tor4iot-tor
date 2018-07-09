@@ -1691,6 +1691,11 @@ circuit_find_to_cannibalize(uint8_t purpose, extend_info_t *info,
   int internal = (flags & CIRCLAUNCH_IS_INTERNAL) != 0;
   const or_options_t *options = get_options();
 
+  //IOT: For our delegation service we do not cannibalize!
+  if (purpose==CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
+      return NULL;
+  }
+
   /* Make sure we're not trying to create a onehop circ by
    * cannibalization. */
   tor_assert(!(flags & CIRCLAUNCH_ONEHOP_TUNNEL));

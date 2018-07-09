@@ -90,6 +90,15 @@
 
 typedef uint16_t iot_join_id_t;
 
+typedef struct node_t node_t;
+
+typedef struct iot_circ_info_t {
+  uint8_t is_set;
+
+  node_t *split;
+  uint8_t after;
+} iot_circ_info_t;
+
 /* These signals are defined to help handle_control_signal work.
  */
 #ifndef SIGHUP
@@ -2857,6 +2866,7 @@ typedef struct extend_info_t {
 
   //IOT:
   tor_addr_port_t sp;
+  iot_circ_info_t iot_circ_info;
 } extend_info_t;
 
 /** Certificate for v3 directory protocol: binds long-term authority identity
@@ -3020,6 +3030,9 @@ typedef struct {
   int failure_count;
   /** At what time should we give up on this task? */
   time_t expiry_time;
+
+  //IOT:
+  iot_circ_info_t iot_circ_info;
 } cpath_build_state_t;
 
 /** "magic" value for an origin_circuit_t */
@@ -3475,7 +3488,6 @@ typedef struct origin_circuit_t {
    * is randomized on a per-circuit basis from CircuitsAvailableTimoeut
    * to 2*CircuitsAvailableTimoeut. */
   int circuit_idle_timeout;
-
 } origin_circuit_t;
 
 struct onion_queue_t;

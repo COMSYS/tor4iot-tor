@@ -20,11 +20,14 @@
 #include "channeltls.h"
 #include "connection_or.h"
 
+#include "nodelist.h"
+
 const uint8_t iot_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 const uint8_t iot_mac_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 
 const uint8_t iot_iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
+const char sp_identity_digest[] = "3A08B33E626B6FB48F2943D2AE3BE7A5B535EB97";
 const char iot_id[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
 
 STATIC smartlist_t *splitted_circuits = NULL;
@@ -32,6 +35,18 @@ STATIC smartlist_t *connected_iot_dev = NULL;
 
 #define SPLITPOINT_BEFORE_HS(circ) circ->cpath->prev->prev->prev
 #define SPLITPOINT(circ) SPLITPOINT_BEFORE_HS(circ)->prev
+
+
+int iot_set_circ_info(hs_service_t *hs, iot_circ_info_t *info) {
+  info->after = 2;
+  info->split = node_get_mutable_by_id(sp_identity_digest);
+
+  if (!info->split) {
+      return -1;
+  } else {
+    return 1;
+  }
+}
 
 
 static void iot_ticket_set_relay_crypto(iot_crypto_aes_relay_t *iot_crypto, crypt_path_t *relay) {

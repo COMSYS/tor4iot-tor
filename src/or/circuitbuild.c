@@ -509,6 +509,10 @@ circuit_establish_circuit(uint8_t purpose, extend_info_t *exit_ei, int flags)
 
   circ = origin_circuit_init(purpose, flags);
 
+  if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
+      circ->build_state->iot_circ_info = exit_ei->iot_circ_info;
+  }
+
   if (onion_pick_cpath_exit(circ, exit_ei, is_hs_v3_rp_circuit) < 0 ||
       onion_populate_cpath(circ) < 0) {
     circuit_mark_for_close(TO_CIRCUIT(circ), END_CIRC_REASON_NOPATH);
@@ -2489,6 +2493,10 @@ choose_good_middle_server(uint8_t purpose,
     }
   }
 
+  if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
+      nodelist_add_node_and_family(excluded, state->iot_circ_info.split);
+  }
+
   if (state->need_uptime)
     flags |= CRN_NEED_UPTIME;
   if (state->need_capacity)
@@ -2539,6 +2547,10 @@ choose_good_entry_server(uint8_t purpose, cpath_build_state_t *state,
     /* Exclude the exit node from the state, if we have one.  Also exclude its
      * family. */
     nodelist_add_node_and_family(excluded, node);
+  }
+
+  if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
+      nodelist_add_node_and_family(excluded, state->iot_circ_info.split);
   }
 
   if (state) {
@@ -2605,8 +2617,9 @@ onion_extend_cpath(origin_circuit_t *circ)
       /* Clients can fail to find an allowed address */
       tor_assert_nonfatal(info || client);
     }
+  } else if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT && cur_len == state->desired_path_len - 1 - state->iot_circ_info.after) {
+    info = extend_info_from_node(state->iot_circ_info.split, 0);
   } else {
-    //TODO: This is where we need to choose our split relay.
     r = choose_good_middle_server(purpose, state, circ->cpath, cur_len);
     if (r) {
       info = extend_info_from_node(r, 0);
@@ -2618,12 +2631,6 @@ onion_extend_cpath(origin_circuit_t *circ)
     log_warn(LD_CIRC,"Failed to find node for hop #%d of our path. Discarding "
              "this circuit.", cur_len+1);
     return -1;
-  }
-
-  //IOT:
-  if (cur_len < state->desired_path_len - 1) {
-    node_get_pref_ipv6_orport(r, &info->sp);
-    log_info(LD_CIRC, "Transmitted SP connection information is %s on port %d", "[IP not printed]", info->sp.port);
   }
 
   log_debug(LD_CIRC,"Chose router %s for hop #%d (exit is %s)",
