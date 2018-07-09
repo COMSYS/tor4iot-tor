@@ -1005,7 +1005,8 @@ typedef enum {
 #define CELL_MAX_NETWORK_SIZE 514
 
 /** Maximum length of a header on a variable-length cell. */
-#define VAR_CELL_MAX_HEADER_SIZE 7
+//IOT
+#define VAR_CELL_MAX_HEADER_SIZE 7 + 2
 
 static int get_cell_network_size(int wide_circ_ids);
 static inline int get_cell_network_size(int wide_circ_ids)
@@ -1182,6 +1183,8 @@ typedef struct cell_t {
   circid_t circ_id; /**< Circuit which received the cell. */
   uint8_t command; /**< Type of the cell: one of CELL_PADDING, CELL_CREATE,
                     * CELL_DESTROY, etc */
+  /** IOT: Cell number on this circ to ensure that no cell was lost. */
+  uint16_t cell_num;
   uint8_t payload[CELL_PAYLOAD_SIZE]; /**< Cell body. */
 } cell_t;
 
@@ -1191,6 +1194,8 @@ typedef struct var_cell_t {
   uint8_t command;
   /** Circuit thich received the cell */
   circid_t circ_id;
+  /** IOT: Cell number on this circ to ensure that no cell was lost. */
+  uint16_t cell_num;
   /** Number of bytes actually stored in <b>payload</b> */
   uint16_t payload_len;
   /** Payload of this cell */
@@ -1697,6 +1702,10 @@ typedef struct or_connection_t {
   uint64_t bytes_xmitted, bytes_xmitted_by_tls;
 
   uint8_t iot_id[IOT_ID_LEN];
+
+  uint16_t cell_num_out;
+  uint16_t cell_num_in;
+
 } or_connection_t;
 
 /** Subtype of connection_t for an "edge connection" -- that is, an entry (ap)

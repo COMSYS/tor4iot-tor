@@ -1098,6 +1098,22 @@ channel_tls_handle_cell(cell_t *cell, or_connection_t *conn)
   if (conn->base_.marked_for_close)
     return;
 
+  if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+    if (cell->cell_num != conn->cell_num_in) {
+      log_warn(LD_PROTOCOL, "Received a var cell with unexpected num %d (%d) in "
+               "orconn state \"%s\" [%d], channel state \"%s\" [%d]; "
+               "closing the connection.",
+               (int)(cell->cell_num),
+	       (int)(conn->cell_num_in),
+               conn_state_to_string(CONN_TYPE_OR, TO_CONN(conn)->state),
+               TO_CONN(conn)->state,
+               channel_state_to_string(TLS_CHAN_TO_BASE(chan)->state),
+               (int)(TLS_CHAN_TO_BASE(chan)->state));
+    } else {
+	conn->cell_num_in++;
+    }
+  }
+
   /* Reject all but VERSIONS and NETINFO when handshaking. */
   /* (VERSIONS should actually be impossible; it's variable-length.) */
   if (handshaking && cell->command != CELL_VERSIONS &&
@@ -1225,6 +1241,22 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
 
   if (TO_CONN(conn)->marked_for_close)
     return;
+
+  if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+    if (var_cell->cell_num != conn->cell_num_in) {
+      log_warn(LD_PROTOCOL, "Received a var cell with unexpected num %d (%d) in "
+               "orconn state \"%s\" [%d], channel state \"%s\" [%d]; "
+               "closing the connection.",
+               (int)(var_cell->cell_num),
+	       (int)(conn->cell_num_in),
+               conn_state_to_string(CONN_TYPE_OR, TO_CONN(conn)->state),
+               TO_CONN(conn)->state,
+               channel_state_to_string(TLS_CHAN_TO_BASE(chan)->state),
+               (int)(TLS_CHAN_TO_BASE(chan)->state));
+    } else {
+	conn->cell_num_in++;
+    }
+  }
 
   switch (TO_CONN(conn)->state) {
     case OR_CONN_STATE_OR_HANDSHAKING_V2:

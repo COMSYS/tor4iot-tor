@@ -27,7 +27,7 @@
 static var_cell_t *mock_got_var_cell = NULL;
 
 static void
-mock_write_var_cell(const var_cell_t *vc, or_connection_t *conn)
+mock_write_var_cell(var_cell_t *vc, or_connection_t *conn)
 {
   (void)conn;
 
