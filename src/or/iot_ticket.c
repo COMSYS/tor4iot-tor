@@ -38,6 +38,14 @@ STATIC smartlist_t *connected_iot_dev = NULL;
 
 
 int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info) {
+  char digest[DIGEST_LEN];
+  const char *pos = sp_identity_digest;
+
+  for (size_t i = 0; i < DIGEST_LEN; i++) {
+      sscanf(pos, "%2hhx", &digest[i]);
+      pos += 2;
+  }
+
   info->after = 2;
   info->split = node_get_mutable_by_id(sp_identity_digest);
 
