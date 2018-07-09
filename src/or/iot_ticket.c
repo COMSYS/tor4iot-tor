@@ -38,14 +38,6 @@ STATIC smartlist_t *connected_iot_dev = NULL;
 
 
 int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info) {
-  char sp_rsa_id[DIGEST_LEN];
-  const char *pos = sp_rsa_id_hex;
-
-  for (size_t i = 0; i < DIGEST_LEN; i++) {
-      sscanf(pos, "%2hhx", &sp_rsa_id[i]);
-      pos += 2;
-  }
-
   info->after = 2;
   info->split = node_get_by_hex_id(sp_rsa_id_hex, 0);
 
@@ -145,7 +137,25 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 
   tor_assert(length == sizeof(iot_split_t));
 
-  log_notice(LD_GENERAL, "Got IoT ticket with IoT address information of size %ld.", sizeof(iot_split_t));
+  log_notice(LD_GENERAL, "Got IoT ticket with IoT id of size %ld.", sizeof(iot_split_t));
+
+  or_connection_t* conn = NULL;
+
+  if (connected_iot_dev) {
+    SMARTLIST_FOREACH_BEGIN(connected_iot_dev, or_connection_t *, c) {
+      log_info(LD_GENERAL, "Looking for connected IoT device.."); // ID: %s == %s ?", c->iot_id, ((uint32_t*)cell->payload)[0]);
+      if (!memcmp(c->iot_id, msg->iot_id, IOT_ID_LEN)) {
+        log_info(LD_GENERAL, "FOUND!");
+        conn = c;
+        break;
+      }
+      log_info(LD_GENERAL, "DIDNT MATCH");
+      return;
+    } SMARTLIST_FOREACH_END(c);
+  } else {
+      log_warn(LD_GENERAL, "Got a ticket but there never was a IoT device connected.");
+      return;
+  }
 
   if (!splitted_circuits) {
       splitted_circuits = smartlist_new();
@@ -158,19 +168,6 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 
 
   // Now send the ticket to IoT device
-
-  or_connection_t* conn = NULL;
-
-  SMARTLIST_FOREACH_BEGIN(connected_iot_dev, or_connection_t *, c) {
-    log_info(LD_GENERAL, "Looking for connected IoT device.."); // ID: %s == %s ?", c->iot_id, ((uint32_t*)cell->payload)[0]);
-    if (!memcmp(c->iot_id, msg->iot_id, IOT_ID_LEN)) {
-      log_info(LD_GENERAL, "FOUND!");
-      conn = c;
-      break;
-    }
-    log_info(LD_GENERAL, "DIDNT MATCH");
-    return;
-  } SMARTLIST_FOREACH_END(c);
 
   var_cell_t *cell;
 
@@ -217,6 +214,7 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
               (unsigned)cell->circ_id,
               U64_PRINTF_ARG(TLS_CHAN_TO_BASE(conn->chan)->global_identifier), TLS_CHAN_TO_BASE(conn->chan));
 
+  if (splitted_circuits) {
   // Find circuit by cookie from our smartlist
   SMARTLIST_FOREACH_BEGIN(splitted_circuits, circuit_t *, c) {
     log_info(LD_GENERAL, "Looking for joinable circuit.. Cookie: 0x%08x == 0x%08x ?", c->join_cookie, ((uint32_t*)cell->payload)[0]);
@@ -227,6 +225,10 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
     }
     log_info(LD_GENERAL, "DIDNT MATCH");
   } SMARTLIST_FOREACH_END(c);
+  } else {
+      log_warn(LD_GENERAL, "Got JOIN cell but there never was a circuit ready to join.");
+      return;
+  }
 
   if (circ) {
     log_info(LD_GENERAL, "Join circuits by cookie 0x%08x", ((uint32_t*)cell->payload)[0]);
