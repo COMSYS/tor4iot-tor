@@ -37,7 +37,7 @@ STATIC smartlist_t *connected_iot_dev = NULL;
 #define SPLITPOINT(circ) SPLITPOINT_BEFORE_HS(circ)->prev
 
 
-int iot_set_circ_info(hs_service_t *hs, iot_circ_info_t *info) {
+int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info) {
   info->after = 2;
   info->split = node_get_mutable_by_id(sp_identity_digest);
 

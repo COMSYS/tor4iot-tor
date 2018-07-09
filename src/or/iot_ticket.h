@@ -49,7 +49,7 @@ typedef struct iot_split_t {
 
 #pragma pack(pop)
 
-int iot_set_circ_info(hs_service_t *hs, iot_circ_info_t *info);
+int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info);
 
 void iot_ticket_send(origin_circuit_t *circ);
 
