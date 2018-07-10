@@ -2235,7 +2235,9 @@ connection_fetch_var_cell_from_buf(or_connection_t *or_conn, var_cell_t **out)
   connection_t *conn = TO_CONN(or_conn);
 
   if (conn->type == CONN_TYPE_OR_UDP) {
-    return fetch_var_cell_udp_from_buf(conn->inbuf, out, or_conn->link_proto);
+    int res = fetch_var_cell_udp_from_buf(conn->inbuf, out, or_conn->link_proto);
+    log_info(LD_GENERAL, "Returned %d", res);
+    return res;
   } else {
     return fetch_var_cell_from_buf(conn->inbuf, out, or_conn->link_proto);
   }
