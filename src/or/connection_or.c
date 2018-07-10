@@ -2203,7 +2203,7 @@ connection_or_write_var_cell_to_buf,(var_cell_t *cell,
                                      or_connection_t *conn))
 {
   int n;
-  char hdr[VAR_CELL_MAX_HEADER_SIZE];
+  char hdr[VAR_CELL_MAX_HEADER_SIZE+2];
   tor_assert(cell);
   tor_assert(conn);
 
