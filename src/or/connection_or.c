@@ -508,11 +508,11 @@ var_cell_udp_pack_header(const var_cell_t *cell, char *hdr_out, int wide_circ_id
   if (wide_circ_ids) {
     set_uint32(hdr_out, htonl(cell->circ_id));
     hdr_out += 4;
-    r = VAR_CELL_MAX_HEADER_SIZE;
+    r = VAR_CELL_MAX_HEADER_SIZE + 2;
   } else {
     set_uint16(hdr_out, htons(cell->circ_id));
     hdr_out += 2;
-    r = VAR_CELL_MAX_HEADER_SIZE - 2;
+    r = VAR_CELL_MAX_HEADER_SIZE;
   }
   set_uint8(hdr_out, cell->command);
   set_uint16(hdr_out+1, htons(cell->cell_num));
