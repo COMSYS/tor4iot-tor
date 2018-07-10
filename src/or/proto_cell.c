@@ -140,6 +140,9 @@ fetch_var_cell_udp_from_buf(buf_t *buf, var_cell_t **out, int linkproto)
   log_info(LD_GENERAL, "drain %d", length);
 
   *out = result;
+
+  log_info(LD_GENERAL, "returning now");
+
   return 1;
 }
 
