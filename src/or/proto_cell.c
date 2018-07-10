@@ -94,7 +94,7 @@ fetch_var_cell_from_buf(buf_t *buf, var_cell_t **out, int linkproto)
 int
 fetch_var_cell_udp_from_buf(buf_t *buf, var_cell_t **out, int linkproto)
 {
-  char hdr[VAR_CELL_MAX_HEADER_SIZE];
+  char hdr[VAR_CELL_MAX_HEADER_SIZE+2];
   var_cell_t *result;
   uint8_t command;
   uint16_t length;
