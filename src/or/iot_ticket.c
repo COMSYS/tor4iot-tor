@@ -190,9 +190,24 @@ iot_info(or_connection_t *conn, const var_cell_t *cell)
               (unsigned)cell->circ_id,
               U64_PRINTF_ARG(TLS_CHAN_TO_BASE(conn->chan)->global_identifier), TLS_CHAN_TO_BASE(conn->chan));
 
-  if (!connected_iot_dev) {
-      connected_iot_dev = smartlist_new();
-  }
+
+  if (connected_iot_dev) {
+      or_connection_t *oldconn = NULL;
+      SMARTLIST_FOREACH_BEGIN(connected_iot_dev, or_connection_t *, c) {
+        log_info(LD_GENERAL, "Looking for already connected IoT device..");
+        if (!memcmp(c->iot_id, cell->payload, IOT_ID_LEN)) {
+          log_info(LD_GENERAL, "FOUND! Remove from list to readd it.");
+          oldconn = c;
+          break;
+        }
+      } SMARTLIST_FOREACH_END(c);
+
+      if (oldconn) {
+	  smartlist_remove(connected_iot_dev, oldconn);
+      }
+    } else {
+	connected_iot_dev = smartlist_new();
+    }
 
   conn->wide_circ_ids = 1;
 
