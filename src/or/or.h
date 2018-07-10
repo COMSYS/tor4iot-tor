@@ -1005,8 +1005,7 @@ typedef enum {
 #define CELL_MAX_NETWORK_SIZE 514
 
 /** Maximum length of a header on a variable-length cell. */
-//IOT
-#define VAR_CELL_MAX_HEADER_SIZE 7 + 2
+#define VAR_CELL_MAX_HEADER_SIZE 7
 
 static int get_cell_network_size(int wide_circ_ids);
 static inline int get_cell_network_size(int wide_circ_ids)
