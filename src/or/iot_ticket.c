@@ -230,16 +230,16 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
               U64_PRINTF_ARG(TLS_CHAN_TO_BASE(conn->chan)->global_identifier), TLS_CHAN_TO_BASE(conn->chan));
 
   if (splitted_circuits) {
-  // Find circuit by cookie from our smartlist
-  SMARTLIST_FOREACH_BEGIN(splitted_circuits, circuit_t *, c) {
-    log_info(LD_GENERAL, "Looking for joinable circuit.. Cookie: 0x%08x == 0x%08x ?", c->join_cookie, ((uint32_t*)cell->payload)[0]);
-    if (((uint32_t*)cell->payload)[0] == c->join_cookie) {
-      log_info(LD_GENERAL, "FOUND!");
-      circ = c;
-      break;
-    }
-    log_info(LD_GENERAL, "DIDNT MATCH");
-  } SMARTLIST_FOREACH_END(c);
+    // Find circuit by cookie from our smartlist
+    SMARTLIST_FOREACH_BEGIN(splitted_circuits, circuit_t *, c) {
+      log_info(LD_GENERAL, "Looking for joinable circuit.. Cookie: 0x%08x == 0x%08x ?", c->join_cookie, ((uint32_t*)cell->payload)[0]);
+      if (((uint32_t*)cell->payload)[0] == c->join_cookie) {
+	log_info(LD_GENERAL, "FOUND!");
+	circ = c;
+	break;
+      }
+      log_info(LD_GENERAL, "DIDNT MATCH");
+    } SMARTLIST_FOREACH_END(c);
   } else {
       log_warn(LD_GENERAL, "Got JOIN cell but there never was a circuit ready to join.");
       return;
