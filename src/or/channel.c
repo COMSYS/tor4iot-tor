@@ -1936,7 +1936,7 @@ channel_write_cell_queue_entry(channel_t *chan, cell_queue_entry_t *q)
   /* For statistical purposes, figure out how big this cell is */
   cell_bytes = channel_get_cell_queue_entry_size(chan, q);
 
-  log_debug(LD_GENERAL, "Cell bytes: %d", cell_bytes);
+  log_debug(LD_GENERAL, "Cell bytes: %lu", cell_bytes);
 
   /* Can we send it right out?  If so, try */
   if (TOR_SIMPLEQ_EMPTY(&chan->outgoing_queue) &&
