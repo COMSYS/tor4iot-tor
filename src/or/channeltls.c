@@ -849,6 +849,10 @@ channel_tls_write_packed_cell_method(channel_t *chan,
   size_t cell_network_size = get_cell_network_size(chan->wide_circ_ids);
   int written = 0;
 
+  if (chan->cell_num) {
+    cell_network_size += 2;
+  }
+
   tor_assert(tlschan);
   tor_assert(packed_cell);
 
