@@ -1900,6 +1900,9 @@ channel_get_cell_queue_entry_size(channel_t *chan, cell_queue_entry_t *q)
       tor_assert_nonfatal_unreached_once();
   }
 
+  if (chan->cell_num)
+    rv += 2;
+
   return rv;
 }
 
