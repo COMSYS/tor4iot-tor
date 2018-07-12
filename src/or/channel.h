@@ -345,6 +345,8 @@ struct channel_s {
    * lower-layer queueing.
    */
   uint64_t bytes_in_queue;
+
+  int cell_num:1;
 };
 
 struct channel_listener_s {

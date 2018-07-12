@@ -56,10 +56,10 @@ test_cq_manip(void *arg)
           "truffula magna aliqua.",
           sizeof(cell.payload));
   cell_queue_append_packed_copy(NULL /*circ*/, &cq, 0 /*exitward*/, &cell,
-                                1 /*wide*/, 0 /*stats*/);
+                                1 /*wide*/, 0 /*stats*/, 0);
   cell.circ_id = 0x2013;
   cell_queue_append_packed_copy(NULL /*circ*/, &cq, 0 /*exitward*/, &cell,
-                                0 /*wide*/, 0 /*stats*/);
+                                0 /*wide*/, 0 /*stats*/, 0);
   tt_int_op(cq.n, OP_EQ, 2);
 
   pc_tmp = cell_queue_pop(&cq);

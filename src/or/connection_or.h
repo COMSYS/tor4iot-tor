@@ -100,13 +100,9 @@ MOCK_DECL(int,connection_or_send_authenticate_cell,
 
 int is_or_protocol_version_known(uint16_t version);
 
-void cell_pack(packed_cell_t *dest, const cell_t *src, int wide_circ_ids);
+void cell_pack(packed_cell_t *dest, const cell_t *src, int wide_circ_ids, int cell_num);
 int var_cell_pack_header(const var_cell_t *cell, char *hdr_out,
-                         int wide_circ_ids);
-
-void cell_udp_pack(packed_cell_t *dest, const cell_t *src, int wide_circ_ids);
-int var_cell_udp_pack_header(const var_cell_t *cell, char *hdr_out,
-                         int wide_circ_ids);
+                         int wide_circ_ids, int cell_num);
 
 var_cell_t *var_cell_new(uint16_t payload_len);
 var_cell_t *var_cell_copy(const var_cell_t *src);

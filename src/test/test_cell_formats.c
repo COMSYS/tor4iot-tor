@@ -1255,25 +1255,25 @@ test_cfmt_is_destroy(void *arg)
   cell.circ_id = 3003;
   cell.command = CELL_RELAY;
 
-  cell_pack(&packed, &cell, 0);
+  cell_pack(&packed, &cell, 0, 0);
   chan->wide_circ_ids = 0;
   tt_assert(! packed_cell_is_destroy(chan, &packed, &circid));
   tt_int_op(circid, OP_EQ, 0);
 
-  cell_pack(&packed, &cell, 1);
+  cell_pack(&packed, &cell, 1, 0);
   chan->wide_circ_ids = 1;
   tt_assert(! packed_cell_is_destroy(chan, &packed, &circid));
   tt_int_op(circid, OP_EQ, 0);
 
   cell.command = CELL_DESTROY;
 
-  cell_pack(&packed, &cell, 0);
+  cell_pack(&packed, &cell, 0, 0);
   chan->wide_circ_ids = 0;
   tt_assert(packed_cell_is_destroy(chan, &packed, &circid));
   tt_int_op(circid, OP_EQ, 3003);
 
   circid = 0;
-  cell_pack(&packed, &cell, 1);
+  cell_pack(&packed, &cell, 1, 0);
   chan->wide_circ_ids = 1;
   tt_assert(packed_cell_is_destroy(chan, &packed, &circid));
 

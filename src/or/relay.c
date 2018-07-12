@@ -78,6 +78,7 @@
 #include "scheduler.h"
 #include "rephist.h"
 
+#include "channeltls.h"
 #include "iot_ticket.h"
 
 static edge_connection_t *relay_lookup_conn(circuit_t *circ, cell_t *cell,
@@ -2483,10 +2484,19 @@ dump_cell_pool_usage(int severity)
 
 /** Allocate a new copy of packed <b>cell</b>. */
 static inline packed_cell_t *
-packed_cell_copy(const cell_t *cell, int wide_circ_ids)
+packed_cell_copy(const cell_t *cell, int wide_circ_ids, int cell_num)
 {
   packed_cell_t *c = packed_cell_new();
-  cell_pack(c, cell, wide_circ_ids);
+  cell_pack(c, cell, wide_circ_ids, cell_num);
+  return c;
+}
+
+/** Allocate a new copy of packed <b>cell</b>. */
+static inline packed_cell_t *
+packed_cell_udp_copy(const cell_t *cell, int wide_circ_ids, int cell_num)
+{
+  packed_cell_t *c = packed_cell_new();
+  cell_pack(c, cell, wide_circ_ids, cell_num);
   return c;
 }
 
@@ -2505,9 +2515,13 @@ cell_queue_append(cell_queue_t *queue, packed_cell_t *cell)
 void
 cell_queue_append_packed_copy(circuit_t *circ, cell_queue_t *queue,
                               int exitward, const cell_t *cell,
-                              int wide_circ_ids, int use_stats)
+                              int wide_circ_ids, int use_stats,
+			      int cell_num)
 {
-  packed_cell_t *copy = packed_cell_copy(cell, wide_circ_ids);
+  packed_cell_t *copy;
+
+  copy = packed_cell_copy(cell, wide_circ_ids, cell_num);
+
   (void)circ;
   (void)exitward;
   (void)use_stats;
@@ -2603,7 +2617,7 @@ destroy_cell_queue_append(destroy_cell_queue_t *queue,
 
 /** Convert a destroy_cell_t to a newly allocated cell_t. Frees its input. */
 static packed_cell_t *
-destroy_cell_to_packed_cell(destroy_cell_t *inp, int wide_circ_ids)
+destroy_cell_to_packed_cell(destroy_cell_t *inp, int wide_circ_ids, int cell_num)
 {
   packed_cell_t *packed = packed_cell_new();
   cell_t cell;
@@ -2611,7 +2625,7 @@ destroy_cell_to_packed_cell(destroy_cell_t *inp, int wide_circ_ids)
   cell.circ_id = inp->circid;
   cell.command = CELL_DESTROY;
   cell.payload[0] = inp->reason;
-  cell_pack(packed, &cell, wide_circ_ids);
+  cell_pack(packed, &cell, wide_circ_ids, cell_num);
 
   tor_free(inp);
   return packed;
@@ -2859,7 +2873,7 @@ channel_flush_from_first_active_circuit, (channel_t *chan, int max))
       /* ...and pop() will always yield a cell from a nonempty queue. */
       tor_assert(dcell);
       /* frees dcell */
-      cell = destroy_cell_to_packed_cell(dcell, chan->wide_circ_ids);
+      cell = destroy_cell_to_packed_cell(dcell, chan->wide_circ_ids, chan->cell_num);
       /* frees cell */
       channel_write_packed_cell(chan, cell);
       /* Update the cmux destroy counter */
@@ -3098,7 +3112,7 @@ append_cell_to_circuit_queue(circuit_t *circ, channel_t *chan,
 #endif /* 0 */
 
   cell_queue_append_packed_copy(circ, queue, exitward, cell,
-                                chan->wide_circ_ids, 1);
+                                chan->wide_circ_ids, 1, chan->cell_num);
 
   if (PREDICT_UNLIKELY(cell_queues_check_size())) {
     /* We ran the OOM handler */

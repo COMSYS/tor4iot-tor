@@ -252,6 +252,7 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
     // Join circuits
     circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
+    TLS_CHAN_TO_BASE(conn->chan)->cell_num = 1;
 
     tor_assert(TO_OR_CIRCUIT(circ)->p_chan == TLS_CHAN_TO_BASE(conn->chan));
 

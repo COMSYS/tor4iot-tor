@@ -1212,7 +1212,7 @@ typedef struct ext_or_cmd_t {
 typedef struct packed_cell_t {
   /** Next cell queued on this circuit. */
   TOR_SIMPLEQ_ENTRY(packed_cell_t) next;
-  char body[CELL_MAX_NETWORK_SIZE]; /**< Cell as packed for network. */
+  char body[CELL_MAX_NETWORK_SIZE+2]; /**< Cell as packed for network. */
   uint32_t inserted_time; /**< Time (in milliseconds since epoch, with high
                            * bits truncated) when this cell was inserted. */
 } packed_cell_t;

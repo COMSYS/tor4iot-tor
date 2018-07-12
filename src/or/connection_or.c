@@ -421,7 +421,7 @@ connection_or_get_num_circuits, (or_connection_t *conn))
  * should set it or clear it as appropriate.
  */
 void
-cell_pack(packed_cell_t *dst, const cell_t *src, int wide_circ_ids)
+cell_pack(packed_cell_t *dst, const cell_t *src, int wide_circ_ids, int cell_num)
 {
   char *dest = dst->body;
   if (wide_circ_ids) {
@@ -435,40 +435,22 @@ cell_pack(packed_cell_t *dst, const cell_t *src, int wide_circ_ids)
     dest += 2;
   }
   set_uint8(dest, src->command);
-  memcpy(dest+1, src->payload, CELL_PAYLOAD_SIZE);
+  dest += 1;
+
+  if (cell_num) {
+      set_uint16(dest, htons(src->cell_num));
+      dest += 2;
+  }
+
+  memcpy(dest, src->payload, CELL_PAYLOAD_SIZE);
 }
 
-/** Pack the cell_t host-order structure <b>src</b> into network-order
- * in the buffer <b>dest</b>. See tor-spec.txt for details about the
- * wire format.
- *
- * Note that this function doesn't touch <b>dst</b>-\>next: the caller
- * should set it or clear it as appropriate.
- */
-void
-cell_udp_pack(packed_cell_t *dst, const cell_t *src, int wide_circ_ids)
-{
-  char *dest = dst->body;
-  if (wide_circ_ids) {
-    set_uint32(dest, htonl(src->circ_id));
-    dest += 4;
-  } else {
-    /* Clear the last two bytes of dest, in case we can accidentally
-     * send them to the network somehow. */
-    memset(dest+CELL_MAX_NETWORK_SIZE-2, 0, 2);
-    set_uint16(dest, htons(src->circ_id));
-    dest += 2;
-  }
-  set_uint8(dest, src->command);
-  set_uint16(dest+1, htons(src->cell_num));
-  memcpy(dest+3, src->payload, CELL_PAYLOAD_SIZE);
-}
 
 /** Unpack the network-order buffer <b>src</b> into a host-order
  * cell_t structure <b>dest</b>.
  */
 static void
-cell_unpack(cell_t *dest, const char *src, int wide_circ_ids)
+cell_unpack(cell_t *dest, const char *src, int wide_circ_ids, int cell_num)
 {
   if (wide_circ_ids) {
     dest->circ_id = ntohl(get_uint32(src));
@@ -478,52 +460,20 @@ cell_unpack(cell_t *dest, const char *src, int wide_circ_ids)
     src += 2;
   }
   dest->command = get_uint8(src);
-  memcpy(dest->payload, src+1, CELL_PAYLOAD_SIZE);
-}
+  src += 1;
 
-/** Unpack the network-order buffer <b>src</b> into a host-order
- * cell_t structure <b>dest</b>.
- */
-static void
-udp_cell_unpack(cell_t *dest, const char *src, int wide_circ_ids)
-{
-  if (wide_circ_ids) {
-    dest->circ_id = ntohl(get_uint32(src));
-    src += 4;
-  } else {
-    dest->circ_id = ntohs(get_uint16(src));
+  if (cell_num) {
+    dest->cell_num = ntohs(get_uint16(src));
     src += 2;
   }
-  dest->command = get_uint8(src);
-  dest->cell_num = ntohs(get_uint16(src+1));
-  memcpy(dest->payload, src+3, CELL_PAYLOAD_SIZE);
+
+  memcpy(dest->payload, src, CELL_PAYLOAD_SIZE);
 }
 
 /** Write the header of <b>cell</b> into the first VAR_CELL_MAX_HEADER_SIZE
  * bytes of <b>hdr_out</b>. Returns number of bytes used. */
 int
-var_cell_udp_pack_header(const var_cell_t *cell, char *hdr_out, int wide_circ_ids)
-{
-  int r;
-  if (wide_circ_ids) {
-    set_uint32(hdr_out, htonl(cell->circ_id));
-    hdr_out += 4;
-    r = VAR_CELL_MAX_HEADER_SIZE + 2;
-  } else {
-    set_uint16(hdr_out, htons(cell->circ_id));
-    hdr_out += 2;
-    r = VAR_CELL_MAX_HEADER_SIZE;
-  }
-  set_uint8(hdr_out, cell->command);
-  set_uint16(hdr_out+1, htons(cell->cell_num));
-  set_uint16(hdr_out+3, htons(cell->payload_len));
-  return r;
-}
-
-/** Write the header of <b>cell</b> into the first VAR_CELL_MAX_HEADER_SIZE
- * bytes of <b>hdr_out</b>. Returns number of bytes used. */
-int
-var_cell_pack_header(const var_cell_t *cell, char *hdr_out, int wide_circ_ids)
+var_cell_pack_header(const var_cell_t *cell, char *hdr_out, int wide_circ_ids, int cell_num)
 {
   int r;
   if (wide_circ_ids) {
@@ -536,7 +486,14 @@ var_cell_pack_header(const var_cell_t *cell, char *hdr_out, int wide_circ_ids)
     r = VAR_CELL_MAX_HEADER_SIZE - 2;
   }
   set_uint8(hdr_out, cell->command);
-  set_uint16(hdr_out+1, htons(cell->payload_len));
+  hdr_out += 1;
+
+  if (cell_num) {
+      set_uint16(hdr_out, htons(cell->cell_num));
+      hdr_out += 2;
+  }
+
+  set_uint16(hdr_out, htons(cell->payload_len));
   return r;
 }
 
@@ -2083,11 +2040,9 @@ or_handshake_state_record_cell(or_connection_t *conn,
   /* Re-packing like this is a little inefficient, but we don't have to do
      this very often at all. */
   if(TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
-    //cell->cell_num = conn->cell_num_out;
-    //conn->cell_num_out++;
-    cell_udp_pack(&packed, cell, conn->wide_circ_ids);
+    cell_pack(&packed, cell, conn->wide_circ_ids, 1);
   } else {
-    cell_pack(&packed, cell, conn->wide_circ_ids);
+    cell_pack(&packed, cell, conn->wide_circ_ids, 0);
   }
   crypto_digest_add_bytes(d, packed.body, cell_network_size);
   memwipe(&packed, 0, sizeof(packed));
@@ -2123,7 +2078,11 @@ or_handshake_state_record_var_cell(or_connection_t *conn,
 
   d = *dptr;
 
-  n = var_cell_pack_header(cell, buf, conn->wide_circ_ids);
+  if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+    n = var_cell_pack_header(cell, buf, conn->wide_circ_ids, 1);
+  } else {
+    n = var_cell_pack_header(cell, buf, conn->wide_circ_ids, 0);
+  }
   crypto_digest_add_bytes(d, buf, n);
   crypto_digest_add_bytes(d, (const char *)cell->payload, cell->payload_len);
 
@@ -2168,9 +2127,9 @@ connection_or_write_cell_to_buf(cell_t *cell, or_connection_t *conn)
   if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
     cell->cell_num = conn->cell_num_out;
     conn->cell_num_out++;
-    cell_udp_pack(&networkcell, cell, conn->wide_circ_ids);
+    cell_pack(&networkcell, cell, conn->wide_circ_ids, 1);
   } else {
-    cell_pack(&networkcell, cell, conn->wide_circ_ids);
+    cell_pack(&networkcell, cell, conn->wide_circ_ids, 0);
   }
 
   rep_hist_padding_count_write(PADDING_TYPE_TOTAL);
@@ -2210,9 +2169,9 @@ connection_or_write_var_cell_to_buf,(var_cell_t *cell,
   if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
     cell->cell_num = conn->cell_num_out;
     conn->cell_num_out++;
-    n = var_cell_udp_pack_header(cell, hdr, conn->wide_circ_ids);
+    n = var_cell_pack_header(cell, hdr, conn->wide_circ_ids, 1);
   } else {
-    n = var_cell_pack_header(cell, hdr, conn->wide_circ_ids);
+    n = var_cell_pack_header(cell, hdr, conn->wide_circ_ids, 0);
   }
 
 
@@ -2307,9 +2266,9 @@ connection_or_process_cells_from_inbuf(or_connection_t *conn)
 
 
       if(TO_CONN(conn)->type == CONN_TYPE_OR_UDP){
-	udp_cell_unpack(&cell, buf, wide_circ_ids);
+	cell_unpack(&cell, buf, wide_circ_ids, 1);
       } else {
-	cell_unpack(&cell, buf, wide_circ_ids);
+	cell_unpack(&cell, buf, wide_circ_ids, 0);
       }
 
       channel_tls_handle_cell(&cell, conn);
