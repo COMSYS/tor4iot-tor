@@ -2520,6 +2520,8 @@ cell_queue_append_packed_copy(circuit_t *circ, cell_queue_t *queue,
 {
   packed_cell_t *copy;
 
+  LOG_DEBUG(LD_GENERAL, "Append cell with %s and %s", wide_circ_ids ? "wide circ ids" : "short circ ids", cell_num ? "cell nums" : "no cell nums");
+
   copy = packed_cell_copy(cell, wide_circ_ids, cell_num);
 
   (void)circ;
