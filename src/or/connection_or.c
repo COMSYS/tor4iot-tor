@@ -491,6 +491,7 @@ var_cell_pack_header(const var_cell_t *cell, char *hdr_out, int wide_circ_ids, i
   if (cell_num) {
       set_uint16(hdr_out, htons(cell->cell_num));
       hdr_out += 2;
+      r += 2;
   }
 
   set_uint16(hdr_out, htons(cell->payload_len));
