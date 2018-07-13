@@ -38,6 +38,8 @@ STATIC smartlist_t *connected_iot_dev = NULL;
 
 
 int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info) {
+  (void) hs;
+
   info->after = 2;
   info->split = node_get_by_hex_id(sp_rsa_id_hex, 0);
 
@@ -133,6 +135,8 @@ void iot_ticket_send(origin_circuit_t *circ) {
 
 void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 	                      const uint8_t *payload) {
+  (void) num;
+
   iot_split_t *msg = (iot_split_t*) payload;
 
   tor_assert(length == sizeof(iot_split_t));
