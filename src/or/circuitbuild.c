@@ -2617,7 +2617,7 @@ onion_extend_cpath(origin_circuit_t *circ)
       /* Clients can fail to find an allowed address */
       tor_assert_nonfatal(info || client);
     }
-  } else if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT && cur_len == state->desired_path_len - 1 - state->iot_circ_info.after) {
+  } else if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT && cur_len == state->desired_path_len - state->iot_circ_info.after) {
     info = extend_info_from_node(state->iot_circ_info.split, 0);
   } else {
     r = choose_good_middle_server(purpose, state, circ->cpath, cur_len);
