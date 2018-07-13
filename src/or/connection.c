@@ -3658,10 +3658,11 @@ connection_buf_read_from_socket(connection_t *conn, ssize_t *max_to_read,
         conn->state == OR_CONN_STATE_TLS_CLIENT_RENEGOTIATING) {
       /* continue handshaking even if global token bucket is empty */
       return connection_tls_continue_handshake(or_conn);
-    } else if (conn->type == CONN_TYPE_OR_UDP && buf_datalen(conn->inbuf) == 0 && tor_tls_get_pending_bytes(or_conn->tls) == 0) {
-	log_debug(LD_NET, "Triggered but no pending bytes. Connection reuse detected!");
-	return -1;
     }
+//    else if (conn->type == CONN_TYPE_OR_UDP && buf_datalen(conn->inbuf) == 0 && tor_tls_get_pending_bytes(or_conn->tls) == 0) {
+//	log_debug(LD_NET, "Triggered but no pending bytes. Connection reuse detected!");
+//	return -1;
+//    }
 
     log_debug(LD_NET,
               "%d: starting, inbuf_datalen %ld (%d pending in tls object)."
@@ -3672,6 +3673,7 @@ connection_buf_read_from_socket(connection_t *conn, ssize_t *max_to_read,
     initial_size = buf_datalen(conn->inbuf);
     /* else open, or closing */
     result = buf_read_from_tls(conn->inbuf, or_conn->tls, at_most);
+    log_debug(LD_NET, "read");
     if (TOR_TLS_IS_ERROR(result) || result == TOR_TLS_CLOSE)
       or_conn->tls_error = result;
     else
@@ -3693,9 +3695,11 @@ connection_buf_read_from_socket(connection_t *conn, ssize_t *max_to_read,
                  conn->address);
         return result;
       case TOR_TLS_WANTWRITE:
+	log_debug(LD_NET, "Wantwrite");
         connection_start_writing(conn);
         return 0;
       case TOR_TLS_WANTREAD:
+	log_debug(LD_NET, "Wantread");
         if (conn->in_connection_handle_write) {
           /* We've been invoked from connection_handle_write, because we're
            * waiting for a TLS renegotiation, the renegotiation started, and
@@ -3713,6 +3717,9 @@ connection_buf_read_from_socket(connection_t *conn, ssize_t *max_to_read,
       default:
         break;
     }
+
+    log_debug(LD_NET, "handled.");
+
     pending = tor_tls_get_pending_bytes(or_conn->tls);
     if (pending) {
       /* If we have any pending bytes, we read them now.  This *can*
