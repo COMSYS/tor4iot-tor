@@ -2104,7 +2104,9 @@ tor_tls_read,(tor_tls_t *tls, char *cp, size_t len))
   tor_assert(tls->ssl);
   tor_assert(tls->state == TOR_TLS_ST_OPEN);
   tor_assert(len<INT_MAX);
+  log_debug(LD_NET, "SSL_read");
   r = SSL_read(tls->ssl, cp, (int)len);
+  log_debug(LD_NET, "Returned from SSL_read");
   if (r > 0) {
     if (tls->got_renegotiate) {
       /* Renegotiation happened! */
