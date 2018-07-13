@@ -84,7 +84,7 @@ buf_read_from_tls(buf_t *buf, tor_tls_t *tls, size_t at_most)
     }
 
     r = read_to_chunk_tls(buf, chunk, tls, readlen);
-    log_debug("r=%d", r);
+    log_debug(LD_NET, "r=%d", r);
     if (r < 0)
       return r; /* Error */
     tor_assert(total_read+r < INT_MAX);
