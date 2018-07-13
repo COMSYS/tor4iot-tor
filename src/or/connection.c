@@ -3658,7 +3658,7 @@ connection_buf_read_from_socket(connection_t *conn, ssize_t *max_to_read,
         conn->state == OR_CONN_STATE_TLS_CLIENT_RENEGOTIATING) {
       /* continue handshaking even if global token bucket is empty */
       return connection_tls_continue_handshake(or_conn);
-    } else if (conn->type == CONN_TYPE_OR_UDP && tor_tls_get_pending_bytes(or_conn->tls) == 0) {
+    } else if (conn->type == CONN_TYPE_OR_UDP && buf_datalen(conn->inbuf) == 0 && tor_tls_get_pending_bytes(or_conn->tls) == 0) {
 	log_debug(LD_NET, "Triggered but no pending bytes. Connection reuse detected!");
 	return -1;
     }
