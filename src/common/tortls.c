@@ -1387,6 +1387,8 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
 #ifdef PSK
     SSL_CTX_set_psk_server_callback(result->ctx, &psk_server_cb);
 #endif
+
+    SSL_CTX_set_mode(result->ctx, SSL_MODE_AUTO_RETRY);
   }
 
   SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv2);
@@ -1955,7 +1957,6 @@ tor_tls_new(int sock, int isServer, int is_dtls)
 
   if (is_dtls) {
     SSL_set_options(result->ssl, SSL_OP_COOKIE_EXCHANGE);
-    SSL_set_accept_state(result->ssl);
   }
 
   tor_tls_context_incref(context);
