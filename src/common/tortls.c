@@ -1387,7 +1387,6 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
 #ifdef PSK
     SSL_CTX_set_psk_server_callback(result->ctx, &psk_server_cb);
 #endif
-
   }
 
   SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv2);
@@ -1416,18 +1415,18 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
 if (!is_dtls) {
   SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_DH_USE);
   SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_ECDH_USE);
+}
 
 #ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
-    SSL_CTX_set_options(result->ctx,
-                        SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
+  SSL_CTX_set_options(result->ctx,
+                      SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
 #endif
   /* Yes, we know what we are doing here.  No, we do not treat a renegotiation
    * as authenticating any earlier-received data.
    */
-    {
-      SSL_CTX_set_options(result->ctx,
-                          SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
-    }
+  {
+    SSL_CTX_set_options(result->ctx,
+                        SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
   }
 
   /* Don't actually allow compression; it uses RAM and time, it makes TLS
@@ -1956,6 +1955,7 @@ tor_tls_new(int sock, int isServer, int is_dtls)
 
   if (is_dtls) {
     SSL_set_options(result->ssl, SSL_OP_COOKIE_EXCHANGE);
+    SSL_set_accept_state(result->ssl);
   }
 
   tor_tls_context_incref(context);
