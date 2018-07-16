@@ -1416,18 +1416,18 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
 if (!is_dtls) {
   SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_DH_USE);
   SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_ECDH_USE);
-}
 
 #ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
-  SSL_CTX_set_options(result->ctx,
-                      SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
+    SSL_CTX_set_options(result->ctx,
+                        SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
 #endif
   /* Yes, we know what we are doing here.  No, we do not treat a renegotiation
    * as authenticating any earlier-received data.
    */
-  {
-    SSL_CTX_set_options(result->ctx,
-                        SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
+    {
+      SSL_CTX_set_options(result->ctx,
+                          SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
+    }
   }
 
   /* Don't actually allow compression; it uses RAM and time, it makes TLS
