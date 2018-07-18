@@ -699,8 +699,10 @@ check_create_cell(const create_cell_t *cell, int unknown_ok)
       return -1;
     break;
   case ONION_HANDSHAKE_TYPE_NTOR:
-    if (cell->handshake_len != NTOR_ONIONSKIN_LEN)
+    if (cell->handshake_len != NTOR_ONIONSKIN_LEN) {
+      log_info(LD_GENERAL, "Handshake len was not ok.");
       return -1;
+    }
     break;
   default:
     if (! unknown_ok)
@@ -744,10 +746,14 @@ parse_create2_payload(create_cell_t *cell_out, const uint8_t *p, size_t p_len)
   handshake_type = ntohs(get_uint16(p));
   handshake_len = ntohs(get_uint16(p+2));
 
-  if (handshake_len > CELL_PAYLOAD_SIZE - 4 || handshake_len > p_len - 4)
-    return -1;
-  if (handshake_type == ONION_HANDSHAKE_TYPE_FAST)
-    return -1;
+  if (handshake_len > CELL_PAYLOAD_SIZE - 4 || handshake_len > p_len - 4) {
+      log_info(LD_GENERAL, "Handshake Len was not ok.");
+      return -1;
+  }
+  if (handshake_type == ONION_HANDSHAKE_TYPE_FAST) {
+      log_info(LD_GENERAL, "Handshake type was not ok.");
+      return -1;
+  }
 
   create_cell_init(cell_out, CELL_CREATE2, handshake_type, handshake_len,
                    p+4);
