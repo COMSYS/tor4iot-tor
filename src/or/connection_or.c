@@ -2253,10 +2253,6 @@ connection_or_process_cells_from_inbuf(or_connection_t *conn)
       cell_t cell;
       size_t cell_network_size = get_cell_network_size(conn->wide_circ_ids) + (TO_CONN(conn)->type == CONN_TYPE_OR_UDP ? sizeof(cell.cell_num) : 0);
 
-      if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
-	  cell_network_size += 2;
-      }
-
       if (connection_get_inbuf_len(TO_CONN(conn))
           < cell_network_size) /* whole response available? */
         return 0; /* not yet */
