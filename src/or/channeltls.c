@@ -998,7 +998,7 @@ channel_tls_handle_state_change_on_orconn(channel_tls_t *chan,
              CHANNEL_IS_CLOSING(base_chan));
 
   /* Did we just go to state open? */
-  if (state == OR_CONN_STATE_OPEN) {
+  if (state == OR_CONN_STATE_OPEN || state == OR_CONN_STATE_OR_INFO) {
     /*
      * We can go to CHANNEL_STATE_OPEN from CHANNEL_STATE_OPENING or
      * CHANNEL_STATE_MAINT on this.
