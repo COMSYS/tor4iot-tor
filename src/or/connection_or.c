@@ -1569,6 +1569,7 @@ connection_tls_continue_handshake(or_connection_t *conn)
           } else {
             //IOT:
             TLS_CHAN_TO_BASE(conn->chan)->wide_circ_ids = 1;
+            TLS_CHAN_TO_BASE(conn->chan)->cell_num = 1;
             log_debug(LD_OR, "Done with DTLS handshake. Expecting INFO cell now.");
 
             conn->wide_circ_ids = 1;
