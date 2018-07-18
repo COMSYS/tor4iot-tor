@@ -2248,9 +2248,15 @@ connection_or_process_cells_from_inbuf(or_connection_t *conn)
       var_cell_free(var_cell);
     } else {
       const int wide_circ_ids = conn->wide_circ_ids;
-      char buf[CELL_MAX_NETWORK_SIZE];
+      char buf[CELL_MAX_NETWORK_SIZE+2];
       cell_t cell;
       size_t cell_network_size = get_cell_network_size(conn->wide_circ_ids) + (TO_CONN(conn)->type == CONN_TYPE_OR_UDP ? sizeof(cell.cell_num) : 0);
+
+      if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+	  cell_network_size += 2;
+	  wide_circ_ids = 1;
+      }
+
       if (connection_get_inbuf_len(TO_CONN(conn))
           < cell_network_size) /* whole response available? */
         return 0; /* not yet */

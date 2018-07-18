@@ -1097,14 +1097,14 @@ channel_tls_handle_cell(cell_t *cell, or_connection_t *conn)
    return;
   }
 
-  handshaking = (TO_CONN(conn)->state != OR_CONN_STATE_OPEN);
+  handshaking = (TO_CONN(conn)->state != OR_CONN_STATE_OPEN) && (TO_CONN(conn)->state != OR_CONN_STATE_OR_INFO);
 
   if (conn->base_.marked_for_close)
     return;
 
   if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
     if (cell->cell_num != conn->cell_num_in) {
-      log_warn(LD_PROTOCOL, "Received a var cell with unexpected num %d (%d) in "
+      log_warn(LD_PROTOCOL, "Received a cell with unexpected num %d (%d) in "
                "orconn state \"%s\" [%d], channel state \"%s\" [%d]; "
                "closing the connection.",
                (int)(cell->cell_num),
