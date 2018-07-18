@@ -1571,6 +1571,7 @@ connection_tls_continue_handshake(or_connection_t *conn)
             TLS_CHAN_TO_BASE(conn->chan)->wide_circ_ids = 1;
             log_debug(LD_OR, "Done with DTLS handshake. Expecting INFO cell now.");
 
+            conn->wide_circ_ids = 1;
             conn->link_proto = MIN_LINK_PROTO_FOR_WIDE_CIRC_IDS; // Make sure we interpret with wide circ ids.
 
             connection_or_change_state(conn, OR_CONN_STATE_OR_INFO);
@@ -2254,7 +2255,6 @@ connection_or_process_cells_from_inbuf(or_connection_t *conn)
 
       if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
 	  cell_network_size += 2;
-	  wide_circ_ids = 1;
       }
 
       if (connection_get_inbuf_len(TO_CONN(conn))
