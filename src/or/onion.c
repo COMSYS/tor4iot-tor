@@ -1024,9 +1024,11 @@ extend_cell_parse(extend_cell_t *cell_out, const uint8_t command,
     break;
   case RELAY_COMMAND_EXTEND2:
     {
+      log_debug(LD_GENERAL, "EXTEND2 cell detected.");
       extend2_cell_body_t *cell = NULL;
       if (extend2_cell_body_parse(&cell, payload, payload_length) < 0 ||
           cell == NULL) {
+	log_debug(LD_GENERAL, "body parse failed!");
         if (cell)
           extend2_cell_body_free(cell);
         return -1;
