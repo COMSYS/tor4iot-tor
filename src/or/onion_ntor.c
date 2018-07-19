@@ -164,13 +164,20 @@ onion_skin_ntor_server_handshake(const uint8_t *onion_skin,
 
   /* Decode the onion skin */
   /* XXXX Does this possible early-return business threaten our security? */
-  if (tor_memneq(onion_skin, my_node_id, DIGEST_LEN))
+  if (tor_memneq(onion_skin, my_node_id, DIGEST_LEN)) {
+    log_debug(LD_GENERAL, "Node ID didnt match");
     return -1;
+  }
   /* Note that on key-not-found, we go through with this operation anyway,
    * using "junk_keys". This will result in failed authentication, but won't
    * leak whether we recognized the key. */
   keypair_bB = dimap_search(private_keys, onion_skin + DIGEST_LEN,
                             (void*)junk_keys);
+
+  if (keypair_bB == junk_keys) {
+      log_debug(LD_GENERAL, "Onion key not found");
+  }
+
   if (!keypair_bB)
     return -1;
 
