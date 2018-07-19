@@ -559,6 +559,7 @@ onion_skin_server_handshake(int type,
     memcpy(rend_nonce_out, reply_out+DIGEST_LEN, DIGEST_LEN);
     break;
   case ONION_HANDSHAKE_TYPE_NTOR:
+    log_debug(LD_GENERAL, "ntor onion handshake with onionskin length %zd", onionskin_len);
     if (onionskin_len < NTOR_ONIONSKIN_LEN)
       return -1;
     {
