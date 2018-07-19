@@ -1035,8 +1035,10 @@ extend_cell_parse(extend_cell_t *cell_out, const uint8_t command,
       }
       int r = extend_cell_from_extend2_cell_body(cell_out, cell);
       extend2_cell_body_free(cell);
-      if (r < 0)
+      if (r < 0) {
+	log_debug(LD_GENERAL, "from extend2 cell body failed");
         return r;
+      }
     }
     break;
   default:
