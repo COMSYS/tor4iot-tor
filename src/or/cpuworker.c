@@ -409,6 +409,14 @@ cpuworker_onion_handshake_threadfn(void *state_, void *work_)
   cpuworker_request_t req;
   cpuworker_reply_t rpl;
 
+  log_debug(LD_GENERAL, "Identity:");
+  for (int i=0; i<DIGEST_LEN; i++)
+    log_debug(LD_GENERAL, "0x%02x", onion_keys->my_identity[i]);
+
+  log_debug(LD_GENERAL, "Onion key:");
+  for (int i=0; i<32; i++)
+    log_debug(LD_GENERAL, "0x%02x", onion_keys->curve25519_key_map->key[i]);
+
   memcpy(&req, &job->u.request, sizeof(req));
 
   tor_assert(req.magic == CPUWORKER_REQUEST_MAGIC);
