@@ -3113,8 +3113,10 @@ append_cell_to_circuit_queue(circuit_t *circ, channel_t *chan,
   }
 #endif /* 0 */
 
+  cell->cell_num = chan->cell_num_out;
   cell_queue_append_packed_copy(circ, queue, exitward, cell,
                                 chan->wide_circ_ids, 1, chan->cell_num);
+  chan->cell_num_out++;
 
   if (PREDICT_UNLIKELY(cell_queues_check_size())) {
     /* We ran the OOM handler */

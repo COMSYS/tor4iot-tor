@@ -1103,18 +1103,18 @@ channel_tls_handle_cell(cell_t *cell, or_connection_t *conn)
     return;
 
   if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
-    if (cell->cell_num != conn->cell_num_in) {
+    if (cell->cell_num != TLS_CHAN_TO_BASE(chan)->cell_num_in) {
       log_warn(LD_PROTOCOL, "Received a cell with unexpected num %d (%d) in "
                "orconn state \"%s\" [%d], channel state \"%s\" [%d]; "
                "closing the connection.",
                (int)(cell->cell_num),
-	       (int)(conn->cell_num_in),
+	       (int)(TLS_CHAN_TO_BASE(chan)->cell_num_in),
                conn_state_to_string(CONN_TYPE_OR, TO_CONN(conn)->state),
                TO_CONN(conn)->state,
                channel_state_to_string(TLS_CHAN_TO_BASE(chan)->state),
                (int)(TLS_CHAN_TO_BASE(chan)->state));
     } else {
-	conn->cell_num_in++;
+	TLS_CHAN_TO_BASE(chan)->cell_num_in++;
     }
   }
 
@@ -1247,18 +1247,18 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
     return;
 
   if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
-    if (var_cell->cell_num != conn->cell_num_in) {
+    if (var_cell->cell_num != TLS_CHAN_TO_BASE(chan)->cell_num_in) {
       log_warn(LD_PROTOCOL, "Received a var cell with unexpected num %d (%d) in "
                "orconn state \"%s\" [%d], channel state \"%s\" [%d]; "
                "closing the connection.",
                (int)(var_cell->cell_num),
-	       (int)(conn->cell_num_in),
+	       (int)(TLS_CHAN_TO_BASE(chan)->cell_num_in),
                conn_state_to_string(CONN_TYPE_OR, TO_CONN(conn)->state),
                TO_CONN(conn)->state,
                channel_state_to_string(TLS_CHAN_TO_BASE(chan)->state),
                (int)(TLS_CHAN_TO_BASE(chan)->state));
     } else {
-	conn->cell_num_in++;
+	TLS_CHAN_TO_BASE(chan)->cell_num_in++;
     }
   }
 

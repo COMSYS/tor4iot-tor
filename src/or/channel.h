@@ -346,7 +346,10 @@ struct channel_s {
    */
   uint64_t bytes_in_queue;
 
+  //IOT:
   int cell_num:1;
+  uint16_t cell_num_in;
+  uint16_t cell_num_out;
 };
 
 struct channel_listener_s {

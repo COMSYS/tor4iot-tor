@@ -1702,9 +1702,6 @@ typedef struct or_connection_t {
 
   uint8_t iot_id[IOT_ID_LEN];
 
-  uint16_t cell_num_out;
-  uint16_t cell_num_in;
-
 } or_connection_t;
 
 /** Subtype of connection_t for an "edge connection" -- that is, an entry (ap)

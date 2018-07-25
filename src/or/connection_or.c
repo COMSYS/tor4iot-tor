@@ -2128,8 +2128,6 @@ connection_or_write_cell_to_buf(cell_t *cell, or_connection_t *conn)
   tor_assert(conn);
 
   if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
-    cell->cell_num = conn->cell_num_out;
-    conn->cell_num_out++;
     cell_pack(&networkcell, cell, conn->wide_circ_ids, 1);
   } else {
     cell_pack(&networkcell, cell, conn->wide_circ_ids, 0);
@@ -2170,8 +2168,6 @@ connection_or_write_var_cell_to_buf,(var_cell_t *cell,
   tor_assert(conn);
 
   if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
-    cell->cell_num = conn->cell_num_out;
-    conn->cell_num_out++;
     n = var_cell_pack_header(cell, hdr, conn->wide_circ_ids, 1);
   } else {
     n = var_cell_pack_header(cell, hdr, conn->wide_circ_ids, 0);
