@@ -440,6 +440,7 @@ cell_pack(packed_cell_t *dst, const cell_t *src, int wide_circ_ids, int cell_num
   if (cell_num) {
       set_uint16(dest, htons(src->cell_num));
       dest += 2;
+      log_notice(LD_GENERAL, "Packing a cell with cellnum %d\n", src->cell_num);
   }
 
   memcpy(dest, src->payload, CELL_PAYLOAD_SIZE);
