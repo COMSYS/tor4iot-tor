@@ -2600,6 +2600,13 @@ circuit_describe_status_for_controller(origin_circuit_t *circ)
     smartlist_add_asprintf(descparts, "TIME_CREATED=%s", tbuf);
   }
 
+  {
+      char tbuf[ISO_TIME_USEC_LEN+1];
+      format_iso_time_nospace_usec(tbuf, &circ->base_.timestamp_complete);
+
+      smartlist_add_asprintf(descparts, "TIME_COMPLETED=%s", tbuf);
+    }
+
   // Show username and/or password if available.
   if (circ->socks_username_len > 0) {
     char* socks_username_escaped = esc_for_log_len(circ->socks_username,

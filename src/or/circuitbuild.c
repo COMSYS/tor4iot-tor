@@ -1090,6 +1090,7 @@ circuit_build_no_more_hops(origin_circuit_t *circ)
     }
   }
   log_info(LD_CIRC,"circuit built!");
+  tor_gettimeofday(&circ->base_.timestamp_complete);
   circuit_reset_failure_count(0);
 
   if (circ->build_state->onehop_tunnel || circ->has_opened) {
