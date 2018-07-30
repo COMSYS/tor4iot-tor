@@ -1060,6 +1060,7 @@ circuit_build_no_more_hops(origin_circuit_t *circ)
   if (circuit_timeout_want_to_count_circ(circ)) {
     struct timeval end;
     long timediff;
+    tor_gettimeofday(&circ->base_.timestamp_complete);
     tor_gettimeofday(&end);
     timediff = tv_mdiff(&circ->base_.timestamp_began, &end);
 
@@ -1090,7 +1091,6 @@ circuit_build_no_more_hops(origin_circuit_t *circ)
     }
   }
   log_info(LD_CIRC,"circuit built!");
-  tor_gettimeofday(&circ->base_.timestamp_complete);
   circuit_reset_failure_count(0);
 
   if (circ->build_state->onehop_tunnel || circ->has_opened) {
