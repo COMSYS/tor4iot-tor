@@ -3172,6 +3172,8 @@ typedef struct circuit_t {
   /** This timestamp marks when the circuit is completely extended. */
   struct timeval timestamp_complete;
 
+  struct timeval timestamp_iot_join_complete;
+
   /** When the circuit was first used, or 0 if the circuit is clean.
    *
    * XXXX Note that some code will artifically adjust this value backward

@@ -2591,7 +2591,7 @@ circuit_describe_status_for_controller(origin_circuit_t *circ)
       format_iso_time_nospace_usec(tbuf, &circ->base_.timestamp_began);
 
       smartlist_add_asprintf(descparts, "TIME_BEGAN=%s", tbuf);
-    }
+  }
 
   {
     char tbuf[ISO_TIME_USEC_LEN+1];

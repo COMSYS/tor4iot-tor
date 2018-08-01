@@ -274,6 +274,15 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
       // XXX: FREE cells?
       tor_free(c);
     SMARTLIST_FOREACH_END(c);
+
+    tor_gettimeofday(&circ->timestamp_iot_join_complete);
+
+    {
+        char tbuf[ISO_TIME_USEC_LEN+1];
+        format_iso_time_nospace_usec(tbuf, &circ->timestamp_iot_join_complete);
+
+        log_info(LD_GENERAL, "JOINED:%s", tbuf);
+    }
   } else {
     log_info(LD_GENERAL, "Tried to join circuit, but cookies didnt match. 0x%08x ?", ((uint32_t*)cell->payload)[0]);
   }
