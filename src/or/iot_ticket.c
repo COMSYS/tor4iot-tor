@@ -264,7 +264,9 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
     smartlist_remove(splitted_circuits, circ);
 
-    connection_or_set_state_open(conn);
+    if (TO_CONN(conn)->state != OR_CONN_STATE_OPEN) {
+	connection_or_set_state_open(conn);
+    }
 
     // Send buffer
     SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c);
