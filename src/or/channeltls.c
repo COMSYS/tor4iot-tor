@@ -1243,8 +1243,10 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
     return;
   }
 
-  if (TO_CONN(conn)->marked_for_close)
+  if (TO_CONN(conn)->marked_for_close) {
+    log_debug(LD_CHANNEL, "Got a var_cell_t on an OR connection which is marked_for_close.");
     return;
+  }
 
   if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
     if (var_cell->cell_num != TLS_CHAN_TO_BASE(chan)->cell_num_in) {
