@@ -1319,6 +1319,9 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
                                            var_cell, 1);
       break; /* Everything is allowed */
     case OR_CONN_STATE_OPEN:
+      if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+	iot_join(conn, var_cell);
+      }
       if (conn->link_proto < 3) {
         log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,
                "Received a variable-length cell with command %d in orconn "
