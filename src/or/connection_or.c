@@ -440,7 +440,6 @@ cell_pack(packed_cell_t *dst, const cell_t *src, int wide_circ_ids, int cell_num
   if (cell_num) {
       set_uint16(dest, htons(src->cell_num));
       dest += 2;
-      log_notice(LD_GENERAL, "Packing a cell with cellnum %d\n", src->cell_num);
   }
 
   memcpy(dest, src->payload, CELL_PAYLOAD_SIZE);
@@ -1408,7 +1407,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     struct sockaddr_in6 server_addr, client_addr;
     char straddr_server[INET6_ADDRSTRLEN], straddr_client[INET6_ADDRSTRLEN];
 
-    log_notice(LD_OR, "Trying to listen to DTLS.");
+    log_info(LD_OR, "Trying to listen to DTLS.");
 
     int err = 0;
     while (err == 0) {
@@ -1440,7 +1439,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     server_addr.sin6_addr = in6addr_any;
 
     inet_ntop(AF_INET6, &server_addr.sin6_addr, straddr_server, sizeof(straddr_server));
-    log_notice(LD_OR, "Try binding socket on IP %s and port %d.",
+    log_info(LD_OR, "Try binding socket on IP %s and port %d.",
     	       straddr_server, ntohs(server_addr.sin6_port));
 
     /* Handle client connection */
@@ -1466,7 +1465,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
     inet_ntop(AF_INET6, &client_addr.sin6_addr, straddr_client, sizeof(straddr_client));
     inet_ntop(AF_INET6, &server_addr.sin6_addr, straddr_server, sizeof(straddr_server));
 
-    log_notice(LD_OR, "Connected to client %s on port %d with fd %d. Our IP is %s. Our port is %d.",
+    log_debug(LD_OR, "Connected to client %s on port %d with fd %d. Our IP is %s. Our port is %d.",
 	       straddr_client, ntohs(client_addr.sin6_port),
 	       TO_CONN(conn)->s,
 	       straddr_server, ntohs(server_addr.sin6_port));
@@ -1481,7 +1480,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
       return 0; /* no need to tear down the parent */
     }
 
-    log_notice(LD_OR, "Starting DTLS handshake.");
+    log_debug(LD_OR, "Starting DTLS handshake.");
 
   } else {
       tor_tls_set_logged_address(conn->tls, // XXX client and relay?

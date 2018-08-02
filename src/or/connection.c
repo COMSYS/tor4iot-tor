@@ -1560,7 +1560,7 @@ connection_handle_listener_read(connection_t *conn, int new_type)
 
   //IOT:
   if (new_type == CONN_TYPE_OR_UDP) {
-      log_notice(LD_NET, "Incoming UDP connection on fd %d. Starting DTLS handshake.", conn->s);
+      log_info(LD_NET, "Incoming UDP connection on fd %d. Starting DTLS handshake.", conn->s);
 
       newconn = connection_new(new_type, conn->socket_family);
 
@@ -1589,7 +1589,7 @@ connection_handle_listener_read(connection_t *conn, int new_type)
                            sizeof(struct sockaddr_in6));
 
       inet_ntop(AF_INET6, &server_addr.sin6_addr, straddr_server, sizeof(straddr_server));
-      log_notice(LD_OR, "Rebinding UDP listener socket on IP %s and port %d..",
+      log_debug(LD_OR, "Rebinding UDP listener socket on IP %s and port %d..",
       	       straddr_server, ntohs(server_addr.sin6_port));
 
       /* Handle client connection */

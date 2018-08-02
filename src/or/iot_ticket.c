@@ -79,14 +79,17 @@ void iot_process_relay_split(circuit_t *circ) {
   //channel_flush_cells(TO_OR_CIRCUIT(circ)->p_chan);
 }
 
+
+
 void iot_ticket_send(origin_circuit_t *circ) {
   iot_split_t *msg;
   crypt_path_t *split_point;
   aes_cnt_cipher_t *encrypt;
+  struct timeval time;
 
   tor_assert(circ);
 
-  log_notice(LD_REND, "Sending ticket.");
+  log_info(LD_REND, "Sending ticket.");
 
   //Choose split point such that we have 3 relays left + HS
   split_point = SPLITPOINT(circ);
@@ -127,6 +130,13 @@ void iot_ticket_send(origin_circuit_t *circ) {
   relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET1, (const char*) msg,
                                sizeof(iot_split_t), split_point);
 
+  {
+    char tbuf[ISO_TIME_USEC_LEN+1];
+    format_iso_time_nospace_usec(tbuf, &time);
+
+    log_notice(LD_GENERAL, "TICKET:%s", tbuf);
+  }
+
   //Close circuit until SP
   circuit_mark_for_close(TO_CIRCUIT(circ), END_CIRC_REASON_FINISHED);
 
@@ -141,7 +151,7 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 
   tor_assert(length == sizeof(iot_split_t));
 
-  log_notice(LD_GENERAL, "Got IoT ticket with IoT id of size %ld.", sizeof(iot_split_t));
+  log_info(LD_GENERAL, "Got IoT ticket with IoT id of size %ld.", sizeof(iot_split_t));
 
   or_connection_t* conn = NULL;
 
