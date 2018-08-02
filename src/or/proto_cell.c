@@ -112,7 +112,7 @@ fetch_var_cell_udp_from_buf(buf_t *buf, var_cell_t **out, int linkproto)
     return 0;
 
   length = ntohs(get_uint16(hdr + circ_id_len + 1 + 2));
-  log_info(LD_GENERAL, "Size of incoming var cell payload is %d", length);
+  log_debug(LD_GENERAL, "Size of incoming var cell payload is %d", length);
   if (buf_datalen(buf) < (size_t)(header_len+length))
     return 1;
 
@@ -125,23 +125,15 @@ fetch_var_cell_udp_from_buf(buf_t *buf, var_cell_t **out, int linkproto)
 
   result->cell_num = ntohs(get_uint16(hdr + circ_id_len + 1));
 
-  log_info(LD_GENERAL, "Cell num of incoming var cell is %d", result->cell_num);
+  log_debug(LD_GENERAL, "Cell num of incoming var cell is %d", result->cell_num);
 
   buf_drain(buf, header_len);
 
-  log_info(LD_GENERAL, "drain %d", header_len);
-
   buf_peek(buf, (char*) result->payload, length);
-
-  log_info(LD_GENERAL, "peek %d", length);
 
   buf_drain(buf, length);
 
-  log_info(LD_GENERAL, "drain %d", length);
-
   *out = result;
-
-  log_info(LD_GENERAL, "returning now");
 
   return 1;
 }
