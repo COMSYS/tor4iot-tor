@@ -189,8 +189,8 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 
   cell->circ_id = 0;
   cell->command = CELL_IOT_TICKET;
-  cell->cell_num = conn->chan->base_.cell_num_out;
-  conn->chan->base_.cell_num_out++;
+  cell->cell_num = TLS_CHAN_TO_BASE(conn->chan)->cell_num_out;
+  TLS_CHAN_TO_BASE(conn->chan)->cell_num_out++;
   memcpy(cell->payload, (uint8_t *)&msg->ticket, sizeof(iot_ticket_t));
 
   connection_or_write_var_cell_to_buf(cell, conn);
