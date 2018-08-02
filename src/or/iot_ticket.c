@@ -89,6 +89,8 @@ void iot_ticket_send(origin_circuit_t *circ) {
 
   tor_assert(circ);
 
+  tor_gettimeofday(&time);
+
   log_info(LD_REND, "Sending ticket.");
 
   //Choose split point such that we have 3 relays left + HS
