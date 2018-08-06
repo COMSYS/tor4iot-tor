@@ -208,6 +208,7 @@ iot_info(or_connection_t *conn, const var_cell_t *cell)
               (unsigned)cell->circ_id,
               U64_PRINTF_ARG(TLS_CHAN_TO_BASE(conn->chan)->global_identifier), TLS_CHAN_TO_BASE(conn->chan));
 
+  //TODO: Here we can resend the buffer on reconnect if counter differ.
 
   if (connected_iot_dev) {
       or_connection_t *oldconn = NULL;
