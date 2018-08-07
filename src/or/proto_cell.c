@@ -106,6 +106,10 @@ fetch_var_cell_udp_from_buf(buf_t *buf, var_cell_t **out, int linkproto)
     return 0;
   buf_peek(buf, hdr, header_len);
 
+  for (int i=0; i<header_len; i++) {
+      log_info(LD_GENERAL, "0x%02x", hdr[i]);
+  }
+
   command = get_uint8(hdr + circ_id_len);
   log_info(LD_GENERAL, "Incoming var cell has command %d, interpreted with %s", command, wide_circ_ids ? "wide circ ids" : "normal length circ ids");
   if (!(cell_command_is_var_length(command, linkproto)))
