@@ -106,8 +106,8 @@ fetch_var_cell_udp_from_buf(buf_t *buf, var_cell_t **out, int linkproto)
     return 0;
   buf_peek(buf, hdr, header_len);
 
-  for (int i=0; i<header_len; i++) {
-      log_info(LD_GENERAL, "0x%02x", hdr[i]);
+  for (unsigned i=0; i<header_len; i++) {
+      log_info(LD_GENERAL, "0x%02x", ((uint8_t *)hdr)[i]);
   }
 
   command = get_uint8(hdr + circ_id_len);
