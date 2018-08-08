@@ -1051,6 +1051,8 @@ circuit_build_no_more_hops(origin_circuit_t *circ)
     return - END_CIRC_REASON_INTERNAL;
   }
 
+  tor_gettimeofday(&circ->base_.timestamp_complete);
+
   /* XXXX #21422 -- the rest of this branch needs careful thought!
    * Some of the things here need to happen when a circuit becomes
    * mechanically open; some need to happen when it is actually usable.
@@ -1060,7 +1062,6 @@ circuit_build_no_more_hops(origin_circuit_t *circ)
   if (circuit_timeout_want_to_count_circ(circ)) {
     struct timeval end;
     long timediff;
-    tor_gettimeofday(&circ->base_.timestamp_complete);
     tor_gettimeofday(&end);
     timediff = tv_mdiff(&circ->base_.timestamp_began, &end);
 

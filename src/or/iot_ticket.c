@@ -149,6 +149,10 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 	                      const uint8_t *payload) {
   (void) num;
 
+  struct timeval time;
+
+  tor_gettimeofday(&time);
+
   iot_split_t *msg = (iot_split_t*) payload;
 
   tor_assert(length == sizeof(iot_split_t));
@@ -197,6 +201,13 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 
   connection_or_write_var_cell_to_buf(cell, conn);
   var_cell_free(cell);
+
+  {
+      char tbuf[ISO_TIME_USEC_LEN+1];
+      format_iso_time_nospace_usec(tbuf, &time);
+
+      log_notice(LD_GENERAL, "TICKET:%s", tbuf);
+  }
 }
 
 void
