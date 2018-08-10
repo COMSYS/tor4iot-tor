@@ -40,7 +40,7 @@ STATIC smartlist_t *connected_iot_dev = NULL;
 int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info) {
   (void) hs;
 
-  info->after = 2;
+  info->after = 3;
   info->split = node_get_by_hex_id(sp_rsa_id_hex, 0);
 
   if (!info->split) {
