@@ -33,7 +33,7 @@ const char iot_id[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
 STATIC smartlist_t *splitted_circuits = NULL;
 STATIC smartlist_t *connected_iot_dev = NULL;
 
-#define SPLITPOINT_BEFORE_HS(circ) circ->cpath->prev->prev->prev
+#define SPLITPOINT_BEFORE_HS(circ) circ->cpath->prev->prev->prev->prev
 #define SPLITPOINT(circ) SPLITPOINT_BEFORE_HS(circ)->prev
 
 
@@ -93,7 +93,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
 
   log_info(LD_REND, "Sending ticket.");
 
-  //Choose split point such that we have 3 relays left + HS
+  //Choose split point such that we have 4 relays left + HS
   split_point = SPLITPOINT(circ);
 
   msg = tor_malloc(sizeof(iot_split_t));
@@ -107,15 +107,16 @@ void iot_ticket_send(origin_circuit_t *circ) {
   log_info(LD_GENERAL, "Chosen cookie: 0x%08x  0x%08x", msg->ticket.cookie, msg->cookie);
 
   //Set key information in ticket
-  iot_ticket_set_relay_crypto(&msg->ticket.sp, split_point);
+  iot_ticket_set_relay_crypto(&msg->ticket.entry, split_point);
   // Split point is receiver of our ticket. Add payload size.
-  msg->ticket.sp.f.crypted_bytes = htons(ntohs(msg->ticket.sp.f.crypted_bytes) + CELL_PAYLOAD_SIZE);
+  msg->ticket.entry.f.crypted_bytes = htons(ntohs(msg->ticket.entry.f.crypted_bytes) + CELL_PAYLOAD_SIZE);
 
-  iot_ticket_set_relay_crypto(&msg->ticket.middle, split_point->next);
-  iot_ticket_set_relay_crypto(&msg->ticket.rend, split_point->next->next);
+  iot_ticket_set_relay_crypto(&msg->ticket.relay1, split_point->next);
+  iot_ticket_set_relay_crypto(&msg->ticket.relay2, split_point->next->next);
+  iot_ticket_set_relay_crypto(&msg->ticket.rend, split_point->next->next->next);
 
   //Set HS material
-  memcpy(&msg->ticket.hs_ntor_key, split_point->next->next->next->hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
+  memcpy(&msg->ticket.hs_ntor_key, split_point->next->next->next->next->hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
 
   //Encrypt ticket
   encrypt = aes_new_cipher(iot_key, iot_iv, 128);
@@ -129,7 +130,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   crypto_hmac_sha256((char*) (msg->ticket.mac), (char*) iot_mac_key, 16, (char*) &(msg->ticket), sizeof(iot_ticket_t)-DIGEST256_LEN);
 
   //Send it!
-  relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET1, (const char*) msg,
+  relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET, (const char*) msg,
                                sizeof(iot_split_t), split_point);
 
   {

@@ -1978,7 +1978,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     case RELAY_COMMAND_SPLIT:
       iot_process_relay_split(circ);
       return 0;
-    case RELAY_COMMAND_TICKET1:
+    case RELAY_COMMAND_TICKET:
       iot_process_relay_ticket(circ, 1, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
   }

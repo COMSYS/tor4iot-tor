@@ -30,8 +30,9 @@ typedef struct iot_ticket_t {
 
   uint32_t cookie;
 
-  iot_crypto_aes_relay_t sp;
-  iot_crypto_aes_relay_t middle;
+  iot_crypto_aes_relay_t entry;
+  iot_crypto_aes_relay_t relay1;
+  iot_crypto_aes_relay_t relay2;
   iot_crypto_aes_relay_t rend;
 
   uint8_t hs_ntor_key[HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN];
