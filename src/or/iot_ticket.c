@@ -137,6 +137,9 @@ void iot_ticket_send(origin_circuit_t *circ) {
   clock_gettime(CLOCK_MONOTONIC, &sent_monotonic);
   log_notice(LD_GENERAL, "SENDTICKET:%lus%luns", send_monotonic.tv_sec, send_monotonic.tv_nsec);
   log_notice(LD_GENERAL, "SENTTICKET:%lus%luns", sent_monotonic.tv_sec, sent_monotonic.tv_nsec);
+  log_notice(LD_GENERAL, "BEGANCIRC:%lus%luns", circ->base_.my_timestamp_began.tv_sec, circ->base_.my_timestamp_began.tv_nsec);
+  log_notice(LD_GENERAL, "COMPLETEDCIRC:%lus%luns", circ->base_.my_timestamp_complete.tv_sec, circ->base_.my_timestamp_complete.tv_nsec);
+  log_notice(LD_GENERAL, "CONSNTOR:%lus%luns", circ->base_.my_timecons_ntor.tv_sec, circ->base_.my_timecons_ntor.tv_nsec);
 
   //Close circuit until SP
   circuit_mark_for_close(TO_CIRCUIT(circ), END_CIRC_REASON_FINISHED);
