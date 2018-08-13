@@ -498,6 +498,7 @@ onion_skin_create(int type,
   case ONION_HANDSHAKE_TYPE_NTOR:
     if (!extend_info_supports_ntor(node))
       return -1;
+
     if (onion_skin_ntor_create((const uint8_t*)node->identity_digest,
                                &node->curve25519_onion_key,
                                &state_out->u.ntor,

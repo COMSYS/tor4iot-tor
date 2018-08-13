@@ -3110,6 +3110,14 @@ tor_init(int argc, char *argv[])
     if (strstr(version, "alpha") || strstr(version, "beta"))
       log_notice(LD_GENERAL, "This version is not a stable Tor release. "
                  "Expect more bugs than usual.");
+
+    struct timespec sync_realtime;
+    struct timespec sync_monotonic;
+
+    clock_gettime(CLOCK_MONOTONIC, &sync_monotonic);
+    clock_gettime(CLOCK_REALTIME, &sync_realtime);
+
+    log_notice(LD_GENERAL, "SYNC:%lus%luns:%lus%luns", sync_monotonic.tv_sec, sync_monotonic.tv_nsec, sync_realtime.tv_sec, sync_realtime.tv_nsec);
   }
 
   {

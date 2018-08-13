@@ -85,11 +85,11 @@ void iot_ticket_send(origin_circuit_t *circ) {
   iot_split_t *msg;
   crypt_path_t *split_point;
   aes_cnt_cipher_t *encrypt;
-  struct timeval time;
 
   tor_assert(circ);
 
-  tor_gettimeofday(&time);
+  struct timespec send_monotonic;
+  clock_gettime(CLOCK_MONOTONIC, &send_monotonic);
 
   log_info(LD_REND, "Sending ticket.");
 
@@ -133,12 +133,10 @@ void iot_ticket_send(origin_circuit_t *circ) {
   relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET, (const char*) msg,
                                sizeof(iot_split_t), split_point);
 
-  {
-    char tbuf[ISO_TIME_USEC_LEN+1];
-    format_iso_time_nospace_usec(tbuf, &time);
-
-    log_notice(LD_GENERAL, "TICKET:%s", tbuf);
-  }
+  struct timespec sent_monotonic;
+  clock_gettime(CLOCK_MONOTONIC, &sent_monotonic);
+  log_notice(LD_GENERAL, "SENDTICKET:%lus%luns", send_monotonic.tv_sec, send_monotonic.tv_nsec);
+  log_notice(LD_GENERAL, "SENTTICKET:%lus%luns", sent_monotonic.tv_sec, sent_monotonic.tv_nsec);
 
   //Close circuit until SP
   circuit_mark_for_close(TO_CIRCUIT(circ), END_CIRC_REASON_FINISHED);
@@ -150,9 +148,8 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 	                      const uint8_t *payload) {
   (void) num;
 
-  struct timeval time;
-
-  tor_gettimeofday(&time);
+  struct timespec recv_monotonic;
+  clock_gettime(CLOCK_MONOTONIC, &recv_monotonic);
 
   iot_split_t *msg = (iot_split_t*) payload;
 
@@ -201,14 +198,14 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
   memcpy(cell->payload, (uint8_t *)&msg->ticket, sizeof(iot_ticket_t));
 
   connection_or_write_var_cell_to_buf(cell, conn);
+
+  struct timespec fwd_monotonic;
+  clock_gettime(CLOCK_MONOTONIC, &fwd_monotonic);
+
+  log_notice(LD_GENERAL, "RECVTICKET:%lus%luns", recv_monotonic.tv_sec, recv_monotonic.tv_nsec);
+  log_notice(LD_GENERAL, "FWDTICKET:%lus%luns", fwd_monotonic.tv_sec, fwd_monotonic.tv_nsec);
+
   var_cell_free(cell);
-
-  {
-      char tbuf[ISO_TIME_USEC_LEN+1];
-      format_iso_time_nospace_usec(tbuf, &time);
-
-      log_notice(LD_GENERAL, "TICKET:%s", tbuf);
-  }
 }
 
 void
@@ -253,6 +250,9 @@ void
 iot_join(or_connection_t *conn, const var_cell_t *cell)
 {
   circuit_t *circ = NULL;
+
+  struct timespec req_monotonic;
+  clock_gettime(CLOCK_MONOTONIC, &req_monotonic);
 
   log_info(LD_GENERAL,
               "Got a JOIN cell for circ_id %u on channel " U64_FORMAT
@@ -300,18 +300,14 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
       log_info(LD_GENERAL, "Queue cell with command %d", c->command);
       c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
       append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c, CELL_DIRECTION_IN, 0);
-      // XXX: FREE cells?
       tor_free(c);
     SMARTLIST_FOREACH_END(c);
 
-    tor_gettimeofday(&circ->timestamp_iot_join_complete);
+    struct timespec done_monotonic;
+    clock_gettime(CLOCK_MONOTONIC, &done_monotonic);
+    log_notice(LD_GENERAL, "JOINREQ:%lus%luns", req_monotonic.tv_sec, req_monotonic.tv_nsec);
+    log_notice(LD_GENERAL, "JOINDONE:%lus%luns", done_monotonic.tv_sec, done_monotonic.tv_nsec);
 
-    {
-        char tbuf[ISO_TIME_USEC_LEN+1];
-        format_iso_time_nospace_usec(tbuf, &circ->timestamp_iot_join_complete);
-
-        log_notice(LD_GENERAL, "JOINED:%s", tbuf);
-    }
   } else {
     log_info(LD_GENERAL, "Tried to join circuit, but cookies didnt match. 0x%08x ?", ((uint32_t*)cell->payload)[0]);
   }

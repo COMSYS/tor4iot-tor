@@ -2587,25 +2587,15 @@ circuit_describe_status_for_controller(origin_circuit_t *circ)
   }
 
   {
-      char tbuf[ISO_TIME_USEC_LEN+1];
-      format_iso_time_nospace_usec(tbuf, &circ->base_.timestamp_began);
-
-      smartlist_add_asprintf(descparts, "TIME_BEGAN=%s", tbuf);
-  }
-
-  {
     char tbuf[ISO_TIME_USEC_LEN+1];
     format_iso_time_nospace_usec(tbuf, &circ->base_.timestamp_created);
 
     smartlist_add_asprintf(descparts, "TIME_CREATED=%s", tbuf);
   }
 
-  {
-      char tbuf[ISO_TIME_USEC_LEN+1];
-      format_iso_time_nospace_usec(tbuf, &circ->base_.timestamp_complete);
-
-      smartlist_add_asprintf(descparts, "TIME_COMPLETED=%s", tbuf);
-    }
+  smartlist_add_asprintf(descparts, "MY_TIME_BEGAN=%lus%luns", circ->base_.my_timestamp_began.tv_sec, circ->base_.my_timestamp_began.tv_nsec);
+  smartlist_add_asprintf(descparts, "MY_TIME_COMPLETE=%lus%luns", circ->base_.my_timestamp_complete.tv_sec, circ->base_.my_timestamp_complete.tv_nsec);
+  smartlist_add_asprintf(descparts, "MY_CONS_NTOR=%lus%luns", circ->base_.my_timecons_ntor.tv_sec, circ->base_.my_timecons_ntor.tv_nsec);
 
   // Show username and/or password if available.
   if (circ->socks_username_len > 0) {
