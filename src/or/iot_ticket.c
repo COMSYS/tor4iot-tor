@@ -224,8 +224,9 @@ iot_info(or_connection_t *conn, const var_cell_t *cell)
 
   if (connected_iot_dev) {
       or_connection_t *oldconn = NULL;
+      log_info(LD_GENERAL, "Looking for already connected IoT device..");
       SMARTLIST_FOREACH_BEGIN(connected_iot_dev, or_connection_t *, c) {
-        log_info(LD_GENERAL, "Looking for already connected IoT device..");
+	log_debug(LD_GENERAL, "%"PRIu32" = %"PRIu32"?", c->iot_id, (uint32_t) cell->payload[0]);
         if (!memcmp(c->iot_id, cell->payload, IOT_ID_LEN)) {
           log_info(LD_GENERAL, "FOUND! Remove from list to readd it.");
           oldconn = c;
