@@ -163,8 +163,9 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
   or_connection_t* conn = NULL;
 
   if (connected_iot_dev) {
+    log_info(LD_GENERAL, "Looking for connected IoT device..");
     SMARTLIST_FOREACH_BEGIN(connected_iot_dev, or_connection_t *, c) {
-      log_info(LD_GENERAL, "Looking for connected IoT device.."); // ID: %s == %s ?", c->iot_id, ((uint32_t*)cell->payload)[0]);
+      log_debug(LD_GENERAL, "Check %p", c);
       if (!memcmp(c->iot_id, msg->iot_id, IOT_ID_LEN)) {
         log_info(LD_GENERAL, "FOUND!");
         conn = c;
@@ -226,6 +227,7 @@ iot_info(or_connection_t *conn, const var_cell_t *cell)
       or_connection_t *oldconn = NULL;
       log_info(LD_GENERAL, "Looking for already connected IoT device..");
       SMARTLIST_FOREACH_BEGIN(connected_iot_dev, or_connection_t *, c) {
+	log_debug(LD_GENERAL, "Check %p", c);
 	for (uint8_t i=0; i<IOT_ID_LEN; i++) {
 	    log_debug(LD_GENERAL, "0x%02x = 0x%02x ?", c->iot_id[i], cell->payload[i]);
 	}
@@ -237,6 +239,7 @@ iot_info(or_connection_t *conn, const var_cell_t *cell)
       } SMARTLIST_FOREACH_END(c);
 
       if (oldconn) {
+	  connection_or_close_normally(conn, 0);
 	  smartlist_remove(connected_iot_dev, oldconn);
       }
     } else {
@@ -248,6 +251,7 @@ iot_info(or_connection_t *conn, const var_cell_t *cell)
   memcpy(conn->iot_id, cell->payload, IOT_ID_LEN);
 
   smartlist_add(connected_iot_dev, conn);
+  log_debug(LD_GENERAL, "Add connection %p to iot smart list.", conn);
 
   connection_or_set_state_joining(conn);
 }
