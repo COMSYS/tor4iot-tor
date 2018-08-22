@@ -1409,8 +1409,10 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
     log_info(LD_OR, "Trying to listen to DTLS.");
 
+    int err;
+
     while (1) {
-	int err = tor_dtls_listen(conn->tls, (BIO_ADDR*) &client_addr);
+	err = tor_dtls_listen(conn->tls, (BIO_ADDR*) &client_addr);
 	if (err > 0) {
 	    break;
 	}
