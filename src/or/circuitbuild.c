@@ -1010,11 +1010,11 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
   struct timespec osc_after;
   clock_gettime(CLOCK_MONOTONIC, &osc_after);
   circ->base_.my_timecons_ntor = as_nanoseconds(&osc_after) - as_nanoseconds(&osc_before);
-  log_notice("NTOR:%"PRIu64, circ->base_.my_timecons_ntor);
+  log_notice(LD_GENERAL, "NTOR:%"PRIu64, circ->base_.my_timecons_ntor);
   circ->base_.ntor_mes = 1;
 
   circ->base_.my_timecons_curve25519 = as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after1) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before1);
-  log_notice("C25519:%"PRIu64, circ->base_.my_timecons_curve25519);
+  log_notice(LD_GENERAL, "C25519:%"PRIu64, circ->base_.my_timecons_curve25519);
   circ->base_.curve25519_mes = 1;
 
   if (len < 0) {
