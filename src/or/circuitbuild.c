@@ -970,7 +970,7 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
 
   log_debug(LD_CIRC,"First skin; sending create cell.");
 
-  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamp_began);
+  clock_gettime(CLOCK_MONOTONIC_RAW, &circ->base_.my_timestamp_began);
 
   if (circ->build_state->onehop_tunnel) {
     control_event_bootstrap(BOOTSTRAP_STATUS_ONEHOP_CREATE, 0);
@@ -1000,7 +1000,7 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
   }
 
   struct timespec osc_before;
-  clock_gettime(CLOCK_MONOTONIC, &osc_before);
+  clock_gettime(CLOCK_MONOTONIC_RAW, &osc_before);
 
   len = onion_skin_create(cc.handshake_type,
                           circ->cpath->extend_info,
@@ -1008,7 +1008,7 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
                           cc.onionskin);
 
   struct timespec osc_after;
-  clock_gettime(CLOCK_MONOTONIC, &osc_after);
+  clock_gettime(CLOCK_MONOTONIC_RAW, &osc_after);
   circ->base_.my_timecons_ntor = as_nanoseconds(&osc_after) - as_nanoseconds(&osc_before);
   log_notice(LD_GENERAL, "NTOR:%"PRIu64, circ->base_.my_timecons_ntor);
   circ->base_.ntor_mes = 1;
@@ -1068,7 +1068,7 @@ circuit_build_no_more_hops(origin_circuit_t *circ)
     return - END_CIRC_REASON_INTERNAL;
   }
 
-  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamp_complete);
+  clock_gettime(CLOCK_MONOTONIC_RAW, &circ->base_.my_timestamp_complete);
 
   /* XXXX #21422 -- the rest of this branch needs careful thought!
    * Some of the things here need to happen when a circuit becomes
@@ -1182,7 +1182,7 @@ circuit_send_intermediate_onion_skin(origin_circuit_t *circ,
   ed25519_pubkey_copy(&ec.ed_pubkey, &hop->extend_info->ed_identity);
 
   struct timespec osc_before;
-  clock_gettime(CLOCK_MONOTONIC, &osc_before);
+  clock_gettime(CLOCK_MONOTONIC_RAW, &osc_before);
 
   len = onion_skin_create(ec.create_cell.handshake_type,
                           hop->extend_info,
@@ -1190,7 +1190,7 @@ circuit_send_intermediate_onion_skin(origin_circuit_t *circ,
                           ec.create_cell.onionskin);
 
   struct timespec osc_after;
-  clock_gettime(CLOCK_MONOTONIC, &osc_after);
+  clock_gettime(CLOCK_MONOTONIC_RAW, &osc_after);
 
   circ->base_.my_timecons_ntor += as_nanoseconds(&osc_after) - as_nanoseconds(&osc_before);
   circ->base_.ntor_mes++;
@@ -1545,7 +1545,7 @@ circuit_finish_handshake(origin_circuit_t *circ,
   tor_assert(hop->state == CPATH_STATE_AWAITING_KEYS);
 
   struct timespec before_hsk;
-  clock_gettime(CLOCK_MONOTONIC, &before_hsk);
+  clock_gettime(CLOCK_MONOTONIC_RAW, &before_hsk);
   {
     const char *msg = NULL;
     if (onion_skin_client_handshake(hop->handshake_state.tag,
@@ -1560,17 +1560,13 @@ circuit_finish_handshake(origin_circuit_t *circ,
     }
   }
 
-  log_notice(LD_GENERAL, "BEFORE: %luns || AFTER: %luns", hop->handshake_state.mes.c25519_before1.tv_nsec, hop->handshake_state.mes.c25519_after2.tv_nsec);
-
   struct timespec after_hsk;
-  clock_gettime(CLOCK_MONOTONIC, &after_hsk);
+  clock_gettime(CLOCK_MONOTONIC_RAW, &after_hsk);
 
   circ->base_.my_timecons_ntor += as_nanoseconds(&after_hsk) - as_nanoseconds(&before_hsk);
-  log_notice(LD_GENERAL, "NTOR_FINISH:%"PRIu64, circ->base_.my_timecons_ntor);
   circ->base_.ntor_mes++;
 
   circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after2) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before1);
-  log_notice(LD_GENERAL, "CURVE25519_FINISH:%"PRIu64, circ->base_.my_timecons_curve25519);
   circ->base_.curve25519_mes++;
 
   //circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after2) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before2);

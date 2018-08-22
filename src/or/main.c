@@ -3114,7 +3114,7 @@ tor_init(int argc, char *argv[])
     struct timespec sync_realtime;
     struct timespec sync_monotonic;
 
-    clock_gettime(CLOCK_MONOTONIC, &sync_monotonic);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &sync_monotonic);
     clock_gettime(CLOCK_REALTIME, &sync_realtime);
 
     log_notice(LD_GENERAL, "SYNC:%lus%luns:%lus%luns", sync_monotonic.tv_sec, sync_monotonic.tv_nsec, sync_realtime.tv_sec, sync_realtime.tv_nsec);
