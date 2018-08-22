@@ -1560,6 +1560,8 @@ circuit_finish_handshake(origin_circuit_t *circ,
     }
   }
 
+  log_notice(LD_GENERAL, "BEFORE: %luns || AFTER: %luns", hop->handshake_state->mes->c25519_before1.tv_nsec, hop->handshake_state->mes->c25519_after2.tv_nsec);
+
   struct timespec after_hsk;
   clock_gettime(CLOCK_MONOTONIC, &after_hsk);
 

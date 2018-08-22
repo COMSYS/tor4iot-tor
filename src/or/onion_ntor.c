@@ -301,6 +301,9 @@ onion_skin_ntor_client_handshake(
                        &handshake_state->pubkey_B);
   if (mes != NULL)
     clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_after2));
+
+  log_notice(LD_GENERAL, "BEFORE: %luns || AFTER: %luns", mes->c25519_before1.tv_nsec, mes->c25519_after2.tv_nsec);
+
   bad |= (safe_mem_is_zero(si, CURVE25519_OUTPUT_LEN) << 1);
   si += CURVE25519_OUTPUT_LEN;
   APPEND(si, handshake_state->router_id, DIGEST_LEN);
