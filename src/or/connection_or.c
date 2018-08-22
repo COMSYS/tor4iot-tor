@@ -1409,17 +1409,20 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
     log_info(LD_OR, "Trying to listen to DTLS.");
 
-    int err = 0;
-    while (err == 0) {
-	err = tor_dtls_listen(conn->tls, (BIO_ADDR*) &client_addr);
-
-	if (err < 0) {
+    while (1) {
+	int err = tor_dtls_listen(conn->tls, (BIO_ADDR*) &client_addr);
+	if (err > 0) {
+	    break;
+	}
+	else if (err < 0) {
 	    //FATAL ERROR
 	    log_err(LD_OR, "Fatal Error in DTLSv1_listen. %d.", err);
 
 	    tor_assert(0);
 
 	    return 0;
+	} else {
+	    log_info(LD_GENERAL, "Non-fatal error in DTLS_listen.. Retry..");
 	}
     }
 
