@@ -291,12 +291,12 @@ onion_skin_ntor_client_handshake(
   if (mes != NULL)
     clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_before1));
   curve25519_handshake(si, &handshake_state->seckey_x, &s.pubkey_Y);
-  if (mes != NULL)
-    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_after1));
+  //if (mes != NULL)
+  //  clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_after1));
   bad = safe_mem_is_zero(si, CURVE25519_OUTPUT_LEN);
   si += CURVE25519_OUTPUT_LEN;
-  if (mes != NULL)
-    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_before2));
+  //if (mes != NULL)
+  //  clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_before2));
   curve25519_handshake(si, &handshake_state->seckey_x,
                        &handshake_state->pubkey_B);
   if (mes != NULL)

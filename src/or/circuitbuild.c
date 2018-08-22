@@ -1567,12 +1567,12 @@ circuit_finish_handshake(origin_circuit_t *circ,
   log_notice(LD_GENERAL, "NTOR_FINISH:%"PRIu64, circ->base_.my_timecons_ntor);
   circ->base_.ntor_mes++;
 
-  circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after1) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before1);
+  circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after2) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before1);
   log_notice(LD_GENERAL, "CURVE25519_FINISH:%"PRIu64, circ->base_.my_timecons_curve25519);
   circ->base_.curve25519_mes++;
 
-  circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after2) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before2);
-  log_notice(LD_GENERAL, "CURVE25519_FINISH:%"PRIu64, circ->base_.my_timecons_curve25519);
+  //circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after2) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before2);
+  //log_notice(LD_GENERAL, "CURVE25519_FINISH:%"PRIu64, circ->base_.my_timecons_curve25519);
   circ->base_.curve25519_mes++;
 
   onion_handshake_state_release(&hop->handshake_state);
