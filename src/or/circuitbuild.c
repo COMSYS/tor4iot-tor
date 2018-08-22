@@ -988,6 +988,10 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
 
   node = node_get_by_id(circ->base_.n_chan->identity_digest);
   fast = should_use_create_fast_for_circuit(circ);
+
+  //XXX: Disable fast handshake
+  fast = 0;
+
   if (!fast) {
     /* We know the right onion key: we should send a create cell. */
     circuit_pick_create_handshake(&cc.cell_type, &cc.handshake_type,
