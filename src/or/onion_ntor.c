@@ -291,16 +291,19 @@ onion_skin_ntor_client_handshake(
   if (mes != NULL)
     clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_before1));
   curve25519_handshake(si, &handshake_state->seckey_x, &s.pubkey_Y);
-  //if (mes != NULL)
-  //  clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_after1));
+  if (mes != NULL)
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_after1));
   bad = safe_mem_is_zero(si, CURVE25519_OUTPUT_LEN);
   si += CURVE25519_OUTPUT_LEN;
-  //if (mes != NULL)
-  //  clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_before2));
+  if (mes != NULL)
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_before2));
   curve25519_handshake(si, &handshake_state->seckey_x,
                        &handshake_state->pubkey_B);
   if (mes != NULL)
     clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_after2));
+
+  log_notice(LD_GENERAL, "BEFORE: %luns || AFTER: %luns", mes->c25519_before1.tv_nsec, mes->c25519_after2.tv_nsec);
+
   bad |= (safe_mem_is_zero(si, CURVE25519_OUTPUT_LEN) << 1);
   si += CURVE25519_OUTPUT_LEN;
   APPEND(si, handshake_state->router_id, DIGEST_LEN);
@@ -309,6 +312,8 @@ onion_skin_ntor_client_handshake(
   APPEND(si, s.pubkey_Y.public_key, CURVE25519_PUBKEY_LEN);
   APPEND(si, PROTOID, PROTOID_LEN);
   tor_assert(si == s.secret_input + sizeof(s.secret_input));
+
+  log_notice(LD_GENERAL, "BEFORE: %luns || AFTER: %luns", mes->c25519_before1.tv_nsec, mes->c25519_after2.tv_nsec);
 
   /* Compute verify from secret_input */
   h_tweak(s.verify, s.secret_input, sizeof(s.secret_input), T->t_verify);
@@ -323,6 +328,8 @@ onion_skin_ntor_client_handshake(
   APPEND(ai, SERVER_STR, SERVER_STR_LEN);
   tor_assert(ai == s.auth_input + sizeof(s.auth_input));
 
+  log_notice(LD_GENERAL, "BEFORE: %luns || AFTER: %luns", mes->c25519_before1.tv_nsec, mes->c25519_after2.tv_nsec);
+
   /* Compute auth */
   h_tweak(s.auth, s.auth_input, sizeof(s.auth_input), T->t_mac);
 
@@ -334,7 +341,11 @@ onion_skin_ntor_client_handshake(
                            (const uint8_t*)T->m_expand, strlen(T->m_expand),
                            key_out, key_out_len);
 
+  log_notice(LD_GENERAL, "BEFORE: %luns || AFTER: %luns", mes->c25519_before1.tv_nsec, mes->c25519_after2.tv_nsec);
+
   memwipe(&s, 0, sizeof(s));
+
+  log_notice(LD_GENERAL, "BEFORE: %luns || AFTER: %luns", mes->c25519_before1.tv_nsec, mes->c25519_after2.tv_nsec);
 
   if (bad) {
     if (bad & 4) {
@@ -351,6 +362,8 @@ onion_skin_ntor_client_handshake(
              "Invalid result from curve25519 handshake: %d", bad);
     }
   }
+
+  log_notice(LD_GENERAL, "BEFORE: %luns || AFTER: %luns", mes->c25519_before1.tv_nsec, mes->c25519_after2.tv_nsec);
 
   return bad ? -1 : 0;
 }
