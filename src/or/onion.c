@@ -659,6 +659,8 @@ onion_skin_client_handshake(int type,
         return -1;
       }
 
+      log_notice(LD_GENERAL, "BEFORE: %luns || AFTER: %luns", handshake_state->mes.c25519_before1.tv_nsec, handshake_state->mes.c25519_after2.tv_nsec);
+
       memcpy(keys_out, keys_tmp, keys_out_len);
       memcpy(rend_authenticator_out, keys_tmp + keys_out_len, DIGEST_LEN);
       memwipe(keys_tmp, 0, keys_tmp_len);
