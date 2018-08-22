@@ -2595,8 +2595,8 @@ circuit_describe_status_for_controller(origin_circuit_t *circ)
 
   smartlist_add_asprintf(descparts, "MY_TIME_BEGAN=%lus%luns", circ->base_.my_timestamp_began.tv_sec, circ->base_.my_timestamp_began.tv_nsec);
   smartlist_add_asprintf(descparts, "MY_TIME_COMPLETE=%lus%luns", circ->base_.my_timestamp_complete.tv_sec, circ->base_.my_timestamp_complete.tv_nsec);
-  smartlist_add_asprintf(descparts, "MY_CONS_NTOR=%lus%luns%dv", circ->base_.my_timecons_ntor.tv_sec, circ->base_.my_timecons_ntor.tv_nsec, circ->base_.ntor_mes);
-  smartlist_add_asprintf(descparts, "MY_CONS_CURVE25519=%lus%luns%dv", circ->base_.my_timecons_curve25519.tv_sec, circ->base_.my_timecons_curve25519.tv_nsec, circ->base_.curve25519_mes);
+  smartlist_add_asprintf(descparts, "MY_CONS_NTOR=%"PRIu64"ns%dv", circ->base_.my_timecons_ntor, circ->base_.ntor_mes);
+  smartlist_add_asprintf(descparts, "MY_CONS_CURVE25519=%"PRIu64"ns%dv", circ->base_.my_timecons_curve25519, circ->base_.curve25519_mes);
 
   // Show username and/or password if available.
   if (circ->socks_username_len > 0) {

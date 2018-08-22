@@ -3183,10 +3183,10 @@ typedef struct circuit_t {
   /** This timestamp marks when the circuit is completely extended. */
   struct timespec my_timestamp_complete;
 
-  struct timespec my_timecons_ntor;
+  uint64_t my_timecons_ntor;
   uint8_t ntor_mes;
 
-  struct timespec my_timecons_curve25519;
+  uint64_t my_timecons_curve25519;
   uint8_t curve25519_mes;
 
   /** When the circuit was first used, or 0 if the circuit is clean.

@@ -1009,12 +1009,10 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
 
   struct timespec osc_after;
   clock_gettime(CLOCK_MONOTONIC, &osc_after);
-  circ->base_.my_timecons_ntor.tv_sec += osc_after.tv_sec - osc_before.tv_sec;
-  circ->base_.my_timecons_ntor.tv_nsec += osc_after.tv_nsec - osc_before.tv_nsec;
+  circ->base_.my_timecons_ntor += as_nanoseconds(&osc_after) - as_nanoseconds(&osc_before);
   circ->base_.ntor_mes++;
 
-  circ->base_.my_timecons_curve25519.tv_sec  += circ->cpath->handshake_state.mes.c25519_after1.tv_sec  - circ->cpath->handshake_state.mes.c25519_before1.tv_sec;
-  circ->base_.my_timecons_curve25519.tv_nsec += circ->cpath->handshake_state.mes.c25519_after1.tv_nsec - circ->cpath->handshake_state.mes.c25519_before1.tv_nsec;
+  circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after1) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before1);
   circ->base_.curve25519_mes++;
 
   if (len < 0) {
@@ -1192,12 +1190,10 @@ circuit_send_intermediate_onion_skin(origin_circuit_t *circ,
   struct timespec osc_after;
   clock_gettime(CLOCK_MONOTONIC, &osc_after);
 
-  circ->base_.my_timecons_ntor.tv_sec += osc_after.tv_sec - osc_before.tv_sec;
-  circ->base_.my_timecons_ntor.tv_nsec += osc_after.tv_nsec - osc_before.tv_nsec;
+  circ->base_.my_timecons_ntor += as_nanoseconds(&osc_after) - as_nanoseconds(&osc_before);
   circ->base_.ntor_mes++;
 
-  circ->base_.my_timecons_curve25519.tv_sec  += circ->cpath->handshake_state.mes.c25519_after1.tv_sec  - circ->cpath->handshake_state.mes.c25519_before1.tv_sec;
-  circ->base_.my_timecons_curve25519.tv_nsec += circ->cpath->handshake_state.mes.c25519_after1.tv_nsec - circ->cpath->handshake_state.mes.c25519_before1.tv_nsec;
+  circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after1) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before1);
   circ->base_.curve25519_mes++;
 
   if (len < 0) {
@@ -1565,16 +1561,13 @@ circuit_finish_handshake(origin_circuit_t *circ,
   struct timespec after_hsk;
   clock_gettime(CLOCK_MONOTONIC, &after_hsk);
 
-  circ->base_.my_timecons_ntor.tv_sec += after_hsk.tv_sec - before_hsk.tv_sec;
-  circ->base_.my_timecons_ntor.tv_nsec += after_hsk.tv_nsec - before_hsk.tv_nsec;
+  circ->base_.my_timecons_ntor += as_nanoseconds(&after_hsk) - as_nanoseconds(&before_hsk);
   circ->base_.ntor_mes++;
 
-  circ->base_.my_timecons_curve25519.tv_sec  += circ->cpath->handshake_state.mes.c25519_after1.tv_sec  - circ->cpath->handshake_state.mes.c25519_before1.tv_sec;
-  circ->base_.my_timecons_curve25519.tv_nsec += circ->cpath->handshake_state.mes.c25519_after1.tv_nsec - circ->cpath->handshake_state.mes.c25519_before1.tv_nsec;
+  circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after1) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before1);
   circ->base_.curve25519_mes++;
 
-  circ->base_.my_timecons_curve25519.tv_sec  += circ->cpath->handshake_state.mes.c25519_after2.tv_sec  - circ->cpath->handshake_state.mes.c25519_before2.tv_sec;
-  circ->base_.my_timecons_curve25519.tv_nsec += circ->cpath->handshake_state.mes.c25519_after2.tv_nsec - circ->cpath->handshake_state.mes.c25519_before2.tv_nsec;
+  circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after2) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before2);
   circ->base_.curve25519_mes++;
 
   onion_handshake_state_release(&hop->handshake_state);
