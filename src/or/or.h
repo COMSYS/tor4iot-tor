@@ -2918,6 +2918,13 @@ typedef enum {
 
 #define CRYPT_PATH_MAGIC 0x70127012u
 
+typedef struct c25519_measurement_t {
+  struct timespec c25519_before1;
+  struct timespec c25519_after1;
+  struct timespec c25519_before2;
+  struct timespec c25519_after2;
+} c25519_measurement_t;
+
 struct fast_handshake_state_t;
 struct ntor_handshake_state_t;
 #define ONION_HANDSHAKE_TYPE_TAP  0x0000
@@ -2931,6 +2938,7 @@ typedef struct {
     crypto_dh_t *tap;
     struct ntor_handshake_state_t *ntor;
   } u;
+  c25519_measurement_t mes;
 } onion_handshake_state_t;
 
 /** Holds accounting information for a single step in the layered encryption
@@ -3176,6 +3184,10 @@ typedef struct circuit_t {
   struct timespec my_timestamp_complete;
 
   struct timespec my_timecons_ntor;
+  uint8_t ntor_mes;
+
+  struct timespec my_timecons_curve25519;
+  uint8_t curve25519_mes;
 
   /** When the circuit was first used, or 0 if the circuit is clean.
    *

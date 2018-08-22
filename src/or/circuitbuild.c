@@ -1008,9 +1008,13 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
 
   struct timespec osc_after;
   clock_gettime(CLOCK_MONOTONIC, &osc_after);
-
   circ->base_.my_timecons_ntor.tv_sec += osc_after.tv_sec - osc_before.tv_sec;
   circ->base_.my_timecons_ntor.tv_nsec += osc_after.tv_nsec - osc_before.tv_nsec;
+  circ->base_.ntor_mes++;
+
+  circ->base_.my_timecons_curve25519.tv_sec  += circ->cpath->handshake_state.mes.c25519_after1.tv_sec  - circ->cpath->handshake_state.mes.c25519_before1.tv_sec;
+  circ->base_.my_timecons_curve25519.tv_nsec += circ->cpath->handshake_state.mes.c25519_after1.tv_nsec - circ->cpath->handshake_state.mes.c25519_before1.tv_nsec;
+  circ->base_.curve25519_mes++;
 
   if (len < 0) {
     log_warn(LD_CIRC,"onion_skin_create (first hop) failed.");
@@ -1176,19 +1180,24 @@ circuit_send_intermediate_onion_skin(origin_circuit_t *circ,
    * in the extend2 cell if we're configured to use it, though. */
   ed25519_pubkey_copy(&ec.ed_pubkey, &hop->extend_info->ed_identity);
 
-  struct timespec before_ntor;
-  clock_gettime(CLOCK_MONOTONIC, &before_ntor);
+  struct timespec osc_before;
+  clock_gettime(CLOCK_MONOTONIC, &osc_before);
 
   len = onion_skin_create(ec.create_cell.handshake_type,
                           hop->extend_info,
                           &hop->handshake_state,
                           ec.create_cell.onionskin);
 
-  struct timespec after_ntor;
-  clock_gettime(CLOCK_MONOTONIC, &after_ntor);
+  struct timespec osc_after;
+  clock_gettime(CLOCK_MONOTONIC, &osc_after);
 
-  circ->base_.my_timecons_ntor.tv_sec += after_ntor.tv_sec - before_ntor.tv_sec;
-  circ->base_.my_timecons_ntor.tv_nsec += after_ntor.tv_nsec - before_ntor.tv_nsec;
+  circ->base_.my_timecons_ntor.tv_sec += osc_after.tv_sec - osc_before.tv_sec;
+  circ->base_.my_timecons_ntor.tv_nsec += osc_after.tv_nsec - osc_before.tv_nsec;
+  circ->base_.ntor_mes++;
+
+  circ->base_.my_timecons_curve25519.tv_sec  += circ->cpath->handshake_state.mes.c25519_after1.tv_sec  - circ->cpath->handshake_state.mes.c25519_before1.tv_sec;
+  circ->base_.my_timecons_curve25519.tv_nsec += circ->cpath->handshake_state.mes.c25519_after1.tv_nsec - circ->cpath->handshake_state.mes.c25519_before1.tv_nsec;
+  circ->base_.curve25519_mes++;
 
   if (len < 0) {
     log_warn(LD_CIRC,"onion_skin_create failed.");
@@ -1557,6 +1566,15 @@ circuit_finish_handshake(origin_circuit_t *circ,
 
   circ->base_.my_timecons_ntor.tv_sec += after_hsk.tv_sec - before_hsk.tv_sec;
   circ->base_.my_timecons_ntor.tv_nsec += after_hsk.tv_nsec - before_hsk.tv_nsec;
+  circ->base_.ntor_mes++;
+
+  circ->base_.my_timecons_curve25519.tv_sec  += circ->cpath->handshake_state.mes.c25519_after1.tv_sec  - circ->cpath->handshake_state.mes.c25519_before1.tv_sec;
+  circ->base_.my_timecons_curve25519.tv_nsec += circ->cpath->handshake_state.mes.c25519_after1.tv_nsec - circ->cpath->handshake_state.mes.c25519_before1.tv_nsec;
+  circ->base_.curve25519_mes++;
+
+  circ->base_.my_timecons_curve25519.tv_sec  += circ->cpath->handshake_state.mes.c25519_after2.tv_sec  - circ->cpath->handshake_state.mes.c25519_before2.tv_sec;
+  circ->base_.my_timecons_curve25519.tv_nsec += circ->cpath->handshake_state.mes.c25519_after2.tv_nsec - circ->cpath->handshake_state.mes.c25519_before2.tv_nsec;
+  circ->base_.curve25519_mes++;
 
   onion_handshake_state_release(&hop->handshake_state);
 

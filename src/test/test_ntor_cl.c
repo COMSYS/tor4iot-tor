@@ -48,7 +48,7 @@ client1(int argc, char **argv)
   BASE16(2, node_id, DIGEST_LEN);
   BASE16(3, B.public_key, CURVE25519_PUBKEY_LEN);
 
-  if (onion_skin_ntor_create(node_id, &B, &state, msg)<0) {
+  if (onion_skin_ntor_create(node_id, &B, &state, msg, NULL)<0) {
     fprintf(stderr, "handshake failed");
     return 2;
   }
@@ -127,7 +127,7 @@ client2(int argc, char **argv)
 
   keys = tor_malloc(keybytes);
   hexkeys = tor_malloc(keybytes*2+1);
-  if (onion_skin_ntor_client_handshake(&state, msg, keys, keybytes, NULL)<0) {
+  if (onion_skin_ntor_client_handshake(&state, msg, keys, keybytes, NULL, NULL)<0) {
     fprintf(stderr, "handshake failed");
     result = 2;
     goto done;

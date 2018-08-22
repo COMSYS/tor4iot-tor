@@ -502,7 +502,8 @@ onion_skin_create(int type,
     if (onion_skin_ntor_create((const uint8_t*)node->identity_digest,
                                &node->curve25519_onion_key,
                                &state_out->u.ntor,
-                               onion_skin_out) < 0)
+                               onion_skin_out,
+			       &state_out->mes) < 0)
       return -1;
 
     r = NTOR_ONIONSKIN_LEN;
@@ -604,7 +605,7 @@ onion_skin_server_handshake(int type,
  * complaining to the user about. */
 int
 onion_skin_client_handshake(int type,
-                      const onion_handshake_state_t *handshake_state,
+                      onion_handshake_state_t *handshake_state,
                       const uint8_t *reply, size_t reply_len,
                       uint8_t *keys_out, size_t keys_out_len,
                       uint8_t *rend_authenticator_out,
@@ -652,10 +653,12 @@ onion_skin_client_handshake(int type,
       uint8_t *keys_tmp = tor_malloc(keys_tmp_len);
       if (onion_skin_ntor_client_handshake(handshake_state->u.ntor,
                                         reply,
-                                        keys_tmp, keys_tmp_len, msg_out) < 0) {
+                                        keys_tmp, keys_tmp_len, msg_out,
+					&handshake_state->mes) < 0) {
         tor_free(keys_tmp);
         return -1;
       }
+
       memcpy(keys_out, keys_tmp, keys_out_len);
       memcpy(rend_authenticator_out, keys_tmp + keys_out_len, DIGEST_LEN);
       memwipe(keys_tmp, 0, keys_tmp_len);
