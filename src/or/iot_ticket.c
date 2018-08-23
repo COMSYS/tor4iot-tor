@@ -167,7 +167,7 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
   or_connection_t* conn = NULL;
 
   if (connected_iot_dev) {
-    log_info(LD_GENERAL, "Looking for connected IoT device..");
+    log_info(LD_GENERAL, "Looking for connected IoT device:");
     SMARTLIST_FOREACH_BEGIN(connected_iot_dev, or_connection_t *, c) {
       log_debug(LD_GENERAL, "Check %p", c);
       if (!memcmp(c->iot_id, msg->iot_id, IOT_ID_LEN)) {
@@ -242,8 +242,7 @@ iot_info(or_connection_t *conn, const var_cell_t *cell)
       } SMARTLIST_FOREACH_END(c);
 
       if (oldconn) {
-	  connection_or_close_normally(conn, 0);
-	  smartlist_remove(connected_iot_dev, oldconn);
+	  connection_or_close_normally(oldconn, 0); //calls iot_remove_connected_iot()
       }
     } else {
 	connected_iot_dev = smartlist_new();
