@@ -129,6 +129,8 @@ void iot_ticket_send(origin_circuit_t *circ) {
   //Compute MAC
   crypto_hmac_sha256((char*) (msg->ticket.mac), (char*) iot_mac_key, 16, (char*) &(msg->ticket), sizeof(iot_ticket_t)-DIGEST256_LEN);
 
+  log_info(LD_GENERAL, "Sending ticket to %s", split_point->extend_info->nickname);
+
   //Send it!
   relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET, (const char*) msg,
                                sizeof(iot_split_t), split_point);
