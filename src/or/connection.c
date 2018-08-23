@@ -1612,6 +1612,7 @@ connection_handle_listener_read(connection_t *conn, int new_type)
   	tor_assert(0);
       }
 
+      inc_open_socket_ctr();
 
       // Make new socket known to libevent.
       connection_add(conn);

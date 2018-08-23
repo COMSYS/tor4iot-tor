@@ -744,6 +744,8 @@ STATIC int tor_ersatz_socketpair(int family, int type, int protocol,
 
 ssize_t tor_getpass(const char *prompt, char *output, size_t buflen);
 
+void inc_open_socket_ctr(void);
+
 /* This needs some of the declarations above so we include it here. */
 #include "compat_threads.h"
 

@@ -1280,6 +1280,11 @@ tor_open_socket_with_extensions(int domain, int type, int protocol,
   return s;
 }
 
+void
+inc_open_socket_ctr(void) {
+  ++n_sockets_open;
+}
+
 /** As accept(), but counts the number of open sockets. */
 tor_socket_t
 tor_accept_socket(tor_socket_t sockfd, struct sockaddr *addr, socklen_t *len)
