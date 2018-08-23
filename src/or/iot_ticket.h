@@ -63,6 +63,8 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
 
 void iot_info(or_connection_t *conn, const var_cell_t *cell);
 
+void iot_remove_connected_iot (or_connection_t *conn);
+
 void iot_join(or_connection_t *conn, const var_cell_t *cell);
 
 #endif /* SRC_OR_IOT_TICKET_H_ */

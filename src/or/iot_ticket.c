@@ -176,7 +176,6 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
         break;
       }
       log_info(LD_GENERAL, "DIDNT MATCH");
-      return;
     } SMARTLIST_FOREACH_END(c);
   } else {
       log_warn(LD_GENERAL, "Got a ticket but there never was a IoT device connected.");
@@ -259,6 +258,22 @@ iot_info(or_connection_t *conn, const var_cell_t *cell)
 
   connection_or_set_state_joining(conn);
 }
+
+
+void
+iot_remove_connected_iot (or_connection_t *conn) {
+  if (connected_iot_dev) {
+    log_info(LD_GENERAL, "Closed UDP conn. Removing from IoT list..");
+    SMARTLIST_FOREACH_BEGIN(connected_iot_dev, or_connection_t *, c) {
+      log_debug(LD_GENERAL, "Check %p", c);
+      if (conn == c) {
+	  smartlist_remove(connected_iot_dev, c);
+	  return;
+      }
+    } SMARTLIST_FOREACH_END(c);
+  }
+}
+
 
 void
 iot_join(or_connection_t *conn, const var_cell_t *cell)

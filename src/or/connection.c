@@ -103,6 +103,8 @@
 #include "sandbox.h"
 #include "transports.h"
 
+#include "iot_ticket.h"
+
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif
@@ -723,6 +725,11 @@ connection_free,(connection_t *conn))
    * connection has been closed. And only do that if we track it. */
   if (conn->type == CONN_TYPE_OR) {
     dos_close_client_conn(TO_OR_CONN(conn));
+  }
+
+  if (conn->type == CONN_TYPE_OR_UDP) {
+    dos_close_client_conn(TO_OR_CONN(conn));
+    iot_remove_connected_iot(TO_OR_CONN(conn));
   }
 
   connection_unregister_events(conn);
