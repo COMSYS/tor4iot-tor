@@ -107,10 +107,10 @@ onion_skin_ntor_create(const uint8_t *router_id,
   }
 
   if (mes != NULL)
-    clock_gettime(CLOCK_MONOTONIC_RAW, &(mes->c25519_before1));
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_before1));
   curve25519_public_key_generate(&state->pubkey_X, &state->seckey_x);
   if (mes != NULL)
-    clock_gettime(CLOCK_MONOTONIC_RAW, &(mes->c25519_after1));
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_after1));
 
   op = onion_skin_out;
   APPEND(op, router_id, DIGEST_LEN);
@@ -289,18 +289,18 @@ onion_skin_ntor_client_handshake(
 
   /* Compute secret_input */
   if (mes != NULL)
-    clock_gettime(CLOCK_MONOTONIC_RAW, &(mes->c25519_before1));
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_before1));
   curve25519_handshake(si, &handshake_state->seckey_x, &s.pubkey_Y);
   if (mes != NULL)
-    clock_gettime(CLOCK_MONOTONIC_RAW, &(mes->c25519_after1));
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_after1));
   bad = safe_mem_is_zero(si, CURVE25519_OUTPUT_LEN);
   si += CURVE25519_OUTPUT_LEN;
   if (mes != NULL)
-    clock_gettime(CLOCK_MONOTONIC_RAW, &(mes->c25519_before2));
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_before2));
   curve25519_handshake(si, &handshake_state->seckey_x,
                        &handshake_state->pubkey_B);
   if (mes != NULL)
-    clock_gettime(CLOCK_MONOTONIC_RAW, &(mes->c25519_after2));
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_after2));
 
   bad |= (safe_mem_is_zero(si, CURVE25519_OUTPUT_LEN) << 1);
   si += CURVE25519_OUTPUT_LEN;
