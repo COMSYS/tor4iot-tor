@@ -3189,8 +3189,8 @@ typedef struct circuit_t {
   struct timespec my_timestamp_cpath_end;
 
 
-  struct timespec my_timestamps_ntor[15];
-  struct timespec my_timestamps_c25519[20];
+  struct timespec my_timestamps_ntor[40];
+  struct timespec my_timestamps_c25519[50];
 
   uint8_t ntor_mes;
   uint8_t curve25519_mes;
