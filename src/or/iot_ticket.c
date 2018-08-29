@@ -167,7 +167,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
   }
 
   for (int i=0; i<circ->base_.ntor_mes; i=i+2) {
-    my_timecons_ntor += as_nanoseconds(&circ->base_.my_timestamps_c25519[i+1]) - as_nanoseconds(&circ->base_.my_timestamps_c25519[i]);
+    my_timecons_c25519 += as_nanoseconds(&circ->base_.my_timestamps_c25519[i+1]) - as_nanoseconds(&circ->base_.my_timestamps_c25519[i]);
   }
 
   log_notice(LD_GENERAL, "CONSNTOR:%"PRIu64"ns", my_timecons_ntor);
