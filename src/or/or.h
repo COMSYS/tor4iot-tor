@@ -2872,6 +2872,8 @@ typedef struct extend_info_t {
   //IOT:
   tor_addr_port_t sp;
   iot_circ_info_t iot_circ_info;
+
+  struct timespec gotrequest;
 } extend_info_t;
 
 /** Certificate for v3 directory protocol: binds long-term authority identity
@@ -3183,10 +3185,14 @@ typedef struct circuit_t {
   /** This timestamp marks when the circuit is completely extended. */
   struct timespec my_timestamp_complete;
 
-  uint64_t my_timecons_ntor;
-  uint8_t ntor_mes;
+  struct timespec my_timestamp_cpath_start;
+  struct timespec my_timestamp_cpath_end;
 
-  uint64_t my_timecons_curve25519;
+
+  struct timespec my_timestamps_ntor[15];
+  struct timespec my_timestamps_c25519[20];
+
+  uint8_t ntor_mes;
   uint8_t curve25519_mes;
 
   /** When the circuit was first used, or 0 if the circuit is clean.

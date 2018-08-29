@@ -2526,6 +2526,10 @@ getinfo_helper_downloads(control_connection_t *control_conn,
   }
 }
 
+static inline uint64_t as_nanoseconds(struct timespec* ts) {
+    return ts->tv_sec * (uint64_t)1000000000L + ts->tv_nsec;
+}
+
 /** Allocate and return a description of <b>circ</b>'s current status,
  * including its path (if any). */
 static char *
@@ -2595,8 +2599,19 @@ circuit_describe_status_for_controller(origin_circuit_t *circ)
 
   smartlist_add_asprintf(descparts, "MY_TIME_BEGAN=%lus%luns", circ->base_.my_timestamp_began.tv_sec, circ->base_.my_timestamp_began.tv_nsec);
   smartlist_add_asprintf(descparts, "MY_TIME_COMPLETE=%lus%luns", circ->base_.my_timestamp_complete.tv_sec, circ->base_.my_timestamp_complete.tv_nsec);
-  smartlist_add_asprintf(descparts, "MY_CONS_NTOR=%"PRIu64"ns%dv", circ->base_.my_timecons_ntor, circ->base_.ntor_mes);
-  smartlist_add_asprintf(descparts, "MY_CONS_CURVE25519=%"PRIu64"ns%dv", circ->base_.my_timecons_curve25519, circ->base_.curve25519_mes);
+
+  uint64_t my_timecons_ntor = 0;
+  uint64_t my_timecons_c25519 = 0;
+
+  for (int i=0; i<circ->base_.ntor_mes; i=i+2) {
+    my_timecons_ntor += as_nanoseconds(&circ->base_.my_timestamps_ntor[i+1]) - as_nanoseconds(&circ->base_.my_timestamps_ntor[i]);
+  }
+  smartlist_add_asprintf(descparts, "MY_CONS_NTOR=%"PRIu64"ns%dv", my_timecons_ntor, circ->base_.ntor_mes);
+
+  for (int i=0; i<circ->base_.ntor_mes; i=i+2) {
+    my_timecons_ntor += as_nanoseconds(&circ->base_.my_timestamps_c25519[i+1]) - as_nanoseconds(&circ->base_.my_timestamps_c25519[i]);
+  }
+  smartlist_add_asprintf(descparts, "MY_CONS_CURVE25519=%"PRIu64"ns%dv", my_timecons_c25519, circ->base_.curve25519_mes);
 
   // Show username and/or password if available.
   if (circ->socks_username_len > 0) {

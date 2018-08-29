@@ -416,6 +416,8 @@ onion_populate_cpath(origin_circuit_t *circ)
   tor_assert(circ);
   tor_assert(circ->build_state);
 
+  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamp_cpath_start);
+
   while (r == 0) {
     r = onion_extend_cpath(circ);
     if (r < 0) {
@@ -423,6 +425,8 @@ onion_populate_cpath(origin_circuit_t *circ)
       return -1;
     }
   }
+
+  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamp_cpath_end);
 
   /* The path is complete */
   tor_assert(r == 1);
@@ -999,21 +1003,22 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
     cc.handshake_type = ONION_HANDSHAKE_TYPE_FAST;
   }
 
-  struct timespec osc_before;
-  clock_gettime(CLOCK_MONOTONIC, &osc_before);
+  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamps_ntor[circ->base_.ntor_mes]);
+  circ->base_.ntor_mes++;
 
   len = onion_skin_create(cc.handshake_type,
                           circ->cpath->extend_info,
                           &circ->cpath->handshake_state,
                           cc.onionskin);
 
-  struct timespec osc_after;
-  clock_gettime(CLOCK_MONOTONIC, &osc_after);
-  circ->base_.my_timecons_ntor = as_nanoseconds(&osc_after) - as_nanoseconds(&osc_before);
-  circ->base_.ntor_mes = 1;
+  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamps_ntor[circ->base_.ntor_mes]);
+  circ->base_.ntor_mes++;
 
-  circ->base_.my_timecons_curve25519 = as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after1) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before1);
-  circ->base_.curve25519_mes = 1;
+  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_before1, sizeof(struct timespec));
+  circ->base_.curve25519_mes++;
+
+  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_after1, sizeof(struct timespec));
+  circ->base_.curve25519_mes++;
 
   if (len < 0) {
     log_warn(LD_CIRC,"onion_skin_create (first hop) failed.");
@@ -1179,21 +1184,21 @@ circuit_send_intermediate_onion_skin(origin_circuit_t *circ,
    * in the extend2 cell if we're configured to use it, though. */
   ed25519_pubkey_copy(&ec.ed_pubkey, &hop->extend_info->ed_identity);
 
-  struct timespec osc_before;
-  clock_gettime(CLOCK_MONOTONIC, &osc_before);
+  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamps_ntor[circ->base_.ntor_mes]);
+  circ->base_.ntor_mes++;
 
   len = onion_skin_create(ec.create_cell.handshake_type,
                           hop->extend_info,
                           &hop->handshake_state,
                           ec.create_cell.onionskin);
 
-  struct timespec osc_after;
-  clock_gettime(CLOCK_MONOTONIC, &osc_after);
-
-  circ->base_.my_timecons_ntor += as_nanoseconds(&osc_after) - as_nanoseconds(&osc_before);
+  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamps_ntor[circ->base_.ntor_mes]);
   circ->base_.ntor_mes++;
 
-  circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after1) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before1);
+  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_before1, sizeof(struct timespec));
+  circ->base_.curve25519_mes++;
+
+  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_after1, sizeof(struct timespec));
   circ->base_.curve25519_mes++;
 
   if (len < 0) {
@@ -1542,8 +1547,9 @@ circuit_finish_handshake(origin_circuit_t *circ,
   }
   tor_assert(hop->state == CPATH_STATE_AWAITING_KEYS);
 
-  struct timespec before_hsk;
-  clock_gettime(CLOCK_MONOTONIC, &before_hsk);
+  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamps_ntor[circ->base_.ntor_mes]);
+  circ->base_.ntor_mes++;
+
   {
     const char *msg = NULL;
     if (onion_skin_client_handshake(hop->handshake_state.tag,
@@ -1558,17 +1564,19 @@ circuit_finish_handshake(origin_circuit_t *circ,
     }
   }
 
-  struct timespec after_hsk;
-  clock_gettime(CLOCK_MONOTONIC, &after_hsk);
-
-  circ->base_.my_timecons_ntor += as_nanoseconds(&after_hsk) - as_nanoseconds(&before_hsk);
+  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamps_ntor[circ->base_.ntor_mes]);
   circ->base_.ntor_mes++;
 
-  circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after2) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before1);
+  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_before1, sizeof(struct timespec));
   circ->base_.curve25519_mes++;
 
-  //circ->base_.my_timecons_curve25519 += as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_after2) - as_nanoseconds(&circ->cpath->handshake_state.mes.c25519_before2);
-  //log_notice(LD_GENERAL, "CURVE25519_FINISH:%"PRIu64, circ->base_.my_timecons_curve25519);
+  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_after1, sizeof(struct timespec));
+  circ->base_.curve25519_mes++;
+
+  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_before2, sizeof(struct timespec));
+  circ->base_.curve25519_mes++;
+
+  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_after2, sizeof(struct timespec));
   circ->base_.curve25519_mes++;
 
   onion_handshake_state_release(&hop->handshake_state);

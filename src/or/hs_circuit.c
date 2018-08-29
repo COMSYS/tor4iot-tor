@@ -375,6 +375,9 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
   tor_assert(ip);
   tor_assert(data);
 
+  struct timespec temp;
+  clock_gettime(CLOCK_MONOTONIC, &temp);
+
   circ_needs_uptime = hs_service_requires_uptime_circ(service->config.ports);
 
   /* Get the extend info data structure for the chosen rendezvous point
@@ -411,6 +414,8 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
     if (service->config.is_single_onion) {
       circ_flags |= CIRCLAUNCH_ONEHOP_TUNNEL;
     }
+
+    memcpy(&info->gotrequest, &temp, sizeof(struct timespec));
 
     //IOT: This is where we set our purpose
     if (1) { //service->config.is_iot) { //XXX: Make it true for now

@@ -28,6 +28,9 @@ const uint8_t iot_mac_key[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
 const uint8_t iot_iv[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 const char sp_rsa_id_hex[] = "D2E695EAAA3B127321853099834214BC255EEB35";
+
+const node_t* sp=NULL;
+
 const char iot_id[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
 
 STATIC smartlist_t *splitted_circuits = NULL;
@@ -41,7 +44,12 @@ int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info) {
   (void) hs;
 
   info->after = 3;
-  info->split = node_get_by_hex_id(sp_rsa_id_hex, 0);
+
+  if (sp == NULL) {
+      sp = node_get_by_hex_id(sp_rsa_id_hex, 0);
+  }
+
+  info->split = sp;
 
   if (!info->split) {
       return -1;
@@ -79,7 +87,9 @@ void iot_process_relay_split(circuit_t *circ) {
   //channel_flush_cells(TO_OR_CIRCUIT(circ)->p_chan);
 }
 
-
+static inline uint64_t as_nanoseconds(struct timespec* ts) {
+    return ts->tv_sec * (uint64_t)1000000000L + ts->tv_nsec;
+}
 
 void iot_ticket_send(origin_circuit_t *circ) {
   iot_split_t *msg;
@@ -145,8 +155,23 @@ void iot_ticket_send(origin_circuit_t *circ) {
   log_notice(LD_GENERAL, "SENTTICKET:%lus%luns", sent_monotonic.tv_sec, sent_monotonic.tv_nsec);
   log_notice(LD_GENERAL, "BEGANCIRC:%lus%luns", circ->base_.my_timestamp_began.tv_sec, circ->base_.my_timestamp_began.tv_nsec);
   log_notice(LD_GENERAL, "COMPLETEDCIRC:%lus%luns", circ->base_.my_timestamp_complete.tv_sec, circ->base_.my_timestamp_complete.tv_nsec);
-  log_notice(LD_GENERAL, "CONSNTOR:%"PRIu64"ns", circ->base_.my_timecons_ntor);
-  log_notice(LD_GENERAL, "CONSC25519:%"PRIu64"ns", circ->base_.my_timecons_curve25519);
+
+  log_notice(LD_GENERAL, "CPATHSTART:%lus%luns", circ->base_.my_timestamp_cpath_start.tv_sec, circ->base_.my_timestamp_cpath_start.tv_nsec);
+  log_notice(LD_GENERAL, "CPATHEND:%lus%luns", circ->base_.my_timestamp_cpath_end.tv_sec, circ->base_.my_timestamp_cpath_end.tv_nsec);
+
+  uint64_t my_timecons_ntor = 0;
+  uint64_t my_timecons_c25519 = 0;
+
+  for (int i=0; i<circ->base_.ntor_mes; i=i+2) {
+    my_timecons_ntor += as_nanoseconds(&circ->base_.my_timestamps_ntor[i+1]) - as_nanoseconds(&circ->base_.my_timestamps_ntor[i]);
+  }
+
+  for (int i=0; i<circ->base_.ntor_mes; i=i+2) {
+    my_timecons_ntor += as_nanoseconds(&circ->base_.my_timestamps_c25519[i+1]) - as_nanoseconds(&circ->base_.my_timestamps_c25519[i]);
+  }
+
+  log_notice(LD_GENERAL, "CONSNTOR:%"PRIu64"ns", my_timecons_ntor);
+  log_notice(LD_GENERAL, "CONSC25519:%"PRIu64"ns", my_timecons_c25519);
 
   tor_free(msg);
 }
