@@ -367,6 +367,11 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
       memcpy(cell_cpy, cell, sizeof(cell_t));
 
       smartlist_add(circ->iot_buffer, cell_cpy);
+
+      struct timespec buf;
+      clock_gettime(CLOCK_MONOTONIC, &buf);
+      log_notice(LD_GENERAL, "BUF:%lus%luns", buf.tv_sec, buf.tv_nsec);
+
       return 0;
     } else {
       cell->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
@@ -418,6 +423,13 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
                                   * the cells. */
 
   append_cell_to_circuit_queue(circ, chan, cell, cell_direction, 0);
+
+  if (circ->already_split) {
+      struct timespec queued;
+      clock_gettime(CLOCK_MONOTONIC, &queued);
+      log_notice(LD_GENERAL, "QUEUED:%lus%luns", queued.tv_sec, queued.tv_nsec);
+  }
+
   return 0;
 }
 
