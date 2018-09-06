@@ -3579,6 +3579,12 @@ typedef struct or_circuit_t {
    */
   crypto_digest_t *n_digest;
 
+  /**
+   * We store the states the IoT device will use after the handover
+   */
+  crypto_cipher_t *p_crypto_iot;
+  crypto_digest_t *p_digest_iot;
+
   /** Points to spliced circuit if purpose is REND_ESTABLISHED, and circuit
    * is not marked for close. */
   struct or_circuit_t *rend_splice;

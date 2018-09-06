@@ -119,6 +119,11 @@ aes_cipher_free(aes_cnt_cipher_t *cipher_)
   EVP_CIPHER_CTX_free(cipher);
 }
 void
+aes_cipher_copy(aes_cnt_cipher_t *out, aes_cnt_cipher_t *in)
+{
+  EVP_CIPHER_CTX_copy((EVP_CIPHER_CTX *) out, (EVP_CIPHER_CTX *) in);
+}
+void
 aes_crypt_inplace(aes_cnt_cipher_t *cipher_, char *data, size_t len)
 {
   int outl;

@@ -1627,10 +1627,12 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
       case RELAY_COMMAND_RESOLVE:
       case RELAY_COMMAND_RESOLVED:
       case RELAY_COMMAND_BEGIN_DIR:
-      case RELAY_COMMAND_TICKET_ACK:
         log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL, "Relay command %d with zero "
                "stream_id. Dropping.", (int)rh.command);
         return 0;
+      case RELAY_COMMAND_TICKET_ACK:
+	log_info(LD_PROTOCOL, "Ticket ACK received!");
+	return 0;
       default:
         ;
     }

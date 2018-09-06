@@ -8,6 +8,7 @@
 #include "iot_ticket.h"
 #include "or.h"
 
+#include "aes.h"
 #include "channel.h"
 #include "crypto.h"
 #include "main.h"
@@ -84,7 +85,14 @@ void iot_process_relay_split(circuit_t *circ) {
              circ->n_circ_id,
              CIRCUIT_IS_ORIGIN(circ) ?
                 TO_ORIGIN_CIRCUIT(circ)->global_identifier : 0);
-  //channel_flush_cells(TO_OR_CIRCUIT(circ)->p_chan);
+
+  // Store the p_digest and p_crypt as this is the state the IoT device uses
+  // after the handover
+
+  or_circuit_t *orcirc = TO_OR_CIRCUIT(circ);
+
+  aes_cipher_copy(orcirc->p_crypto_iot, orcirc->p_crypto);
+  orcirc->p_digest_iot = crypto_digest_dup(orcirc->p_digest);
 }
 
 static inline uint64_t as_nanoseconds(struct timespec* ts) {
@@ -379,11 +387,22 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
     tor_assert(circ->state == CIRCUIT_STATE_JOIN_WAIT);
 
+    or_circuit_t *orcirc = TO_OR_CIRCUIT(circ);
+
     // Join circuits
-    circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
+    circuit_set_p_circid_chan(orcirc, cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
     TLS_CHAN_TO_BASE(conn->chan)->cell_num = 1;
 
-    tor_assert(TO_OR_CIRCUIT(circ)->p_chan == TLS_CHAN_TO_BASE(conn->chan));
+    tor_assert(orcirc->p_chan == TLS_CHAN_TO_BASE(conn->chan));
+
+    // Use backup of crypto and digest state
+    aes_cipher_free(orcirc->p_crypto);
+    orcirc->p_crypto = orcirc->p_crypto_iot;
+    orcirc->p_crypto_iot = NULL;
+
+    crypto_digest_free(orcirc->p_digest);
+    orcirc->p_digest = orcirc->p_digest_iot;
+    orcirc->p_digest_iot = NULL;
 
     circ->state = CIRCUIT_STATE_OPEN;
 
