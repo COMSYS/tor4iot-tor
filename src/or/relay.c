@@ -128,7 +128,7 @@ static tor_weak_rng_t stream_choice_rng = TOR_WEAK_RNG_INIT;
 /** Update digest from the payload of cell. Assign integrity part to
  * cell.
  */
-void
+static void
 relay_set_digest(crypto_digest_t *digest, cell_t *cell)
 {
   char integrity[4];
@@ -520,11 +520,11 @@ relay_crypt(circuit_t *circ, cell_t *cell, cell_direction_t cell_direction,
  *  - Encrypt it to the right layer
  *  - Append it to the appropriate cell_queue on <b>circ</b>.
  */
-static int
-circuit_package_relay_cell(cell_t *cell, circuit_t *circ,
+MOCK_IMPL(int,
+circuit_package_relay_cell_, (cell_t *cell, circuit_t *circ,
                            cell_direction_t cell_direction,
                            crypt_path_t *layer_hint, streamid_t on_stream,
-                           const char *filename, int lineno)
+                           const char *filename, int lineno))
 {
   channel_t *chan; /* where to send the cell */
 
@@ -808,7 +808,7 @@ relay_send_command_from_edge_,(streamid_t stream_id, circuit_t *circ,
     }
   }
 
-  if (circuit_package_relay_cell(&cell, circ, cell_direction, cpath_layer,
+  if (circuit_package_relay_cell_(&cell, circ, cell_direction, cpath_layer,
                                  stream_id, filename, lineno) < 0) {
     log_warn(LD_BUG,"circuit_package_relay_cell failed. Closing.");
     circuit_mark_for_close(circ, END_CIRC_REASON_INTERNAL);

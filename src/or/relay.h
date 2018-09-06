@@ -93,7 +93,18 @@ int relay_crypt(circuit_t *circ, cell_t *cell, cell_direction_t cell_direction,
 
 circid_t packed_cell_get_circid(const packed_cell_t *cell, int wide_circ_ids);
 
-void relay_set_digest(crypto_digest_t *digest, cell_t *cell);
+MOCK_DECL(int,
+circuit_package_relay_cell_, (cell_t *cell, circuit_t *circ,
+                           cell_direction_t cell_direction,
+                           crypt_path_t *layer_hint, streamid_t on_stream,
+                           const char *filename, int lineno));
+
+#define circuit_package_relay_cell(cell, circ, cell_direction, layer_hint, \
+                                     on_stream)          \
+  circuit_package_relay_cell_((cell), (circ), \
+                           (cell_direction), \
+                           (layer_hint), (on_stream), \
+                           __FILE__, __LINE__)
 
 #ifdef RELAY_PRIVATE
 STATIC int connected_cell_parse(const relay_header_t *rh, const cell_t *cell,

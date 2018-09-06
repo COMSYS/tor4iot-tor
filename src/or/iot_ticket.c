@@ -273,10 +273,7 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
     rh.recognized = 0;
     relay_header_pack(cell.payload, &rh);
 
-    relay_set_digest(TO_OR_CIRCUIT(circ)->p_digest, &cell);
-
-    append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, &cell, CELL_DIRECTION_IN, 0);
-
+    circuit_package_relay_cell(&cell, circ, CELL_DIRECTION_IN, NULL, 0);
   }
 
   memset(&cell, 0, sizeof(cell_t));
