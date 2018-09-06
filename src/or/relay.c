@@ -1627,6 +1627,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
       case RELAY_COMMAND_RESOLVE:
       case RELAY_COMMAND_RESOLVED:
       case RELAY_COMMAND_BEGIN_DIR:
+      case RELAY_COMMAND_TICKET_ACK:
         log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL, "Relay command %d with zero "
                "stream_id. Dropping.", (int)rh.command);
         return 0;
@@ -1990,8 +1991,11 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     case RELAY_COMMAND_SPLIT:
       iot_process_relay_split(circ);
       return 0;
+    case RELAY_COMMAND_PRE_TICKET:
+      iot_process_relay_pre_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
+      return 0;
     case RELAY_COMMAND_TICKET:
-      iot_process_relay_ticket(circ, 1, rh.length, cell->payload+RELAY_HEADER_SIZE);
+      iot_process_relay_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
   }
   log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,

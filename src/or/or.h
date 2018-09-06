@@ -635,7 +635,9 @@ typedef enum {
 
 //IOT
 #define RELAY_COMMAND_SPLIT 50
-#define RELAY_COMMAND_TICKET 51
+#define RELAY_COMMAND_PRE_TICKET 51
+#define RELAY_COMMAND_TICKET 52
+#define RELAY_COMMAND_TICKET_ACK 53
 
 /* Reasons why an OR connection is closed. */
 #define END_OR_CONN_REASON_DONE           1
@@ -968,8 +970,9 @@ typedef enum {
 //IOT
 #define CELL_JOIN 133
 #define CELL_IOT_INFO 134
-#define CELL_IOT_TICKET 135
-#define CELL_COMMAND_MAX_ 135
+#define CELL_IOT_PRE_TICKET 135
+#define CELL_IOT_TICKET 136
+#define CELL_COMMAND_MAX_ 136
 
 /** How long to test reachability before complaining to the user. */
 #define TIMEOUT_UNTIL_UNREACHABILITY_COMPLAINT (20*60)

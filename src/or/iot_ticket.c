@@ -92,7 +92,7 @@ static inline uint64_t as_nanoseconds(struct timespec* ts) {
 }
 
 void iot_ticket_send(origin_circuit_t *circ) {
-  iot_split_t *msg;
+  iot_relay_ticket_t *msg;
   crypt_path_t *split_point;
   aes_cnt_cipher_t *encrypt;
 
@@ -106,17 +106,17 @@ void iot_ticket_send(origin_circuit_t *circ) {
   //Choose split point such that we have 4 relays left + HS
   split_point = SPLITPOINT(circ);
 
-  msg = tor_malloc(sizeof(iot_split_t));
+  msg = tor_malloc(sizeof(iot_relay_ticket_t));
 
   // Fill nonce
-  crypto_rand((char *)&msg->ticket.nonce, 2);
+  crypto_rand((char *)msg->ticket.nonce, IOT_TICKET_NONCE_LEN);
 
   // Fill cookies
   crypto_rand((char *)&msg->cookie, 4);
   memcpy(&msg->ticket.cookie, &msg->cookie, 4);
   log_info(LD_GENERAL, "Chosen cookie: 0x%08x  0x%08x", msg->ticket.cookie, msg->cookie);
 
-  //Set key information in ticket
+  // Set key information in ticket
   iot_ticket_set_relay_crypto(&msg->ticket.entry, split_point);
   // Split point is receiver of our ticket. Add payload size.
   msg->ticket.entry.f.crypted_bytes = htons(ntohs(msg->ticket.entry.f.crypted_bytes) + CELL_PAYLOAD_SIZE);
@@ -129,8 +129,8 @@ void iot_ticket_send(origin_circuit_t *circ) {
   memcpy(&msg->ticket.hs_ntor_key, split_point->next->next->next->next->hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
 
   //Encrypt ticket
-  encrypt = aes_new_cipher(iot_key, iot_iv, 128);
-  aes_crypt_inplace(encrypt, (char*) &msg->ticket, sizeof(iot_ticket_t)-DIGEST256_LEN);
+  encrypt = aes_new_cipher(iot_key, msg->ticket.nonce, 128);
+  aes_crypt_inplace(encrypt, ((char*) &msg->ticket + IOT_TICKET_NONCE_LEN), sizeof(iot_ticket_t)-DIGEST256_LEN-IOT_TICKET_NONCE_LEN);
   aes_cipher_free(encrypt);
 
   //Set ID of IoT device
@@ -143,13 +143,13 @@ void iot_ticket_send(origin_circuit_t *circ) {
 
   //Send it!
   relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET, (const char*) msg,
-                               sizeof(iot_split_t), split_point);
+                               sizeof(iot_relay_ticket_t), split_point);
 
   struct timespec sent_monotonic;
   clock_gettime(CLOCK_MONOTONIC, &sent_monotonic);
 
-  //Close circuit until SP
-  circuit_mark_for_close(TO_CIRCUIT(circ), END_CIRC_REASON_FINISHED);
+  //New version: SP closes the circuit
+  //circuit_mark_for_close(TO_CIRCUIT(circ), END_CIRC_REASON_FINISHED);
 
   log_notice(LD_GENERAL, "SENDTICKET:%lus%luns", send_monotonic.tv_sec, send_monotonic.tv_nsec);
   log_notice(LD_GENERAL, "SENTTICKET:%lus%luns", sent_monotonic.tv_sec, sent_monotonic.tv_nsec);
@@ -176,26 +176,15 @@ void iot_ticket_send(origin_circuit_t *circ) {
   tor_free(msg);
 }
 
-void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
-	                      const uint8_t *payload) {
-  (void) num;
-
-  struct timespec recv_monotonic;
-  clock_gettime(CLOCK_MONOTONIC, &recv_monotonic);
-
-  iot_split_t *msg = (iot_split_t*) payload;
-
-  tor_assert(length == sizeof(iot_split_t));
-
-  log_info(LD_GENERAL, "Got IoT ticket with IoT id of size %ld.", sizeof(iot_split_t));
-
+static uint8_t iot_relay_to_device(const uint8_t *target_id, size_t length,
+	                      const uint8_t *payload, uint8_t command) {
   or_connection_t* conn = NULL;
 
   if (connected_iot_dev) {
     log_info(LD_GENERAL, "Looking for connected IoT device:");
     SMARTLIST_FOREACH_BEGIN(connected_iot_dev, or_connection_t *, c) {
       log_debug(LD_GENERAL, "Check %p", c);
-      if (!memcmp(c->iot_id, msg->iot_id, IOT_ID_LEN)) {
+      if (!memcmp(c->iot_id, target_id, IOT_ID_LEN)) {
         log_info(LD_GENERAL, "FOUND!");
         conn = c;
         break;
@@ -203,19 +192,13 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
       log_info(LD_GENERAL, "DIDNT MATCH");
     } SMARTLIST_FOREACH_END(c);
   } else {
-      log_warn(LD_GENERAL, "Got a ticket but there never was a IoT device connected.");
-      return;
+    log_warn(LD_GENERAL, "Got a ticket but there never was a IoT device connected.");
+    return 0;
   }
 
-  if (!splitted_circuits) {
-      splitted_circuits = smartlist_new();
+  if (!conn) {
+    return 0;
   }
-
-  circ->join_cookie = msg->cookie;
-  smartlist_add(splitted_circuits, circ);
-
-  log_info(LD_GENERAL, "Added circuit for joining with cookie 0x%08x", circ->join_cookie);
-
 
   // Now send the ticket to IoT device
 
@@ -224,20 +207,82 @@ void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
   cell = var_cell_new(sizeof(iot_ticket_t));
 
   cell->circ_id = 0;
-  cell->command = CELL_IOT_TICKET;
+  cell->command = command;
   cell->cell_num = TLS_CHAN_TO_BASE(conn->chan)->cell_num_out;
   TLS_CHAN_TO_BASE(conn->chan)->cell_num_out++;
-  memcpy(cell->payload, (uint8_t *)&msg->ticket, sizeof(iot_ticket_t));
+  memcpy(cell->payload, payload, length);
 
   connection_or_write_var_cell_to_buf(cell, conn);
 
   struct timespec fwd_monotonic;
   clock_gettime(CLOCK_MONOTONIC, &fwd_monotonic);
-
-  log_notice(LD_GENERAL, "RECVTICKET:%lus%luns", recv_monotonic.tv_sec, recv_monotonic.tv_nsec);
   log_notice(LD_GENERAL, "FWDTICKET:%lus%luns", fwd_monotonic.tv_sec, fwd_monotonic.tv_nsec);
 
   var_cell_free(cell);
+
+  return 1;
+}
+
+void iot_process_relay_pre_ticket(circuit_t *circ, size_t length,
+	                      const uint8_t *payload) {
+  (void) circ;
+
+  struct timespec recv_monotonic;
+  clock_gettime(CLOCK_MONOTONIC, &recv_monotonic);
+
+  log_info(LD_GENERAL, "Got IoT pre ticket with IoT id of size %ld.", length - IOT_ID_LEN);
+
+  iot_relay_to_device(payload, length - IOT_ID_LEN, payload+IOT_ID_LEN, CELL_IOT_PRE_TICKET);
+}
+
+void iot_process_relay_ticket(circuit_t *circ, size_t length,
+	                      const uint8_t *payload) {
+  struct timespec recv_monotonic;
+  clock_gettime(CLOCK_MONOTONIC, &recv_monotonic);
+
+  iot_relay_ticket_t *msg = (iot_relay_ticket_t*) payload;
+
+  tor_assert(length == sizeof(iot_relay_ticket_t));
+
+  log_info(LD_GENERAL, "Got IoT ticket with IoT id of size %ld.", sizeof(iot_relay_ticket_t));
+
+  if (!splitted_circuits) {
+    splitted_circuits = smartlist_new();
+  }
+  circ->join_cookie = msg->cookie;
+  smartlist_add(splitted_circuits, circ);
+
+  log_info(LD_GENERAL, "Added circuit for joining with cookie 0x%08x", circ->join_cookie);
+
+  uint8_t found = 0;
+  found = iot_relay_to_device(msg->iot_id, sizeof(iot_ticket_t), (uint8_t*)(&msg->ticket), CELL_IOT_TICKET);
+
+  cell_t cell;
+
+  if (found) {
+    relay_header_t rh;
+
+    memset(&cell, 0, sizeof(cell_t));
+    cell.command = CELL_RELAY;
+    cell.circ_id = TO_OR_CIRCUIT(circ)->p_circ_id;
+
+    memset(&rh, 0, sizeof(rh));
+    rh.command = RELAY_COMMAND_TICKET_ACK;
+    rh.stream_id = 0;
+    rh.length = 0;
+    relay_header_pack(cell.payload, &rh);
+
+    append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, &cell, CELL_DIRECTION_IN, 0);
+
+  }
+
+  memset(&cell, 0, sizeof(cell_t));
+  cell.command = CELL_DESTROY;
+  cell.circ_id = TO_OR_CIRCUIT(circ)->p_circ_id;
+
+  append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, &cell, CELL_DIRECTION_IN, 0);
+
+  log_notice(LD_GENERAL, "RECVTICKET:%lus%luns", recv_monotonic.tv_sec, recv_monotonic.tv_nsec);
 }
 
 void

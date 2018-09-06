@@ -25,8 +25,10 @@ typedef struct iot_crypto_aes_relay_t {
   iot_crypto_aes_t b;
 } iot_crypto_aes_relay_t;
 
+#define IOT_TICKET_NONCE_LEN 16
+
 typedef struct iot_ticket_t {
-  uint16_t nonce;
+  uint8_t nonce[IOT_TICKET_NONCE_LEN];
 
   uint32_t cookie;
 
@@ -40,13 +42,13 @@ typedef struct iot_ticket_t {
   uint8_t mac[DIGEST256_LEN];
 } iot_ticket_t;
 
-typedef struct iot_split_t {
+typedef struct iot_relay_ticket_t {
   uint8_t iot_id[IOT_ID_LEN];
 
   uint32_t cookie;
 
   iot_ticket_t ticket;
-} iot_split_t;
+} iot_relay_ticket_t;
 
 #pragma pack(pop)
 
@@ -58,7 +60,10 @@ void iot_inform_split(origin_circuit_t *circ);
 
 void iot_process_relay_split(circuit_t *circ);
 
-void iot_process_relay_ticket(circuit_t *circ, uint8_t num, size_t length,
+void iot_process_relay_pre_ticket(circuit_t *circ, size_t length,
+	                     const uint8_t *payload);
+
+void iot_process_relay_ticket(circuit_t *circ, size_t length,
 	                     const uint8_t *payload);
 
 void iot_info(or_connection_t *conn, const var_cell_t *cell);
