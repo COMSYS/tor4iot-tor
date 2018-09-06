@@ -93,6 +93,8 @@ int relay_crypt(circuit_t *circ, cell_t *cell, cell_direction_t cell_direction,
 
 circid_t packed_cell_get_circid(const packed_cell_t *cell, int wide_circ_ids);
 
+void relay_set_digest(crypto_digest_t *digest, cell_t *cell);
+
 #ifdef RELAY_PRIVATE
 STATIC int connected_cell_parse(const relay_header_t *rh, const cell_t *cell,
                          tor_addr_t *addr_out, int *ttl_out);

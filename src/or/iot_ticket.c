@@ -270,7 +270,10 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
     rh.command = RELAY_COMMAND_TICKET_ACK;
     rh.stream_id = 0;
     rh.length = 0;
+    rh.recognized = 0;
     relay_header_pack(cell.payload, &rh);
+
+    relay_set_digest(TO_OR_CIRCUIT(circ)->p_digest, &cell);
 
     append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, &cell, CELL_DIRECTION_IN, 0);
 

@@ -128,7 +128,7 @@ static tor_weak_rng_t stream_choice_rng = TOR_WEAK_RNG_INIT;
 /** Update digest from the payload of cell. Assign integrity part to
  * cell.
  */
-static void
+void
 relay_set_digest(crypto_digest_t *digest, cell_t *cell)
 {
   char integrity[4];
