@@ -91,7 +91,7 @@ void iot_process_relay_split(circuit_t *circ) {
 
   or_circuit_t *orcirc = TO_OR_CIRCUIT(circ);
 
-  aes_cipher_copy(orcirc->p_crypto_iot, orcirc->p_crypto);
+  orcirc->p_crypto_iot = aes_cipher_copy(orcirc->p_crypto);
   orcirc->p_digest_iot = crypto_digest_dup(orcirc->p_digest);
 }
 
