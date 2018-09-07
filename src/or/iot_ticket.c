@@ -174,7 +174,7 @@ void iot_ticket_send(origin_circuit_t *circ) {
     my_timecons_ntor += as_nanoseconds(&circ->base_.my_timestamps_ntor[i+1]) - as_nanoseconds(&circ->base_.my_timestamps_ntor[i]);
   }
 
-  for (int i=0; i<circ->base_.ntor_mes; i=i+2) {
+  for (int i=0; i<circ->base_.curve25519_mes; i=i+2) {
     my_timecons_c25519 += as_nanoseconds(&circ->base_.my_timestamps_c25519[i+1]) - as_nanoseconds(&circ->base_.my_timestamps_c25519[i]);
   }
 
