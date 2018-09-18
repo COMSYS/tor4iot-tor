@@ -265,14 +265,6 @@ curve25519_handshake(uint8_t *output,
                      const curve25519_secret_key_t *skey,
                      const curve25519_public_key_t *pkey)
 {
-  log_notice(LD_GENERAL, "SKEY:");
-  for (uint8_t i=0; i<CURVE25519_SECKEY_LEN; i++) {
-      log_notice(LD_GENERAL, "0x%02x", skey->secret_key[i]);
-  }
-  log_notice(LD_GENERAL, "PKEY:");
-    for (uint8_t i=0; i<CURVE25519_PUBKEY_LEN; i++) {
-        log_notice(LD_GENERAL, "0x%02x", pkey->public_key[i]);
-    }
   curve25519_impl(output, skey->secret_key, pkey->public_key);
 }
 
