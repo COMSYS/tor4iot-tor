@@ -284,6 +284,20 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
     circuit_package_relay_cell(&cell, circ, CELL_DIRECTION_IN, NULL, 0);
   }
 
+  // Use backup of crypto and digest state
+  /* XXX: This is kind of dangerous. If the RELAY_BEGIN cell of
+   * the client is before this point it will break as we would use
+   * the other crypto status. Better: Use both in parallel one for sending
+   * and one for received buffer messages.
+   */
+  aes_cipher_free(TO_OR_CIRCUIT(circ)->p_crypto);
+  TO_OR_CIRCUIT(circ)->p_crypto = TO_OR_CIRCUIT(circ)->p_crypto_iot;
+  TO_OR_CIRCUIT(circ)->p_crypto_iot = NULL;
+
+  crypto_digest_free(TO_OR_CIRCUIT(circ)->p_digest);
+  TO_OR_CIRCUIT(circ)->p_digest = TO_OR_CIRCUIT(circ)->p_digest_iot;
+  TO_OR_CIRCUIT(circ)->p_digest_iot = NULL;
+
   memset(&cell, 0, sizeof(cell_t));
   cell.command = CELL_DESTROY;
   cell.circ_id = TO_OR_CIRCUIT(circ)->p_circ_id;
@@ -387,22 +401,11 @@ iot_join(or_connection_t *conn, const var_cell_t *cell)
 
     tor_assert(circ->state == CIRCUIT_STATE_JOIN_WAIT);
 
-    or_circuit_t *orcirc = TO_OR_CIRCUIT(circ);
-
     // Join circuits
-    circuit_set_p_circid_chan(orcirc, cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
+    circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), cell->circ_id, TLS_CHAN_TO_BASE(conn->chan));
     TLS_CHAN_TO_BASE(conn->chan)->cell_num = 1;
 
-    tor_assert(orcirc->p_chan == TLS_CHAN_TO_BASE(conn->chan));
-
-    // Use backup of crypto and digest state
-    aes_cipher_free(orcirc->p_crypto);
-    orcirc->p_crypto = orcirc->p_crypto_iot;
-    orcirc->p_crypto_iot = NULL;
-
-    crypto_digest_free(orcirc->p_digest);
-    orcirc->p_digest = orcirc->p_digest_iot;
-    orcirc->p_digest_iot = NULL;
+    tor_assert(TO_OR_CIRCUIT(circ)->p_chan == TLS_CHAN_TO_BASE(conn->chan));
 
     circ->state = CIRCUIT_STATE_OPEN;
 
