@@ -145,7 +145,7 @@ create_rend_cpath_legacy(origin_circuit_t *circ, const uint8_t *rend_cell_body)
 
 /* Append the final <b>hop</b> to the cpath of the rend <b>circ</b>, and mark
  * <b>circ</b> ready for use to transfer HS relay cells. */
-static void
+void
 finalize_rend_circuit(origin_circuit_t *circ, crypt_path_t *hop,
                       int is_service_side)
 {
@@ -1230,4 +1230,3 @@ hs_circ_cleanup(circuit_t *circ)
     hs_circuitmap_remove_circuit(circ);
   }
 }
-

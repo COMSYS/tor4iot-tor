@@ -1999,6 +1999,9 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     case RELAY_COMMAND_TICKET:
       iot_process_relay_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
+    case RELAY_COMMAND_FAST_TICKET:
+      iot_process_relay_fast_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
+      return 0;
   }
   log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,
          "Received unknown relay command %d. Perhaps the other side is using "
@@ -3271,4 +3274,3 @@ circuit_queue_streams_are_blocked(circuit_t *circ)
     return circ->streams_blocked_on_p_chan;
   }
 }
-

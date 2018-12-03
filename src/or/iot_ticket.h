@@ -64,7 +64,41 @@ typedef struct iot_relay_ticket_t {
   iot_ticket_t ticket;
 } iot_relay_ticket_t;
 
+/**
+ * Representation of the fast ticket cell a client sends to the IoT device wo DHS
+ */
+typedef struct iot_fast_ticket_t {
+  uint8_t nonce[IOT_TICKET_NONCE_LEN];
+
+  uint32_t cookie;
+
+  uint8_t hs_ntor_key[HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN];
+
+  uint8_t mac[DIGEST256_LEN];
+} iot_fast_ticket_t;
+
+typedef struct iot_relay_fast_ticket_t {
+  uint8_t iot_id[IOT_ID_LEN];
+
+  uint32_t cookie;
+
+  iot_fast_ticket_t ticket;
+} iot_relay_fast_ticket_t;
+
 #pragma pack(pop)
+
+int
+iot_circ_launch_entry_point(void);
+
+/**
+ * Client on fast access without DHS.
+ * Called when circuit to Entry Node is built.
+ */
+int iot_client_entry_circuit_has_opened(origin_circuit_t *circ);
+
+void
+iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
+		const uint8_t *payload);
 
 /**
  * DHS

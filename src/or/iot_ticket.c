@@ -23,6 +23,11 @@
 
 #include "nodelist.h"
 
+#include "circuituse.h"
+#include "circuitbuild.h"
+
+#include "hs_circuit.h"
+
 const uint8_t iot_key[] =
 		{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 const uint8_t iot_mac_key[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
@@ -41,6 +46,121 @@ STATIC smartlist_t *connected_iot_dev = NULL;
 
 #define SPLITPOINT_BEFORE_HS(circ) circ->cpath->prev->prev->prev->prev
 #define SPLITPOINT(circ) SPLITPOINT_BEFORE_HS(circ)->prev
+
+static uint8_t iot_relay_to_device(const uint8_t *target_id, size_t length,
+		const uint8_t *payload, uint8_t command);
+
+int
+iot_circ_launch_entry_point(void) {
+	int circ_flags = CIRCLAUNCH_NEED_UPTIME | CIRCLAUNCH_IS_INTERNAL;
+	origin_circuit_t *circ;
+
+	extend_info_t *info;
+
+	info = extend_info_from_node(node_get_by_hex_id(sp_rsa_id_hex, 0), 0);
+
+	circ = circuit_launch_by_extend_info(CIRCUIT_PURPOSE_ENTRY_IOT,
+                                       info, circ_flags);
+
+	if (circ==NULL) {
+		extend_info_free(info);
+	}
+
+	return 0;
+}
+
+int
+iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
+	iot_relay_fast_ticket_t *msg;
+	aes_cnt_cipher_t *encrypt;
+	crypt_path_t *cpath = NULL;
+	uint8_t is_service_side;
+
+	tor_assert(circ->base_.purpose == CIRCUIT_PURPOSE_ENTRY_IOT);
+  log_info(LD_REND, "Sending a FAST_TICKET cell");
+
+	// Create FAST TICKET
+	msg = tor_malloc(sizeof(iot_relay_ticket_t));
+
+	// Fill nonce
+	crypto_rand((char *) msg->ticket.nonce, IOT_TICKET_NONCE_LEN);
+
+	// Fill cookies
+	crypto_rand((char *) &msg->cookie, 4);
+	memcpy(&msg->ticket.cookie, &msg->cookie, 4);
+	log_info(LD_GENERAL, "Chosen cookie: 0x%08x  0x%08x", msg->ticket.cookie,
+			msg->cookie);
+
+	// Generate E2E Crypto into ticket and initilize it at the client
+	crypto_rand((char *) msg->ticket.hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
+
+	/* Setup the cpath */
+	is_service_side = 0;
+  cpath = tor_malloc_zero(sizeof(crypt_path_t));
+  cpath->magic = CRYPT_PATH_MAGIC;
+
+  if (circuit_init_cpath_crypto(cpath, (char *) msg->ticket.hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN,
+                                is_service_side, 1) < 0) {
+    tor_free(cpath);
+    return 0;
+  }
+
+	finalize_rend_circuit(circ, cpath, is_service_side);
+
+	//Encrypt ticket
+	encrypt = aes_new_cipher(iot_key, msg->ticket.nonce, 128);
+	aes_crypt_inplace(encrypt, ((char*) &msg->ticket + IOT_TICKET_NONCE_LEN),
+			sizeof(iot_fast_ticket_t) - DIGEST256_LEN - IOT_TICKET_NONCE_LEN);
+	aes_cipher_free(encrypt);
+
+	//Set ID of IoT device
+	memcpy(msg->iot_id, iot_id, IOT_ID_LEN);
+
+	//Compute MAC
+	crypto_hmac_sha256((char*) (msg->ticket.mac), (char*) iot_mac_key, 16,
+			(char*) &(msg->ticket), sizeof(iot_fast_ticket_t) - DIGEST256_LEN);
+
+
+	if (relay_send_command_from_edge(0, TO_CIRCUIT(circ),
+                                   RELAY_COMMAND_FAST_TICKET,
+                                   (const char*) msg,
+                                   sizeof(iot_relay_fast_ticket_t),
+                                   circ->cpath->prev)<0) {
+    /* circ is already marked for close */
+    log_warn(LD_GENERAL, "Couldn't send FAST_TICKET cell");
+    return -1;
+  }
+
+	return 0;
+}
+
+void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
+		const uint8_t *payload) {
+	struct timespec recv_monotonic;
+	clock_gettime(CLOCK_MONOTONIC, &recv_monotonic);
+
+	iot_relay_fast_ticket_t *msg = (iot_relay_fast_ticket_t*) payload;
+
+	tor_assert(length == sizeof(iot_relay_fast_ticket_t));
+
+	log_info(LD_GENERAL, "Got IoT ticket with IoT id of size %ld.",
+			sizeof(iot_relay_fast_ticket_t));
+
+	if (!splitted_circuits) {
+		splitted_circuits = smartlist_new();
+	}
+	circ->join_cookie = msg->cookie;
+	smartlist_add(splitted_circuits, circ);
+
+	log_info(LD_GENERAL, "Added circuit for joining with cookie 0x%08x",
+			circ->join_cookie);
+
+	iot_relay_to_device(msg->iot_id, sizeof(iot_fast_ticket_t),
+			(uint8_t*) (&msg->ticket), CELL_IOT_FAST_TICKET);
+
+	log_notice(LD_GENERAL, "RECVTICKET:%lus%luns", recv_monotonic.tv_sec,
+			recv_monotonic.tv_nsec);
+}
 
 int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info) {
 	(void) hs;

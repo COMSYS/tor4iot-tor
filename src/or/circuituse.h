@@ -85,4 +85,3 @@ STATIC int needs_circuits_for_build(int num);
 #endif /* defined(TOR_UNIT_TESTS) */
 
 #endif /* !defined(TOR_CIRCUITUSE_H) */
-

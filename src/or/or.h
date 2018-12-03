@@ -576,9 +576,12 @@ typedef enum {
 #define CIRCUIT_PURPOSE_PATH_BIAS_TESTING 20
 
 //IOT
+/** This circuit is used by the DHS to connect to the RP via the Entry of IoT */
 #define CIRCUIT_PURPOSE_S_CONNECT_REND_IOT 21
+/** This circuit is used by a client that wants to access an IoT without a DHS */
+#define CIRCUIT_PURPOSE_ENTRY_IOT 22
 
-#define CIRCUIT_PURPOSE_MAX_ 21
+#define CIRCUIT_PURPOSE_MAX_ 22
 /** A catch-all for unrecognized purposes. Currently we don't expect
  * to make or see any circuits with this purpose. */
 #define CIRCUIT_PURPOSE_UNKNOWN 255
@@ -638,6 +641,8 @@ typedef enum {
 #define RELAY_COMMAND_PRE_TICKET 51
 #define RELAY_COMMAND_TICKET 52
 #define RELAY_COMMAND_TICKET_ACK 53
+
+#define RELAY_COMMAND_FAST_TICKET 54
 
 /* Reasons why an OR connection is closed. */
 #define END_OR_CONN_REASON_DONE           1
@@ -972,7 +977,8 @@ typedef enum {
 #define CELL_IOT_INFO 134
 #define CELL_IOT_PRE_TICKET 135
 #define CELL_IOT_TICKET 136
-#define CELL_COMMAND_MAX_ 136
+#define CELL_IOT_FAST_TICKET 137
+#define CELL_COMMAND_MAX_ 137
 
 /** How long to test reachability before complaining to the user. */
 #define TIMEOUT_UNTIL_UNREACHABILITY_COMPLAINT (20*60)
@@ -5629,4 +5635,3 @@ typedef struct tor_version_t {
 } tor_version_t;
 
 #endif /* !defined(TOR_OR_H) */
-

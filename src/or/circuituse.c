@@ -55,6 +55,8 @@
 #include "router.h"
 #include "routerlist.h"
 
+#include "iot_ticket.h"
+
 static void circuit_expire_old_circuits_clientside(void);
 static void circuit_increment_failure_count(void);
 
@@ -1672,6 +1674,10 @@ circuit_has_opened(origin_circuit_t *circ)
       /* at the service, connecting to rend point */
       hs_service_circuit_has_opened(circ);
       break;
+    case CIRCUIT_PURPOSE_ENTRY_IOT:
+      /* at the client, connecting to IoT Entry */
+      iot_client_entry_circuit_has_opened(circ);
+      break;
     case CIRCUIT_PURPOSE_TESTING:
       circuit_testing_opened(circ);
       break;
@@ -2887,4 +2893,3 @@ mark_circuit_unusable_for_new_conns(origin_circuit_t *circ)
 
   circ->unusable_for_new_conns = 1;
 }
-
