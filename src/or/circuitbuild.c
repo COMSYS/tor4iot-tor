@@ -1785,6 +1785,9 @@ route_len_for_purpose(uint8_t purpose, extend_info_t *exit_ei)
     known_purpose = 1;
     routelen = 2*routelen;
     break;
+  case CIRCUIT_PURPOSE_ENTRY_IOT:
+    known_purpose = 1;
+    break;
 
   default:
     /* Got a purpose not listed above along with a chosen exit.
@@ -2308,6 +2311,7 @@ warn_if_last_router_excluded(origin_circuit_t *circ,
     case CIRCUIT_PURPOSE_S_REND_JOINED:
     case CIRCUIT_PURPOSE_TESTING:
     case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT: //IOT
+    case CIRCUIT_PURPOSE_ENTRY_IOT:
       return;
     case CIRCUIT_PURPOSE_C_ESTABLISH_REND:
     case CIRCUIT_PURPOSE_C_REND_READY:
@@ -2981,4 +2985,3 @@ circuit_upgrade_circuits_from_guard_wait(void)
 
   smartlist_free(to_upgrade);
 }
-

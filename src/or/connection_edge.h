@@ -100,7 +100,7 @@ int connection_ap_handshake_rewrite_and_attach(entry_connection_t *conn,
 /** Possible return values for parse_extended_hostname. */
 typedef enum hostname_type_t {
   NORMAL_HOSTNAME, ONION_V2_HOSTNAME, ONION_V3_HOSTNAME,
-  EXIT_HOSTNAME, BAD_HOSTNAME
+  EXIT_HOSTNAME, IOT_HOSTNAME, BAD_HOSTNAME
 } hostname_type_t;
 hostname_type_t parse_extended_hostname(char *address);
 
@@ -194,4 +194,3 @@ STATIC int connection_ap_process_http_connect(entry_connection_t *conn);
 #endif /* defined(CONNECTION_EDGE_PRIVATE) */
 
 #endif /* !defined(TOR_CONNECTION_EDGE_H) */
-

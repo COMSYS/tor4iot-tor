@@ -96,6 +96,8 @@
 #include "routerset.h"
 #include "circuitbuild.h"
 
+#include "iot_ticket.h"
+
 #ifdef HAVE_LINUX_TYPES_H
 #include <linux/types.h>
 #endif
@@ -1408,6 +1410,26 @@ connection_ap_handshake_rewrite(entry_connection_t *conn,
 /** We just received a SOCKS request in <b>conn</b> to an onion address of type
  *  <b>addresstype</b>. Start connecting to the onion service. */
 static int
+connection_ap_handle_iot(entry_connection_t *conn,
+                         socks_request_t *socks,
+                         origin_circuit_t *circ,
+                         hostname_type_t addresstype)
+{
+  (void) socks;
+  (void) circ;
+  (void) addresstype;
+
+  connection_t *base_conn = ENTRY_TO_CONN(conn);
+  base_conn->state = AP_CONN_STATE_CIRCUIT_WAIT;
+
+  iot_circ_launch_entry_point(conn);
+
+  return 0;
+}
+
+/** We just received a SOCKS request in <b>conn</b> to an onion address of type
+ *  <b>addresstype</b>. Start connecting to the onion service. */
+static int
 connection_ap_handle_onion(entry_connection_t *conn,
                            socks_request_t *socks,
                            origin_circuit_t *circ,
@@ -1761,6 +1783,14 @@ connection_ap_handshake_rewrite_and_attach(entry_connection_t *conn,
     /* XXXX-1090 Should we also allow foo.bar.exit if ExitNodes is set and
        Bar is not listed in it?  I say yes, but our revised manpage branch
        implies no. */
+  }
+
+  // IoT
+  if (addresstype == IOT_HOSTNAME) {
+    /* No matter which hostname it is -- build the cirucit to our predefined
+     * IoT entry node
+     */
+    connection_ap_handle_iot(conn, socks, circ, addresstype);
   }
 
   /* Now, we handle everything that isn't a .onion address. */
@@ -3920,6 +3950,10 @@ parse_extended_hostname(char *address)
       *s = 0; /* NUL-terminate it */
       return EXIT_HOSTNAME; /* .exit */
     }
+    if (!strcmp(s+1,"iot")) {
+      *s = 0; /* NUL-terminate it */
+      return IOT_HOSTNAME; /* .iot */
+    }
     if (strcmp(s+1,"onion"))
       return NORMAL_HOSTNAME; /* neither .exit nor .onion, thus normal */
 
@@ -4162,4 +4196,3 @@ connection_edge_free_all(void)
   smartlist_free(pending_entry_connections);
   pending_entry_connections = NULL;
 }
-

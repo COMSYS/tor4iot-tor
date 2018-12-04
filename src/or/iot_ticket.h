@@ -88,7 +88,7 @@ typedef struct iot_relay_fast_ticket_t {
 #pragma pack(pop)
 
 int
-iot_circ_launch_entry_point(void);
+iot_circ_launch_entry_point(entry_connection_t *conn);
 
 /**
  * Client on fast access without DHS.

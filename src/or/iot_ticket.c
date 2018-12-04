@@ -51,7 +51,7 @@ static uint8_t iot_relay_to_device(const uint8_t *target_id, size_t length,
 		const uint8_t *payload, uint8_t command);
 
 int
-iot_circ_launch_entry_point(void) {
+iot_circ_launch_entry_point(entry_connection_t *conn) {
 	int circ_flags = CIRCLAUNCH_NEED_UPTIME | CIRCLAUNCH_IS_INTERNAL;
 	origin_circuit_t *circ;
 
@@ -64,7 +64,10 @@ iot_circ_launch_entry_point(void) {
 
 	if (circ==NULL) {
 		extend_info_free(info);
+		return 0;
 	}
+
+	//connection_ap_handshake_attach_chosen_circuit(conn, circ, NULL);
 
 	return 0;
 }
@@ -143,7 +146,7 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
 
 	tor_assert(length == sizeof(iot_relay_fast_ticket_t));
 
-	log_info(LD_GENERAL, "Got IoT ticket with IoT id of size %ld.",
+	log_info(LD_GENERAL, "Got IoT fast ticket with IoT id of size %ld.",
 			sizeof(iot_relay_fast_ticket_t));
 
 	if (!splitted_circuits) {
