@@ -2422,7 +2422,7 @@ optimistic_data_enabled(void)
  * p_streams. Also set apconn's cpath_layer to <b>cpath</b>, or to the last
  * hop in circ's cpath if <b>cpath</b> is NULL.
  */
-static void
+void
 link_apconn_to_circ(entry_connection_t *apconn, origin_circuit_t *circ,
                     crypt_path_t *cpath)
 {
@@ -2553,6 +2553,11 @@ connection_ap_handshake_attach_chosen_circuit(entry_connection_t *conn,
              base_conn->state == AP_CONN_STATE_CONTROLLER_WAIT);
   tor_assert(conn->socks_request);
   tor_assert(circ);
+
+  if (base_conn->purpose == IOT_PURPOSE_CONNECT) {
+	  return 1;
+  }
+
   tor_assert(circ->base_.state == CIRCUIT_STATE_OPEN);
 
   base_conn->state = AP_CONN_STATE_CIRCUIT_WAIT;

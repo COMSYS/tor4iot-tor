@@ -477,6 +477,10 @@ typedef enum {
 #define EXIT_PURPOSE_RESOLVE 2
 #define EXIT_PURPOSE_MAX_ 2
 
+#define IOT_PURPOSE_MIN_ 1
+#define IOT_PURPOSE_CONNECT 1
+#define IOT_PURPOSE_MAX_ 1
+
 /* !!!! If any connection purpose is ever over 31, we must grow the type
  * field in connection_t. */
 
@@ -3528,6 +3532,9 @@ typedef struct origin_circuit_t {
    * is randomized on a per-circuit basis from CircuitsAvailableTimoeut
    * to 2*CircuitsAvailableTimoeut. */
   int circuit_idle_timeout;
+
+
+  entry_connection_t *iot_entry_conn;
 } origin_circuit_t;
 
 struct onion_queue_t;

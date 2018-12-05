@@ -59,6 +59,7 @@ iot_circ_launch_entry_point(entry_connection_t *conn) {
 
 	info = extend_info_from_node(node_get_by_hex_id(sp_rsa_id_hex, 0), 0);
 
+	log_debug(LD_GENERAL, "Launching circuit to IoT entry node.");
 	circ = circuit_launch_by_extend_info(CIRCUIT_PURPOSE_ENTRY_IOT,
                                        info, circ_flags);
 
@@ -67,7 +68,7 @@ iot_circ_launch_entry_point(entry_connection_t *conn) {
 		return 0;
 	}
 
-	//connection_ap_handshake_attach_chosen_circuit(conn, circ, NULL);
+	circ->iot_entry_conn = conn;
 
 	return 0;
 }
@@ -80,10 +81,10 @@ iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 	uint8_t is_service_side;
 
 	tor_assert(circ->base_.purpose == CIRCUIT_PURPOSE_ENTRY_IOT);
-  log_info(LD_REND, "Sending a FAST_TICKET cell");
+    log_info(LD_REND, "Sending a FAST_TICKET cell");
 
 	// Create FAST TICKET
-	msg = tor_malloc(sizeof(iot_relay_ticket_t));
+	msg = tor_malloc(sizeof(iot_relay_fast_ticket_t));
 
 	// Fill nonce
 	crypto_rand((char *) msg->ticket.nonce, IOT_TICKET_NONCE_LEN);
@@ -99,16 +100,14 @@ iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 
 	/* Setup the cpath */
 	is_service_side = 0;
-  cpath = tor_malloc_zero(sizeof(crypt_path_t));
-  cpath->magic = CRYPT_PATH_MAGIC;
+    cpath = tor_malloc_zero(sizeof(crypt_path_t));
+    cpath->magic = CRYPT_PATH_MAGIC;
 
-  if (circuit_init_cpath_crypto(cpath, (char *) msg->ticket.hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN,
-                                is_service_side, 1) < 0) {
-    tor_free(cpath);
-    return 0;
-  }
-
-	finalize_rend_circuit(circ, cpath, is_service_side);
+    if (circuit_init_cpath_crypto(cpath, (char *) msg->ticket.hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN,
+        is_service_side, 1) < 0) {
+      tor_free(cpath);
+      return 0;
+    }
 
 	//Encrypt ticket
 	encrypt = aes_new_cipher(iot_key, msg->ticket.nonce, 128);
@@ -124,15 +123,18 @@ iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 			(char*) &(msg->ticket), sizeof(iot_fast_ticket_t) - DIGEST256_LEN);
 
 
-	if (relay_send_command_from_edge(0, TO_CIRCUIT(circ),
-                                   RELAY_COMMAND_FAST_TICKET,
-                                   (const char*) msg,
-                                   sizeof(iot_relay_fast_ticket_t),
-                                   circ->cpath->prev)<0) {
-    /* circ is already marked for close */
-    log_warn(LD_GENERAL, "Couldn't send FAST_TICKET cell");
-    return -1;
-  }
+//	if (relay_send_command_from_edge(0, TO_CIRCUIT(circ),
+//                                   RELAY_COMMAND_FAST_TICKET,
+//                                   (const char*) msg,
+//                                   sizeof(iot_relay_fast_ticket_t),
+//                                   circ->cpath->prev)<0) {
+//		/* circ is already marked for close */
+//		log_warn(LD_GENERAL, "Couldn't send FAST_TICKET cell");
+//		return -1;
+//	  }
+
+	finalize_rend_circuit(circ, cpath, is_service_side);
+	link_apconn_to_circ(circ->iot_entry_conn, circ, cpath);
 
 	return 0;
 }

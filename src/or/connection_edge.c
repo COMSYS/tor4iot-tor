@@ -1419,8 +1419,14 @@ connection_ap_handle_iot(entry_connection_t *conn,
   (void) circ;
   (void) addresstype;
 
+  log_debug(LD_GENERAL, "Handling .iot address.");
+
   connection_t *base_conn = ENTRY_TO_CONN(conn);
   base_conn->state = AP_CONN_STATE_CIRCUIT_WAIT;
+
+//  base_conn->purpose = IOT_PURPOSE_CONNECT;
+//
+//  connection_ap_mark_as_pending_circuit(conn);
 
   iot_circ_launch_entry_point(conn);
 
@@ -1791,6 +1797,7 @@ connection_ap_handshake_rewrite_and_attach(entry_connection_t *conn,
      * IoT entry node
      */
     connection_ap_handle_iot(conn, socks, circ, addresstype);
+    return 0;
   }
 
   /* Now, we handle everything that isn't a .onion address. */
