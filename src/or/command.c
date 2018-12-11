@@ -502,6 +502,11 @@ command_process_relay_cell(cell_t *cell, channel_t *chan)
   else
     direction = CELL_DIRECTION_IN;
 
+  // XXX: HACKY
+  if (circ->join_cookie) {
+	  direction = CELL_DIRECTION_IN;
+  }
+
   log_info(LD_OR, "Got a relay cell on circ %u sending %s.", cell->circ_id, (direction == CELL_DIRECTION_OUT) ? "forward" : "backward");
 
   /* If we have a relay_early cell, make sure that it's outbound, and we've
