@@ -1425,7 +1425,6 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 			return 0;
 		} else {
 			log_info(LD_GENERAL, "Non-fatal error in DTLS_listen.. Retry..");
-			break;
 		}
     }
 
