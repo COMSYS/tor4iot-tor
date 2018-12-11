@@ -500,7 +500,7 @@ command_process_relay_cell(cell_t *cell, channel_t *chan)
       cell->circ_id == TO_OR_CIRCUIT(circ)->p_circ_id)
     direction = CELL_DIRECTION_OUT;
   else if (circ->purpose == CIRCUIT_PURPOSE_ENTRY_IOT)
-	direction = CELL_DIRECTION_OUT;
+	direction = CELL_DIRECTION_IN;
   else
     direction = CELL_DIRECTION_IN;
 
