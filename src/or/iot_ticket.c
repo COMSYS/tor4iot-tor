@@ -570,6 +570,7 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 
 		tor_assert(TO_OR_CIRCUIT(circ)->p_chan == TLS_CHAN_TO_BASE(conn->chan));
 
+		circ->purpose = CIRCUIT_PURPOSE_REND_ESTABLISHED;
 		circ->state = CIRCUIT_STATE_OPEN;
 
 		smartlist_remove(splitted_circuits, circ);

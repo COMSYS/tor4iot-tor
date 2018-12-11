@@ -586,7 +586,10 @@ typedef enum {
 /** This circuit is used by a client that wants to access an IoT without a DHS */
 #define CIRCUIT_PURPOSE_ENTRY_IOT 22
 
-#define CIRCUIT_PURPOSE_MAX_ 22
+/** This circuit is used by an IoT entry for circuits to IoT devices */
+#define CIRCUIT_PURPOSE_IOT 23
+
+#define CIRCUIT_PURPOSE_MAX_ 23
 /** A catch-all for unrecognized purposes. Currently we don't expect
  * to make or see any circuits with this purpose. */
 #define CIRCUIT_PURPOSE_UNKNOWN 255
