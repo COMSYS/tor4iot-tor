@@ -351,15 +351,24 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
 
   /* not recognized. pass it on. */
   if (cell_direction == CELL_DIRECTION_OUT) {
-    cell->circ_id = circ->n_circ_id; /* switch it */
-    chan = circ->n_chan;
-    if (circ->already_split) {
-	log_info(LD_GENERAL, "RENDEZVOUS CELL RECOGNIZED, MAYBE");
-    }
+		if (circ->state == CIRCUIT_STATE_FAST_JOIN_WAIT) {
+			log_info(LD_GENERAL, "Added cell to buffer");
+			cell_t *cell_cpy;
+			cell_cpy = tor_malloc(sizeof(cell_t));
+			memcpy(cell_cpy, cell, sizeof(cell_t));
+
+			smartlist_add(circ->iot_buffer, cell_cpy);
+
+			struct timespec buf;
+			clock_gettime(CLOCK_MONOTONIC, &buf);
+			log_notice(LD_GENERAL, "BUF:%lus%luns", buf.tv_sec, buf.tv_nsec);
+
+			return 0;
+		} else {
+			cell->circ_id = circ->n_circ_id; /* switch it */
+			chan = circ->n_chan;
+		}
   } else if (! CIRCUIT_IS_ORIGIN(circ)) {
-      if (circ->already_split) {
-	  log_info(LD_GENERAL, "RECOGNIZED CELL FOR IOT DEVICE");
-      }
     if (circ->state == CIRCUIT_STATE_JOIN_WAIT) {
       log_info(LD_GENERAL, "Added cell to buffer");
       cell_t *cell_cpy;

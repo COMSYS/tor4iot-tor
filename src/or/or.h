@@ -500,6 +500,7 @@ typedef enum {
 
 //IOT
 #define CIRCUIT_STATE_JOIN_WAIT 5
+#define CIRCUIT_STATE_FAST_JOIN_WAIT 6
 
 #define CIRCUIT_PURPOSE_MIN_ 1
 

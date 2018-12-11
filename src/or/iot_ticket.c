@@ -160,7 +160,7 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
 		splitted_circuits = smartlist_new();
 	}
 
-	circ->state = CIRCUIT_STATE_JOIN_WAIT;
+	circ->state = CIRCUIT_STATE_FAST_JOIN_WAIT;
 	circ->join_cookie = msg->cookie;
 	smartlist_add(splitted_circuits, circ);
 
@@ -561,7 +561,7 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 		log_info(LD_GENERAL, "Join circuits by cookie 0x%08x",
 				((uint32_t* )cell->payload)[0]);
 
-		tor_assert(circ->state == CIRCUIT_STATE_JOIN_WAIT);
+		tor_assert(circ->state == CIRCUIT_STATE_JOIN_WAIT || circ->state == CIRCUIT_STATE_FAST_JOIN_WAIT);
 
 		// Join circuits
 		circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), cell->circ_id,
