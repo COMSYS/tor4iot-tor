@@ -495,7 +495,7 @@ command_process_relay_cell(cell_t *cell, channel_t *chan)
     channel_timestamp_client(chan);
   }
 
-  if (!CIRCUIT_IS_ORIGIN(circ) &&
+  if ((!CIRCUIT_IS_ORIGIN(circ) || circ->purpose == CIRCUIT_PURPOSE_ENTRY_IOT) &&
       chan == TO_OR_CIRCUIT(circ)->p_chan &&
       cell->circ_id == TO_OR_CIRCUIT(circ)->p_circ_id)
     direction = CELL_DIRECTION_OUT;
