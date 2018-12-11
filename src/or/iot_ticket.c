@@ -137,6 +137,8 @@ iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 	finalize_rend_circuit(circ, cpath, is_service_side);
 	link_apconn_to_circ(circ->iot_entry_conn, circ, cpath);
 
+	connection_ap_handshake_send_begin(circ->iot_entry_conn);
+
 	return 0;
 }
 
