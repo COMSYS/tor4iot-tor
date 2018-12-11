@@ -122,16 +122,17 @@ iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 	crypto_hmac_sha256((char*) (msg->ticket.mac), (char*) iot_mac_key, 16,
 			(char*) &(msg->ticket), sizeof(iot_fast_ticket_t) - DIGEST256_LEN);
 
+	log_debug(LD_GENERAL, "Sending fast ticket");
 
-//	if (relay_send_command_from_edge(0, TO_CIRCUIT(circ),
-//                                   RELAY_COMMAND_FAST_TICKET,
-//                                   (const char*) msg,
-//                                   sizeof(iot_relay_fast_ticket_t),
-//                                   circ->cpath->prev)<0) {
-//		/* circ is already marked for close */
-//		log_warn(LD_GENERAL, "Couldn't send FAST_TICKET cell");
-//		return -1;
-//	  }
+	if (relay_send_command_from_edge(0, TO_CIRCUIT(circ),
+                                   RELAY_COMMAND_FAST_TICKET,
+                                   (const char*) msg,
+                                   sizeof(iot_relay_fast_ticket_t),
+                                   circ->cpath->prev)<0) {
+		/* circ is already marked for close */
+		log_warn(LD_GENERAL, "Couldn't send FAST_TICKET cell");
+		return -1;
+	}
 
 	finalize_rend_circuit(circ, cpath, is_service_side);
 	link_apconn_to_circ(circ->iot_entry_conn, circ, cpath);
