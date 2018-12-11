@@ -155,6 +155,8 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
 	if (!splitted_circuits) {
 		splitted_circuits = smartlist_new();
 	}
+
+	circ->state = CIRCUIT_STATE_JOIN_WAIT;
 	circ->join_cookie = msg->cookie;
 	smartlist_add(splitted_circuits, circ);
 
