@@ -572,8 +572,6 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 			tor_assert(
 					TO_OR_CIRCUIT(circ)->p_chan == TLS_CHAN_TO_BASE(conn->chan));
 
-			circ->state = CIRCUIT_STATE_OPEN;
-
 			if (TO_CONN(conn)->state != OR_CONN_STATE_OPEN) {
 				connection_or_set_state_open(conn);
 			}
@@ -583,6 +581,8 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 					TLS_CHAN_TO_BASE(conn->chan));
 			break;
 		}
+
+		circ->state = CIRCUIT_STATE_OPEN;
 
 		TLS_CHAN_TO_BASE(conn->chan)->cell_num = 1;
 
