@@ -570,7 +570,7 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 								TLS_CHAN_TO_BASE(conn->chan));
 				break;
 			case CIRCUIT_STATE_FAST_JOIN_WAIT:
-				circuit_set_n_circid_chan(TO_OR_CIRCUIT(circ), cell->circ_id,
+				circuit_set_n_circid_chan(circ, cell->circ_id,
 								TLS_CHAN_TO_BASE(conn->chan));
 				break;
 		}
