@@ -564,8 +564,17 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 		tor_assert(circ->state == CIRCUIT_STATE_JOIN_WAIT || circ->state == CIRCUIT_STATE_FAST_JOIN_WAIT);
 
 		// Join circuits
-		circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), cell->circ_id,
-				TLS_CHAN_TO_BASE(conn->chan));
+		switch(circ->state) {
+			case CIRCUIT_STATE_JOIN_WAIT:
+				circuit_set_p_circid_chan(TO_OR_CIRCUIT(circ), cell->circ_id,
+								TLS_CHAN_TO_BASE(conn->chan));
+				break;
+			case CIRCUIT_STATE_FAST_JOIN_WAIT:
+				circuit_set_n_circid_chan(TO_OR_CIRCUIT(circ), cell->circ_id,
+								TLS_CHAN_TO_BASE(conn->chan));
+				break;
+		}
+
 		TLS_CHAN_TO_BASE(conn->chan)->cell_num = 1;
 
 		tor_assert(TO_OR_CIRCUIT(circ)->p_chan == TLS_CHAN_TO_BASE(conn->chan));
@@ -580,11 +589,11 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 
 		// Send buffer
 		SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c) ;
-		log_info(LD_GENERAL, "Queue cell with command %d", c->command);
-		c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
-		append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c,
-				CELL_DIRECTION_IN, 0);
-		tor_free(c);
+			log_info(LD_GENERAL, "Queue cell with command %d", c->command);
+			c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
+			append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c,
+					CELL_DIRECTION_IN, 0);
+			tor_free(c);
 		SMARTLIST_FOREACH_END(c);
 
 		struct timespec done_monotonic;
