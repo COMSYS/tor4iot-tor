@@ -572,35 +572,53 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 			tor_assert(
 					TO_OR_CIRCUIT(circ)->p_chan == TLS_CHAN_TO_BASE(conn->chan));
 
-			break;
+
+			circ->state = CIRCUIT_STATE_OPEN;
+
+			if (TO_CONN(conn)->state != OR_CONN_STATE_OPEN) {
+				connection_or_set_state_open(conn);
+			}
+
+			TLS_CHAN_TO_BASE(conn->chan)->cell_num = 1;
+
+			smartlist_remove(splitted_circuits, circ);
+
+			// Send buffer
+			SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c) ;
+				log_info(LD_GENERAL, "Queue cell with command %d", c->command);
+				c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
+				append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c,
+						CELL_DIRECTION_IN, 0);
+				tor_free(c);
+			SMARTLIST_FOREACH_END(c);
+
+		break;
 		case CIRCUIT_STATE_FAST_JOIN_WAIT:
 			circuit_set_n_circid_chan(circ, cell->circ_id,
 					TLS_CHAN_TO_BASE(conn->chan));
+
+			circ->state = CIRCUIT_STATE_OPEN;
+
+			if (TO_CONN(conn)->state != OR_CONN_STATE_OPEN) {
+				connection_or_set_state_open(conn);
+			}
+
+			TLS_CHAN_TO_BASE(conn->chan)->cell_num = 1;
+
+			smartlist_remove(splitted_circuits, circ);
+
+			// Send buffer
+			SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c) ;
+				log_info(LD_GENERAL, "Queue cell with command %d", c->command);
+				c->circ_id = circ->n_circ_id; /* switch it */
+				append_cell_to_circuit_queue(circ, circ->n_chan, c,
+						CELL_DIRECTION_OUT, 0);
+				tor_free(c);
+			SMARTLIST_FOREACH_END(c);
+
 			break;
-		}
+			}
 
-		circ->state = CIRCUIT_STATE_OPEN;
-
-		if (TO_CONN(conn)->state != OR_CONN_STATE_OPEN) {
-			connection_or_set_state_open(conn);
-		}
-
-		TLS_CHAN_TO_BASE(conn->chan)->cell_num = 1;
-
-
-
-		smartlist_remove(splitted_circuits, circ);
-
-
-
-		// Send buffer
-		SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c) ;
-			log_info(LD_GENERAL, "Queue cell with command %d", c->command);
-			c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
-			append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c,
-					CELL_DIRECTION_IN, 0);
-			tor_free(c);
-		SMARTLIST_FOREACH_END(c);
 
 		struct timespec done_monotonic;
 		clock_gettime(CLOCK_MONOTONIC, &done_monotonic);
