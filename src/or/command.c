@@ -502,8 +502,7 @@ command_process_relay_cell(cell_t *cell, channel_t *chan)
   else
     direction = CELL_DIRECTION_IN;
 
-  // XXX: HACKY
-  if (circ->join_cookie) {
+  if (circ->join_cookie && cell->circ_id != TO_OR_CIRCUIT(circ)->p_circ_id) {
 	  direction = CELL_DIRECTION_IN;
   }
 
