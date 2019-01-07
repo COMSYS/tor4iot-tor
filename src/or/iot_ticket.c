@@ -37,7 +37,7 @@ const uint8_t iot_mac_key[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
 
 const uint8_t iot_iv[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-const char sp_rsa_id_hex[] = "D2E695EAAA3B127321853099834214BC255EEB35";
+const char sp_rsa_id_hex[] = "FCB7B765EEE180F7CCC04DA914A1EF5C8C3D5845";
 
 const node_t* sp = NULL;
 
@@ -56,10 +56,15 @@ int
 iot_circ_launch_entry_point(entry_connection_t *conn) {
 	int circ_flags = CIRCLAUNCH_NEED_UPTIME | CIRCLAUNCH_IS_INTERNAL;
 	origin_circuit_t *circ;
-
 	extend_info_t *info;
 
-	info = extend_info_from_node(node_get_by_hex_id(sp_rsa_id_hex, 0), 0);
+	node_t *entry = node_get_by_hex_id(sp_rsa_id_hex, 0);
+
+	if (!entry) {
+		log_warn(LD_GENERAL, "Tried to launch circuit to entry point we could not find.");
+	}
+
+	info = extend_info_from_node(entry, 0);
 
 	log_debug(LD_GENERAL, "Launching circuit to IoT entry node.");
 	circ = circuit_launch_by_extend_info(CIRCUIT_PURPOSE_ENTRY_IOT,
