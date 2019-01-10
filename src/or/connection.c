@@ -3540,7 +3540,7 @@ connection_handle_read_impl(connection_t *conn)
   before = buf_datalen(conn->inbuf);
   if (connection_buf_read_from_socket(conn, &max_to_read, &socket_error) < 0) {
     /* There's a read error; kill the connection.*/
-    if (conn->type == CONN_TYPE_OR) {
+    if (conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_OR_UDP) {
       connection_or_notify_error(TO_OR_CONN(conn),
                                  socket_error != 0 ?
                                    errno_to_orconn_end_reason(socket_error) :

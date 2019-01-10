@@ -37,7 +37,10 @@ const uint8_t iot_mac_key[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
 
 const uint8_t iot_iv[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-const char sp_rsa_id_hex[] = "FCB7B765EEE180F7CCC04DA914A1EF5C8C3D5845";
+//Testbed2-Local
+//const char sp_rsa_id_hex[] = "FCB7B765EEE180F7CCC04DA914A1EF5C8C3D5845";
+
+const char sp_rsa_id_hex[] = "48DC40C1181F6C7E3699F06E09A1A000D93AD36F~t4iAC";
 
 const node_t* sp = NULL;
 
@@ -58,7 +61,7 @@ iot_circ_launch_entry_point(entry_connection_t *conn) {
 	origin_circuit_t *circ;
 	extend_info_t *info;
 
-	node_t *entry = node_get_by_hex_id(sp_rsa_id_hex, 0);
+	const node_t *entry = node_get_by_hex_id(sp_rsa_id_hex, 0);
 
 	if (!entry) {
 		log_warn(LD_GENERAL, "Tried to launch circuit to entry point we could not find.");
@@ -144,6 +147,7 @@ iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 	finalize_rend_circuit(circ, cpath, is_service_side);
 	link_apconn_to_circ(circ->iot_entry_conn, circ, cpath);
 
+	TO_CONN(ENTRY_TO_EDGE_CONN(circ->iot_entry_conn))->state = AP_CONN_STATE_CIRCUIT_WAIT;
 	connection_ap_handshake_send_begin(circ->iot_entry_conn);
 
 	return 0;
