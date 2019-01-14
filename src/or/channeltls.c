@@ -1116,6 +1116,7 @@ channel_tls_handle_cell(cell_t *cell, or_connection_t *conn)
     } else {
     	TLS_CHAN_TO_BASE(chan)->cell_num_in++;
     	//Send Ack cell
+    	log_debug(LD_PROTOCOL, "Sending ACK cell.");
     	var_cell_t *ackcell;
     	ackcell = var_cell_new(0);
     	ackcell->cell_num = TLS_CHAN_TO_BASE(chan)->cell_num_in;
@@ -1273,12 +1274,13 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
 		} else {
 		  TLS_CHAN_TO_BASE(chan)->cell_num_in++;
 		  //Send Ack cell
-		  var_cell_t *cell;
-		  cell = var_cell_new(0);
-		  cell->cell_num = TLS_CHAN_TO_BASE(chan)->cell_num_in;
-		  cell->command = CELL_ACK;
-		  connection_or_write_var_cell_to_buf(cell, conn);
-		  var_cell_free(cell);
+		  log_debug(LD_PROTOCOL, "Sending ACK cell.");
+		  var_cell_t *ackcell;
+		  ackcell = var_cell_new(0);
+		  ackcell->cell_num = TLS_CHAN_TO_BASE(chan)->cell_num_in;
+		  ackcell->command = CELL_ACK;
+		  connection_or_write_var_cell_to_buf(ackcell, conn);
+		  var_cell_free(ackcell);
 		}
 	}
   }
