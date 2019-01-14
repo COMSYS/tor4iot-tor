@@ -1505,7 +1505,8 @@ connection_edge_process_relay_cell_not_open(
       const sa_family_t family = tor_addr_family(&addr);
       if (tor_addr_is_null(&addr) ||
           (get_options()->ClientDNSRejectInternalAddresses &&
-           tor_addr_is_internal(&addr, 0))) {
+           tor_addr_is_internal(&addr, 0) &&
+		   TO_CONN(conn)->purpose != CIRCUIT_PURPOSE_ENTRY_IOT)) { // IOT: Make sure we do not need to insert our valid IP
         log_info(LD_APP, "...but it claims the IP address was %s. Closing.",
                  fmt_addr(&addr));
         connection_edge_end(conn, END_STREAM_REASON_TORPROTOCOL);
