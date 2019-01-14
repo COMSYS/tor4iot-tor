@@ -1249,19 +1249,31 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
   }
 
   if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
-    if (var_cell->cell_num != TLS_CHAN_TO_BASE(chan)->cell_num_in) {
-      log_warn(LD_PROTOCOL, "Received a var cell with unexpected num %d (%d) in "
-               "orconn state \"%s\" [%d], channel state \"%s\" [%d]; "
-               "closing the connection.",
-               (int)(var_cell->cell_num),
-	       (int)(TLS_CHAN_TO_BASE(chan)->cell_num_in),
-               conn_state_to_string(CONN_TYPE_OR, TO_CONN(conn)->state),
-               TO_CONN(conn)->state,
-               channel_state_to_string(TLS_CHAN_TO_BASE(chan)->state),
-               (int)(TLS_CHAN_TO_BASE(chan)->state));
-    } else {
-	TLS_CHAN_TO_BASE(chan)->cell_num_in++;
-    }
+	if (var_cell->command == CELL_ACK) {
+	  log_info(LD_CHANNEL, "Got an ACK cell");
+	  return;
+	} else {
+		if (var_cell->cell_num != TLS_CHAN_TO_BASE(chan)->cell_num_in) {
+		  log_warn(LD_PROTOCOL, "Received a var cell with unexpected num %d (%d) in "
+				   "orconn state \"%s\" [%d], channel state \"%s\" [%d]; "
+				   "closing the connection.",
+				   (int)(var_cell->cell_num),
+			   (int)(TLS_CHAN_TO_BASE(chan)->cell_num_in),
+				   conn_state_to_string(CONN_TYPE_OR, TO_CONN(conn)->state),
+				   TO_CONN(conn)->state,
+				   channel_state_to_string(TLS_CHAN_TO_BASE(chan)->state),
+				   (int)(TLS_CHAN_TO_BASE(chan)->state));
+		} else {
+		  TLS_CHAN_TO_BASE(chan)->cell_num_in++;
+		  //Send Ack cell
+		  var_cell_t *cell;
+		  cell = var_cell_new(0);
+		  cell->cell_num = TLS_CHAN_TO_BASE(chan)->cell_num_in;
+		  cell->command = CELL_ACK;
+		  connection_or_write_var_cell_to_buf(cell, conn);
+		  var_cell_free(cell);
+		}
+	}
   }
 
   switch (TO_CONN(conn)->state) {
@@ -1319,8 +1331,8 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
                                            var_cell, 1);
       break; /* Everything is allowed */
     case OR_CONN_STATE_OPEN:
-      if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
-	iot_join(conn, var_cell);
+      if ((TO_CONN(conn)->type == CONN_TYPE_OR_UDP)) {
+    	  iot_join(conn, var_cell);
       }
       if (conn->link_proto < 3) {
         log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,

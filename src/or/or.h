@@ -988,6 +988,8 @@ typedef enum {
 #define CELL_IOT_FAST_TICKET 137
 #define CELL_COMMAND_MAX_ 137
 
+#define CELL_ACK 138
+
 /** How long to test reachability before complaining to the user. */
 #define TIMEOUT_UNTIL_UNREACHABILITY_COMPLAINT (20*60)
 
