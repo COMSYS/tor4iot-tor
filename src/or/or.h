@@ -3794,6 +3794,7 @@ typedef struct {
   routerset_t *EntryNodes;/**< Structure containing nicknames, digests,
                            * country codes and IP address patterns of ORs to
                            * consider as entry points. */
+  routerset_t *IoTEntryNodes;/**< Structure containing our IoT Entry Node */
   int StrictNodes; /**< Boolean: When none of our EntryNodes or ExitNodes
                     * are up, or we need to access a node in ExcludeNodes,
                     * do we just fail instead? */

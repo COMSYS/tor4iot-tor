@@ -20,8 +20,10 @@
 #include "container.h"
 #include "channeltls.h"
 #include "connection_or.h"
+#include "config.h"
 
 #include "nodelist.h"
+#include "routerset.h"
 
 #include "circuituse.h"
 #include "circuitbuild.h"
@@ -36,13 +38,6 @@ const uint8_t iot_mac_key[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
 		14, 15 };
 
 const uint8_t iot_iv[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-//Testbed2-Local
-//const char sp_rsa_id_hex[] = "FCB7B765EEE180F7CCC04DA914A1EF5C8C3D5845";
-
-const char sp_rsa_id_hex[] = "48DC40C1181F6C7E3699F06E09A1A000D93AD36F~t4iAC";
-
-const node_t* sp = NULL;
 
 const char iot_id[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
 
@@ -61,7 +56,13 @@ iot_circ_launch_entry_point(entry_connection_t *conn) {
 	origin_circuit_t *circ;
 	extend_info_t *info;
 
-	const node_t *entry = node_get_by_hex_id(sp_rsa_id_hex, 0);
+	const node_t *entry;
+
+	smartlist_t *list;
+	list = smartlist_new();
+	routerset_get_all_nodes(list, get_options()->IoTEntryNodes, NULL, 0);
+	entry = smartlist_pop_last(list);
+	smartlist_free(list);
 
 	if (!entry) {
 		log_warn(LD_GENERAL, "Tried to launch circuit to entry point we could not find.");
@@ -188,11 +189,15 @@ int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info) {
 
 	info->after = 3;
 
-	if (sp == NULL) {
-		sp = node_get_by_hex_id(sp_rsa_id_hex, 0);
-	}
+	const node_t *entry;
 
-	info->split = sp;
+	smartlist_t *list;
+	list = smartlist_new();
+	routerset_get_all_nodes(list, get_options()->IoTEntryNodes, NULL, 0);
+	entry = smartlist_pop_last(list);
+	smartlist_free(list);
+
+	info->split = entry;
 
 	if (!info->split) {
 		return -1;

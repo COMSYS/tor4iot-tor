@@ -5779,6 +5779,8 @@ refresh_all_country_info(void)
 
   if (options->EntryNodes)
     routerset_refresh_countries(options->EntryNodes);
+  if (options->IoTEntryNodes)
+      routerset_refresh_countries(options->IoTEntryNodes);
   if (options->ExitNodes)
     routerset_refresh_countries(options->ExitNodes);
   if (options->ExcludeNodes)
