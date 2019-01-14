@@ -1114,7 +1114,14 @@ channel_tls_handle_cell(cell_t *cell, or_connection_t *conn)
                channel_state_to_string(TLS_CHAN_TO_BASE(chan)->state),
                (int)(TLS_CHAN_TO_BASE(chan)->state));
     } else {
-	TLS_CHAN_TO_BASE(chan)->cell_num_in++;
+    	TLS_CHAN_TO_BASE(chan)->cell_num_in++;
+    	//Send Ack cell
+    	var_cell_t *ackcell;
+    	ackcell = var_cell_new(0);
+    	ackcell->cell_num = TLS_CHAN_TO_BASE(chan)->cell_num_in;
+    	ackcell->command = CELL_ACK;
+    	connection_or_write_var_cell_to_buf(ackcell, conn);
+    	var_cell_free(ackcell);
     }
   }
 
