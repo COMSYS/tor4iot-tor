@@ -2892,7 +2892,6 @@ typedef struct extend_info_t {
   curve25519_public_key_t curve25519_onion_key;
 
   //IOT:
-  tor_addr_port_t sp;
   iot_circ_info_t iot_circ_info;
 
   struct timespec gotrequest;
