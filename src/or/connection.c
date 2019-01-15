@@ -269,6 +269,7 @@ conn_state_to_string(int type, int state)
         case AP_CONN_STATE_CONNECT_WAIT: return "waiting for connect response";
         case AP_CONN_STATE_RESOLVE_WAIT: return "waiting for resolve response";
         case AP_CONN_STATE_OPEN: return "open";
+        case AP_CONN_STATE_IOT_WAIT: return "waiting for circuit to iot entry";
       }
       break;
     case CONN_TYPE_DIR:

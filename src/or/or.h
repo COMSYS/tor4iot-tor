@@ -387,7 +387,7 @@ typedef enum {
 /** True iff the AP_CONN_STATE_* value <b>s</b> means that the corresponding
  * edge connection is not attached to any circuit. */
 #define AP_CONN_STATE_IS_UNATTACHED(s) \
-  ((s) <= AP_CONN_STATE_CIRCUIT_WAIT || (s) == AP_CONN_STATE_NATD_WAIT)
+  ((s) <= AP_CONN_STATE_CIRCUIT_WAIT || (s) == AP_CONN_STATE_NATD_WAIT || (s) == AP_CONN_STATE_IOT_WAIT)
 
 #define DIR_CONN_STATE_MIN_ 1
 /** State for connection to directory server: waiting for connect(). */
