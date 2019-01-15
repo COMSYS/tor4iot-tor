@@ -513,7 +513,8 @@ circuit_establish_circuit(uint8_t purpose, extend_info_t *exit_ei, int flags)
 
   circ = origin_circuit_init(purpose, flags);
 
-  if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
+  if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT ||
+		  purpose == CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER) {
       circ->build_state->iot_circ_info = exit_ei->iot_circ_info;
   }
 
@@ -1781,6 +1782,7 @@ route_len_for_purpose(uint8_t purpose, extend_info_t *exit_ei)
 
   //IOT
   case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
+  case CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER:
     /* hidden service connecting to rendezvous point over split point*/
     known_purpose = 1;
     routelen = 2*routelen;
@@ -2312,6 +2314,7 @@ warn_if_last_router_excluded(origin_circuit_t *circ,
     case CIRCUIT_PURPOSE_TESTING:
     case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT: //IOT
     case CIRCUIT_PURPOSE_ENTRY_IOT:
+    case CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER:
       return;
     case CIRCUIT_PURPOSE_C_ESTABLISH_REND:
     case CIRCUIT_PURPOSE_C_REND_READY:
@@ -2550,7 +2553,8 @@ choose_good_middle_server(uint8_t purpose,
     }
   }
 
-  if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
+  if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT ||
+		  purpose == CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER) {
       nodelist_add_node_and_family(excluded, state->iot_circ_info.split);
   }
 
@@ -2606,7 +2610,8 @@ choose_good_entry_server(uint8_t purpose, cpath_build_state_t *state,
     nodelist_add_node_and_family(excluded, node);
   }
 
-  if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
+  if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT ||
+		  purpose == CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER) {
       nodelist_add_node_and_family(excluded, state->iot_circ_info.split);
   }
 
@@ -2674,7 +2679,9 @@ onion_extend_cpath(origin_circuit_t *circ)
       /* Clients can fail to find an allowed address */
       tor_assert_nonfatal(info || client);
     }
-  } else if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT && cur_len == state->desired_path_len - 1 - state->iot_circ_info.after) {
+  } else if ((purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT ||
+		  purpose == CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER) &&
+		  cur_len == state->desired_path_len - 1 - state->iot_circ_info.after) {
     info = extend_info_from_node(state->iot_circ_info.split, 0);
   } else {
     r = choose_good_middle_server(purpose, state, circ->cpath, cur_len);

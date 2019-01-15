@@ -51,27 +51,43 @@ static uint8_t iot_relay_to_device(const uint8_t *target_id, size_t length,
 		const uint8_t *payload, uint8_t command);
 
 int
-iot_circ_launch_entry_point(entry_connection_t *conn) {
+iot_circ_launch_entry_point(entry_connection_t *conn, uint8_t handover) {
 	int circ_flags = CIRCLAUNCH_NEED_UPTIME | CIRCLAUNCH_IS_INTERNAL;
 	origin_circuit_t *circ;
 	extend_info_t *info;
 
-	const node_t *entry;
+	const node_t *their_entry;
+	const node_t *our_entry;
 
 	smartlist_t *list;
 	list = smartlist_new();
 	routerset_get_all_nodes(list, get_options()->IoTEntryNodes, NULL, 0);
-	entry = smartlist_pop_last(list);
-	smartlist_free(list);
+	their_entry = smartlist_get(list, 0);
 
-	if (!entry) {
+	if (!their_entry) {
 		log_warn(LD_GENERAL, "Tried to launch circuit to entry point we could not find.");
+		return -1;
 	}
 
-	info = extend_info_from_node(entry, 0);
+	if (handover) {
+		our_entry = smartlist_get(list, 1);
+
+		if (!our_entry) {
+			log_warn(LD_GENERAL, "We could not find our entry");
+			return -1;
+		}
+
+		info->iot_circ_info.after = 3;
+		info->iot_circ_info.split = our_entry;
+		info->iot_circ_info.is_set = 1;
+	}
+
+	smartlist_free(list);
+
+	info = extend_info_from_node(their_entry, 0);
 
 	log_debug(LD_GENERAL, "Launching circuit to IoT entry node.");
-	circ = circuit_launch_by_extend_info(CIRCUIT_PURPOSE_ENTRY_IOT,
+	circ = circuit_launch_by_extend_info((handover ? CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER : CIRCUIT_PURPOSE_ENTRY_IOT),
                                        info, circ_flags);
 
 	if (circ==NULL) {
@@ -82,6 +98,11 @@ iot_circ_launch_entry_point(entry_connection_t *conn) {
 	circ->iot_entry_conn = conn;
 
 	return 0;
+}
+
+int
+iot_client_entry_handover_circuit_has_opened(origin_circuit_t *circ) {
+
 }
 
 int
@@ -194,7 +215,7 @@ int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info) {
 	smartlist_t *list;
 	list = smartlist_new();
 	routerset_get_all_nodes(list, get_options()->IoTEntryNodes, NULL, 0);
-	entry = smartlist_pop_last(list);
+	entry = smartlist_get(list, 2);
 	smartlist_free(list);
 
 	info->split = entry;

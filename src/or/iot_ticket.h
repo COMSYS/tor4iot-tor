@@ -90,6 +90,9 @@ typedef struct iot_relay_fast_ticket_t {
 int
 iot_circ_launch_entry_point(entry_connection_t *conn);
 
+int
+iot_client_entry_handover_circuit_has_opened(origin_circuit_t *circ);
+
 /**
  * Client on fast access without DHS.
  * Called when circuit to Entry Node is built.
