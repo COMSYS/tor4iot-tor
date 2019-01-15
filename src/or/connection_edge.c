@@ -282,6 +282,7 @@ connection_edge_process_inbuf(edge_connection_t *conn, int package_partial)
     case AP_CONN_STATE_CIRCUIT_WAIT:
     case AP_CONN_STATE_RESOLVE_WAIT:
     case AP_CONN_STATE_CONTROLLER_WAIT:
+    case AP_CONN_STATE_IOT_WAIT:
       log_info(LD_EDGE,
                "data from edge while in '%s' state. Leaving it on buffer.",
                conn_state_to_string(conn->base_.type, conn->base_.state));
@@ -501,6 +502,7 @@ connection_edge_finished_flushing(edge_connection_t *conn)
     case AP_CONN_STATE_CONTROLLER_WAIT:
     case AP_CONN_STATE_RESOLVE_WAIT:
     case AP_CONN_STATE_HTTP_CONNECT_WAIT:
+    case AP_CONN_STATE_IOT_WAIT:
       return 0;
     default:
       log_warn(LD_BUG, "Called in unexpected state %d.",conn->base_.state);
