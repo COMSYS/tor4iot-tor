@@ -379,7 +379,10 @@ typedef enum {
 #define AP_CONN_STATE_NATD_WAIT 12
 /** State for an HTTP tunnel: waiting for an HTTP CONNECT command. */
 #define AP_CONN_STATE_HTTP_CONNECT_WAIT 13
-#define AP_CONN_STATE_MAX_ 13
+/** State for an FAST IoT connection where we already build a circuit and conn is not pending */
+#define AP_CONN_STATE_IOT_WAIT 14
+
+#define AP_CONN_STATE_MAX_ 14
 
 /** True iff the AP_CONN_STATE_* value <b>s</b> means that the corresponding
  * edge connection is not attached to any circuit. */

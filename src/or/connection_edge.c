@@ -1422,11 +1422,7 @@ connection_ap_handle_iot(entry_connection_t *conn,
   log_debug(LD_GENERAL, "Handling .iot address.");
 
   connection_t *base_conn = ENTRY_TO_CONN(conn);
-  base_conn->state = AP_CONN_STATE_CIRCUIT_WAIT;
-
-//  base_conn->purpose = IOT_PURPOSE_CONNECT;
-//
-//  connection_ap_mark_as_pending_circuit(conn);
+  base_conn->state = AP_CONN_STATE_IOT_WAIT;
 
   iot_circ_launch_entry_point(conn);
 
@@ -2710,7 +2706,8 @@ connection_ap_handshake_send_begin,(entry_connection_t *ap_conn))
   circ = TO_ORIGIN_CIRCUIT(edge_conn->on_circuit);
 
   tor_assert(base_conn->type == CONN_TYPE_AP);
-  tor_assert(base_conn->state == AP_CONN_STATE_CIRCUIT_WAIT);
+  tor_assert(base_conn->state == AP_CONN_STATE_CIRCUIT_WAIT ||
+		  base_conn->state == AP_CONN_STATE_IOT_WAIT);
   tor_assert(ap_conn->socks_request);
   tor_assert(SOCKS_COMMAND_IS_CONNECT(ap_conn->socks_request->command));
 
