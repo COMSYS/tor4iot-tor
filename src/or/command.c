@@ -511,7 +511,7 @@ command_process_relay_cell(cell_t *cell, channel_t *chan)
   /* If we have a relay_early cell, make sure that it's outbound, and we've
    * gotten no more than MAX_RELAY_EARLY_CELLS_PER_CIRCUIT of them. */
   if (cell->command == CELL_RELAY_EARLY) {
-    if (direction == CELL_DIRECTION_IN) {
+    if (direction == CELL_DIRECTION_IN || circ->purpose != CIRCUIT_PURPOSE_IOT) {
       /* Inbound early cells could once be encountered as a result of
        * bug 1038; but relays running versions before 0.2.1.19 are long
        * gone from the network, so any such cells now are surprising. */
