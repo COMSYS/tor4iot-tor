@@ -1421,12 +1421,18 @@ connection_ap_handle_iot(entry_connection_t *conn,
   (void) circ;
   (void) addresstype;
 
-  log_debug(LD_GENERAL, "Handling .iot address.");
+  log_debug(LD_GENERAL, "Handling .iot address: %s", socks->address);
 
   connection_t *base_conn = ENTRY_TO_CONN(conn);
   base_conn->state = AP_CONN_STATE_IOT_WAIT;
 
-  iot_circ_launch_entry_point(conn);
+  if(!strncmp(socks->address, "direct", 6)) {
+	  iot_circ_launch_entry_point(conn, 0);
+  } else if (!strncmp(socks->address, "handover", 8)) {
+	  iot_circ_launch_entry_point(conn, 1);
+  } else {
+	  log_warn(LD_GENERAL, "UNKNOWN IOT ADDRESS.");
+  }
 
   return 0;
 }

@@ -33,7 +33,7 @@
 #include "connection_edge.h"
 
 const uint8_t iot_key[] =
-		{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 const uint8_t iot_mac_key[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
 		14, 15 };
 
@@ -69,6 +69,8 @@ iot_circ_launch_entry_point(entry_connection_t *conn, uint8_t handover) {
 		return -1;
 	}
 
+	info = extend_info_from_node(their_entry, 0);
+
 	if (handover) {
 		our_entry = smartlist_get(list, 1);
 
@@ -84,11 +86,9 @@ iot_circ_launch_entry_point(entry_connection_t *conn, uint8_t handover) {
 
 	smartlist_free(list);
 
-	info = extend_info_from_node(their_entry, 0);
-
 	log_debug(LD_GENERAL, "Launching circuit to IoT entry node.");
 	circ = circuit_launch_by_extend_info((handover ? CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER : CIRCUIT_PURPOSE_ENTRY_IOT),
-                                       info, circ_flags);
+			info, circ_flags);
 
 	if (circ==NULL) {
 		extend_info_free(info);
@@ -100,20 +100,15 @@ iot_circ_launch_entry_point(entry_connection_t *conn, uint8_t handover) {
 	return 0;
 }
 
-int
-iot_client_entry_handover_circuit_has_opened(origin_circuit_t *circ) {
-
-}
-
-int
-iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
+static void
+iot_fast_ticket_send(origin_circuit_t *circ) {
 	iot_relay_fast_ticket_t *msg;
 	aes_cnt_cipher_t *encrypt;
 	crypt_path_t *cpath = NULL;
 	uint8_t is_service_side;
 
 	tor_assert(circ->base_.purpose == CIRCUIT_PURPOSE_ENTRY_IOT);
-    log_info(LD_REND, "Sending a FAST_TICKET cell");
+	log_info(LD_REND, "Sending a FAST_TICKET cell");
 
 	// Create FAST TICKET
 	msg = tor_malloc(sizeof(iot_relay_fast_ticket_t));
@@ -132,14 +127,14 @@ iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 
 	/* Setup the cpath */
 	is_service_side = 0;
-    cpath = tor_malloc_zero(sizeof(crypt_path_t));
-    cpath->magic = CRYPT_PATH_MAGIC;
+	cpath = tor_malloc_zero(sizeof(crypt_path_t));
+	cpath->magic = CRYPT_PATH_MAGIC;
 
-    if (circuit_init_cpath_crypto(cpath, (char *) msg->ticket.hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN,
-        is_service_side, 1) < 0) {
-      tor_free(cpath);
-      return 0;
-    }
+	if (circuit_init_cpath_crypto(cpath, (char *) msg->ticket.hs_ntor_key, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN,
+			is_service_side, 1) < 0) {
+		tor_free(cpath);
+		log_warn(LD_GENERAL, "Could not initialize cpath crypto.");
+	}
 
 	//Encrypt ticket
 	encrypt = aes_new_cipher(iot_key, msg->ticket.nonce, 128);
@@ -157,17 +152,27 @@ iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 	log_debug(LD_GENERAL, "Sending fast ticket");
 
 	if (relay_send_command_from_edge(0, TO_CIRCUIT(circ),
-                                   RELAY_COMMAND_FAST_TICKET,
-                                   (const char*) msg,
-                                   sizeof(iot_relay_fast_ticket_t),
-                                   circ->cpath->prev)<0) {
+			RELAY_COMMAND_FAST_TICKET,
+			(const char*) msg,
+			sizeof(iot_relay_fast_ticket_t),
+			circ->cpath->prev)<0) {
 		/* circ is already marked for close */
 		log_warn(LD_GENERAL, "Couldn't send FAST_TICKET cell");
-		return -1;
 	}
 
 	finalize_rend_circuit(circ, cpath, is_service_side);
 	link_apconn_to_circ(circ->iot_entry_conn, circ, cpath);
+}
+
+void
+iot_client_entry_handover_circuit_has_opened(origin_circuit_t *circ) {
+	iot_fast_ticket_send(circ); // Send ticket to our serving IoT device
+	iot_ticket_send(circ); // Send ticket to our client IoT device
+}
+
+int
+iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
+	iot_fast_ticket_send(circ);
 
 	TO_CONN(ENTRY_TO_EDGE_CONN(circ->iot_entry_conn))->state = AP_CONN_STATE_CIRCUIT_WAIT;
 	connection_ap_handshake_send_begin(circ->iot_entry_conn);
@@ -360,13 +365,13 @@ void iot_ticket_send(origin_circuit_t *circ) {
 	for (int i = 0; i < circ->base_.ntor_mes; i = i + 2) {
 		my_timecons_ntor += as_nanoseconds(
 				&circ->base_.my_timestamps_ntor[i + 1])
-				- as_nanoseconds(&circ->base_.my_timestamps_ntor[i]);
+						- as_nanoseconds(&circ->base_.my_timestamps_ntor[i]);
 	}
 
 	for (int i = 0; i < circ->base_.curve25519_mes; i = i + 2) {
 		my_timecons_c25519 += as_nanoseconds(
 				&circ->base_.my_timestamps_c25519[i + 1])
-				- as_nanoseconds(&circ->base_.my_timestamps_c25519[i]);
+						- as_nanoseconds(&circ->base_.my_timestamps_c25519[i]);
 	}
 
 	log_notice(LD_GENERAL, "CONSNTOR:%"PRIu64"ns", my_timecons_ntor);
@@ -620,14 +625,14 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 
 			// Send buffer
 			SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c) ;
-				log_info(LD_GENERAL, "Queue cell with command %d", c->command);
-				c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
-				append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c,
-						CELL_DIRECTION_IN, 0);
-				tor_free(c);
+			log_info(LD_GENERAL, "Queue cell with command %d", c->command);
+			c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
+			append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c,
+					CELL_DIRECTION_IN, 0);
+			tor_free(c);
 			SMARTLIST_FOREACH_END(c);
 
-		break;
+			break;
 		case CIRCUIT_STATE_FAST_JOIN_WAIT:
 			circuit_set_n_circid_chan(circ, cell->circ_id,
 					TLS_CHAN_TO_BASE(conn->chan));
@@ -644,15 +649,15 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 
 			// Send buffer
 			SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c) ;
-				log_info(LD_GENERAL, "Queue cell with command %d", c->command);
-				c->circ_id = circ->n_circ_id; /* switch it */
-				append_cell_to_circuit_queue(circ, circ->n_chan, c,
-						CELL_DIRECTION_OUT, 0);
-				tor_free(c);
+			log_info(LD_GENERAL, "Queue cell with command %d", c->command);
+			c->circ_id = circ->n_circ_id; /* switch it */
+			append_cell_to_circuit_queue(circ, circ->n_chan, c,
+					CELL_DIRECTION_OUT, 0);
+			tor_free(c);
 			SMARTLIST_FOREACH_END(c);
 
 			break;
-			}
+		}
 
 
 		struct timespec done_monotonic;
