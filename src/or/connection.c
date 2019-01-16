@@ -2989,12 +2989,20 @@ connection_bucket_read_limit(connection_t *conn, time_t now)
 
   if (!connection_is_rate_limited(conn)) {
     /* be willing to read on local conns even if our buckets are empty */
-    return conn_bucket>=0 ? conn_bucket : 1<<14;
+    log_debug(LD_GENERAL, "Is NOT rate limited. conn_bucket: %d", conn_bucket);
+    if (conn->type == CONN_TYPE_OR_UDP) {
+        return 1<<14;
+    } else {
+        return conn_bucket>=0 ? conn_bucket : 1<<14;
+    }
   }
 
   if (connection_counts_as_relayed_traffic(conn, now) &&
       global_relayed_read_bucket <= global_read_bucket)
     global_bucket = global_relayed_read_bucket;
+
+  log_debug(LD_GENERAL, "Is rate limited. base: %d; priority: %d, global_bucket: %d, conn_bucket %d", base, priority,
+                                       global_bucket, conn_bucket);
 
   return connection_bucket_round_robin(base, priority,
                                        global_bucket, conn_bucket);
