@@ -107,7 +107,8 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 	crypt_path_t *cpath = NULL;
 	uint8_t is_service_side;
 
-	tor_assert(circ->base_.purpose == CIRCUIT_PURPOSE_ENTRY_IOT);
+	tor_assert(circ->base_.purpose == CIRCUIT_PURPOSE_ENTRY_IOT ||
+			circ->base_.purpose == CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER);
 	log_info(LD_REND, "Sending a FAST_TICKET cell");
 
 	// Create FAST TICKET
