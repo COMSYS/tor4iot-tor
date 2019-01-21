@@ -474,13 +474,13 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
 	 * the other crypto status. Better: Use both in parallel one for sending
 	 * and one for received buffer messages.
 	 */
-	aes_cipher_free(TO_OR_CIRCUIT(circ)->p_crypto);
-	TO_OR_CIRCUIT(circ)->p_crypto = TO_OR_CIRCUIT(circ)->p_crypto_iot;
-	TO_OR_CIRCUIT(circ)->p_crypto_iot = NULL;
-
-	crypto_digest_free(TO_OR_CIRCUIT(circ)->p_digest);
-	TO_OR_CIRCUIT(circ)->p_digest = TO_OR_CIRCUIT(circ)->p_digest_iot;
-	TO_OR_CIRCUIT(circ)->p_digest_iot = NULL;
+//	aes_cipher_free(TO_OR_CIRCUIT(circ)->p_crypto);
+//	TO_OR_CIRCUIT(circ)->p_crypto = TO_OR_CIRCUIT(circ)->p_crypto_iot;
+//	TO_OR_CIRCUIT(circ)->p_crypto_iot = NULL;
+//
+//	crypto_digest_free(TO_OR_CIRCUIT(circ)->p_digest);
+//	TO_OR_CIRCUIT(circ)->p_digest = TO_OR_CIRCUIT(circ)->p_digest_iot;
+//	TO_OR_CIRCUIT(circ)->p_digest_iot = NULL;
 
 	memset(&cell, 0, sizeof(cell_t));
 	cell.command = CELL_DESTROY;
