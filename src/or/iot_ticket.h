@@ -43,6 +43,10 @@ typedef struct iot_ticket_t {
 
   uint32_t cookie;
 
+  uint8_t type;
+#define IOT_TICKET_TYPE_HS 1
+#define IOT_TICKET_TYPE_CLIENT 2
+
   iot_crypto_aes_relay_t entry;
   iot_crypto_aes_relay_t relay1;
   iot_crypto_aes_relay_t relay2;
@@ -113,7 +117,7 @@ int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info);
  * DHS
  * Send the ticket to the IoT Device (via IoT Entry).
  */
-void iot_ticket_send(origin_circuit_t *circ);
+void iot_ticket_send(origin_circuit_t *circ, uint8_t type);
 
 /**
  * DHS

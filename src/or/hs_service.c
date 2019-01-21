@@ -3203,7 +3203,7 @@ hs_service_circuit_has_opened(origin_circuit_t *circ)
       rend_service_rendezvous_has_opened(circ);
     }
 
-    iot_ticket_send(circ);
+    iot_ticket_send(circ, IOT_TICKET_TYPE_HS);
 
     break;
   default:

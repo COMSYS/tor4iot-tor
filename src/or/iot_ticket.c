@@ -168,7 +168,7 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 void
 iot_client_entry_handover_circuit_has_opened(origin_circuit_t *circ) {
 	iot_fast_ticket_send(circ); // Send ticket to our serving IoT device
-	iot_ticket_send(circ); // Send ticket to our client IoT device
+	iot_ticket_send(circ, IOT_TICKET_TYPE_CLIENT); // Send ticket to our client IoT device
 }
 
 int
@@ -250,7 +250,7 @@ static inline uint64_t as_nanoseconds(struct timespec* ts) {
 	return ts->tv_sec * (uint64_t) 1000000000L + ts->tv_nsec;
 }
 
-void iot_ticket_send(origin_circuit_t *circ) {
+void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 	iot_relay_ticket_t *msg;
 	crypt_path_t *split_point;
 	aes_cnt_cipher_t *encrypt;
@@ -275,6 +275,8 @@ void iot_ticket_send(origin_circuit_t *circ) {
 	memcpy(&msg->ticket.cookie, &msg->cookie, 4);
 	log_info(LD_GENERAL, "Chosen cookie: 0x%08x  0x%08x", msg->ticket.cookie,
 			msg->cookie);
+
+	msg->ticket.type = type;
 
 	// Set key information in ticket
 	iot_ticket_set_relay_crypto(&msg->ticket.entry, split_point);
