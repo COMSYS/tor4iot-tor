@@ -3195,7 +3195,7 @@ hs_service_circuit_has_opened(origin_circuit_t *circ)
 //IOT
   case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
 
-    iot_inform_split(circ);
+//    iot_inform_split(circ);
 
     if (circ->hs_ident) {
       service_rendezvous_circ_has_opened(circ);

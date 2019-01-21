@@ -246,30 +246,6 @@ static void iot_ticket_set_relay_crypto(iot_crypto_aes_relay_t *iot_crypto,
 			relay->f_aesctrkey[0], relay->b_aesctrkey[0]);
 }
 
-void iot_inform_split(origin_circuit_t *circ) {
-#define DUMMY_SIZE 10
-
-	const char dummy[DUMMY_SIZE];
-	relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_SPLIT,
-			dummy, DUMMY_SIZE, SPLITPOINT_BEFORE_HS(circ));
-}
-
-void iot_process_relay_split(circuit_t *circ) {
-	circ->already_split = 1; // For logging
-	circ->state = CIRCUIT_STATE_JOIN_WAIT;
-	log_info(LD_GENERAL, "Circuit %u (id: %" PRIu32 ") marked for split",
-			circ->n_circ_id,
-			CIRCUIT_IS_ORIGIN(circ) ? TO_ORIGIN_CIRCUIT(circ)->global_identifier : 0);
-
-	// Store the p_digest and p_crypt as this is the state the IoT device uses
-	// after the handover
-
-	or_circuit_t *orcirc = TO_OR_CIRCUIT(circ);
-
-	orcirc->p_crypto_iot = aes_cipher_copy(orcirc->p_crypto);
-	orcirc->p_digest_iot = crypto_digest_dup(orcirc->p_digest);
-}
-
 static inline uint64_t as_nanoseconds(struct timespec* ts) {
 	return ts->tv_sec * (uint64_t) 1000000000L + ts->tv_nsec;
 }
@@ -474,6 +450,8 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
 	if (found) {
 		relay_header_t rh;
 
+		circ->state = CIRCUIT_STATE_JOIN_WAIT;
+
 		memset(&cell, 0, sizeof(cell_t));
 		cell.command = CELL_RELAY;
 		cell.circ_id = TO_OR_CIRCUIT(circ)->p_circ_id;
@@ -602,8 +580,6 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 		log_info(LD_GENERAL, "Join circuits by cookie 0x%08x",
 				((uint32_t* )cell->payload)[0]);
 
-		tor_assert(circ->state == CIRCUIT_STATE_JOIN_WAIT || circ->state == CIRCUIT_STATE_FAST_JOIN_WAIT);
-
 		// Join circuits
 		switch (circ->state) {
 		case CIRCUIT_STATE_JOIN_WAIT:
@@ -624,15 +600,6 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 
 			smartlist_remove(splitted_circuits, circ);
 
-			// Send buffer
-			SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c) ;
-			log_info(LD_GENERAL, "Queue cell with command %d", c->command);
-			c->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
-			append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, c,
-					CELL_DIRECTION_IN, 0);
-			tor_free(c);
-			SMARTLIST_FOREACH_END(c);
-
 			break;
 		case CIRCUIT_STATE_FAST_JOIN_WAIT:
 			circuit_set_n_circid_chan(circ, cell->circ_id,
@@ -647,15 +614,6 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 			TLS_CHAN_TO_BASE(conn->chan)->cell_num = 1;
 
 			smartlist_remove(splitted_circuits, circ);
-
-			// Send buffer
-			SMARTLIST_FOREACH_BEGIN(circ->iot_buffer, cell_t*, c) ;
-			log_info(LD_GENERAL, "Queue cell with command %d", c->command);
-			c->circ_id = circ->n_circ_id; /* switch it */
-			append_cell_to_circuit_queue(circ, circ->n_chan, c,
-					CELL_DIRECTION_OUT, 0);
-			tor_free(c);
-			SMARTLIST_FOREACH_END(c);
 
 			break;
 		}

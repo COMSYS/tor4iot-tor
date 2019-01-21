@@ -351,41 +351,41 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
 
   /* not recognized. pass it on. */
   if (cell_direction == CELL_DIRECTION_OUT) {
-		if (circ->state == CIRCUIT_STATE_FAST_JOIN_WAIT) {
-			log_info(LD_GENERAL, "Added cell to buffer");
-			cell_t *cell_cpy;
-			cell_cpy = tor_malloc(sizeof(cell_t));
-			memcpy(cell_cpy, cell, sizeof(cell_t));
-
-			smartlist_add(circ->iot_buffer, cell_cpy);
-
-			struct timespec buf;
-			clock_gettime(CLOCK_MONOTONIC, &buf);
-			log_notice(LD_GENERAL, "BUF:%lus%luns", buf.tv_sec, buf.tv_nsec);
-
-			return 0;
-		} else {
+//		if (circ->state == CIRCUIT_STATE_FAST_JOIN_WAIT) {
+//			log_info(LD_GENERAL, "Added cell to buffer");
+//			cell_t *cell_cpy;
+//			cell_cpy = tor_malloc(sizeof(cell_t));
+//			memcpy(cell_cpy, cell, sizeof(cell_t));
+//
+//			smartlist_add(circ->iot_buffer, cell_cpy);
+//
+//			struct timespec buf;
+//			clock_gettime(CLOCK_MONOTONIC, &buf);
+//			log_notice(LD_GENERAL, "BUF:%lus%luns", buf.tv_sec, buf.tv_nsec);
+//
+//			return 0;
+//		} else {
 			cell->circ_id = circ->n_circ_id; /* switch it */
 			chan = circ->n_chan;
-		}
+//		}
   } else if (! CIRCUIT_IS_ORIGIN(circ)) {
-    if (circ->state == CIRCUIT_STATE_JOIN_WAIT) {
-      log_info(LD_GENERAL, "Added cell to buffer");
-      cell_t *cell_cpy;
-      cell_cpy = tor_malloc(sizeof(cell_t));
-      memcpy(cell_cpy, cell, sizeof(cell_t));
-
-      smartlist_add(circ->iot_buffer, cell_cpy);
-
-      struct timespec buf;
-      clock_gettime(CLOCK_MONOTONIC, &buf);
-      log_notice(LD_GENERAL, "BUF:%lus%luns", buf.tv_sec, buf.tv_nsec);
-
-      return 0;
-    } else {
+//    if (circ->state == CIRCUIT_STATE_JOIN_WAIT) {
+//      log_info(LD_GENERAL, "Added cell to buffer");
+//      cell_t *cell_cpy;
+//      cell_cpy = tor_malloc(sizeof(cell_t));
+//      memcpy(cell_cpy, cell, sizeof(cell_t));
+//
+//      smartlist_add(circ->iot_buffer, cell_cpy);
+//
+//      struct timespec buf;
+//      clock_gettime(CLOCK_MONOTONIC, &buf);
+//      log_notice(LD_GENERAL, "BUF:%lus%luns", buf.tv_sec, buf.tv_nsec);
+//
+//      return 0;
+//    } else {
       cell->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
       chan = TO_OR_CIRCUIT(circ)->p_chan;
-    }
+//    }
   } else {
     log_fn(LOG_PROTOCOL_WARN, LD_OR,
            "Dropping unrecognized inbound cell on origin circuit.");
@@ -2000,9 +2000,9 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
                               cell->payload+RELAY_HEADER_SIZE);
       return 0;
     //IOT: React on SPLIT message here
-    case RELAY_COMMAND_SPLIT:
-      iot_process_relay_split(circ);
-      return 0;
+//    case RELAY_COMMAND_SPLIT:
+//      iot_process_relay_split(circ);
+//      return 0;
     case RELAY_COMMAND_PRE_TICKET:
       iot_process_relay_pre_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
