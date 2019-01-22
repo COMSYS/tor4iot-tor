@@ -876,7 +876,7 @@ hs_circ_service_rp_has_opened(const hs_service_t *service,
                         payload);
 
   if (TO_CIRCUIT(circ)->purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
-	  tor_assert(payload_len != HSv3_REND_INFO);
+	  tor_assert(payload_len == HSv3_REND_INFO);
 	  memcpy(circ->iot_rend_info, payload, payload_len);
   }
 
