@@ -294,6 +294,9 @@ void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 			split_point->next->next->next->next->hs_ntor_key,
 			HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
 
+	//Set Rend Info
+	memcpy(msg->ticket.rend_info, circ->iot_rend_info, HSv3_REND_INFO);
+
 	//Encrypt ticket
 	encrypt = aes_new_cipher(iot_key, msg->ticket.nonce, 128);
 	aes_crypt_inplace(encrypt, ((char*) &msg->ticket + IOT_TICKET_NONCE_LEN),

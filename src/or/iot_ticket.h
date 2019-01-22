@@ -54,6 +54,8 @@ typedef struct iot_ticket_t {
 
   uint8_t hs_ntor_key[HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN];
 
+  uint8_t rend_info[HSv3_REND_INFO];
+
   uint8_t mac[DIGEST256_LEN];
 } iot_ticket_t;
 

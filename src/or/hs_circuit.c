@@ -875,6 +875,11 @@ hs_circ_service_rp_has_opened(const hs_service_t *service,
                         sizeof(circ->hs_ident->rendezvous_handshake_info),
                         payload);
 
+  if (TO_CIRCUIT(circ)->purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
+	  tor_assert(payload_len != HSv3_REND_INFO);
+	  memcpy(circ->iot_rend_info, payload, payload_len);
+  }
+
   /* Pad the payload with random bytes so it matches the size of a legacy cell
    * which is normally always bigger. Also, the size of a legacy cell is
    * always smaller than the RELAY_PAYLOAD_SIZE so this is safe. */
@@ -884,16 +889,18 @@ hs_circ_service_rp_has_opened(const hs_service_t *service,
     payload_len = HS_LEGACY_RENDEZVOUS_CELL_SIZE;
   }
 
-  if (relay_send_command_from_edge(CONTROL_CELL_ID, TO_CIRCUIT(circ),
-                                   RELAY_COMMAND_RENDEZVOUS1,
-                                   (const char *) payload, payload_len,
-                                   circ->cpath->prev) < 0) {
-    /* On error, circuit is closed. */
-    log_warn(LD_REND, "Unable to send RENDEZVOUS1 cell on circuit %u "
-                      "for service %s",
-             TO_CIRCUIT(circ)->n_circ_id,
-             safe_str_client(service->onion_address));
-    goto done;
+  if (TO_CIRCUIT(circ)->purpose != CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
+	  if (relay_send_command_from_edge(CONTROL_CELL_ID, TO_CIRCUIT(circ),
+									   RELAY_COMMAND_RENDEZVOUS1,
+									   (const char *) payload, payload_len,
+									   circ->cpath->prev) < 0) {
+		/* On error, circuit is closed. */
+		log_warn(LD_REND, "Unable to send RENDEZVOUS1 cell on circuit %u "
+						  "for service %s",
+				 TO_CIRCUIT(circ)->n_circ_id,
+				 safe_str_client(service->onion_address));
+		goto done;
+	  }
   }
 
   /* Setup end-to-end rendezvous circuit between the client and us. */

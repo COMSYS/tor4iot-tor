@@ -3544,6 +3544,9 @@ typedef struct origin_circuit_t {
 
 
   entry_connection_t *iot_entry_conn;
+
+#define HSv3_REND_INFO 84
+  uint8_t iot_rend_info[HSv3_REND_INFO];
 } origin_circuit_t;
 
 struct onion_queue_t;
