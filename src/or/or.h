@@ -2985,6 +2985,8 @@ typedef struct crypt_path_t {
   uint8_t f_aesctrkey[16];
   uint8_t b_aesctrkey[16];
 
+  uint8_t f_init_digest[DIGEST_LEN];
+
   uint8_t hs_ntor_key[HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN];
 
   /** Digest state for cells heading towards the OR at this step. */

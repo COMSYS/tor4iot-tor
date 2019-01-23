@@ -1494,6 +1494,7 @@ circuit_init_cpath_crypto(crypt_path_t *cpath,
   if (cipher_key_len == CIPHER_KEY_LEN) {
     memcpy(cpath->f_aesctrkey, key_data+(2*digest_len), cipher_key_len);
     memcpy(cpath->b_aesctrkey, key_data+(2*digest_len) + cipher_key_len, cipher_key_len);
+    memcpy(cpath->f_init_digest, key_data, digest_len);
   } else if (key_data_len == HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN) {
     memcpy(cpath->hs_ntor_key, key_data, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
   }

@@ -52,6 +52,8 @@ typedef struct iot_ticket_t {
   iot_crypto_aes_relay_t relay2;
   iot_crypto_aes_relay_t rend;
 
+  uint8_t f_rend_init_digest[DIGEST_LEN];
+
   uint8_t hs_ntor_key[HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN];
 
   uint8_t rend_info[HSv3_REND_INFO];

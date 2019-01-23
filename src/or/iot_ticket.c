@@ -289,6 +289,9 @@ void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 	iot_ticket_set_relay_crypto(&msg->ticket.rend,
 			split_point->next->next->next);
 
+	//Set init digest for rend (forward)
+	memcpy(&msg->ticket.f_rend_init_digest, split_point->next->next->next->f_init_digest, DIGEST_LEN);
+
 	//Set HS material
 	memcpy(&msg->ticket.hs_ntor_key,
 			split_point->next->next->next->next->hs_ntor_key,
