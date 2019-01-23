@@ -103,7 +103,7 @@
 #include "sandbox.h"
 #include "transports.h"
 
-#include "iot_ticket.h"
+#include "iot_entry.h"
 
 #ifdef HAVE_PWD_H
 #include <pwd.h>

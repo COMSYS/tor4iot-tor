@@ -37,7 +37,8 @@
 #include "hs_service.h"
 
 //IOT
-#include "iot_ticket.h"
+#include "iot_delegation.h"
+#include "iot.h"
 
 /* Trunnel */
 #include "ed25519_cert.h"

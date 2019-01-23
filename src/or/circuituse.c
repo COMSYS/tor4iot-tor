@@ -55,7 +55,7 @@
 #include "router.h"
 #include "routerlist.h"
 
-#include "iot_ticket.h"
+#include "iot_delegation.h"
 
 static void circuit_expire_old_circuits_clientside(void);
 static void circuit_increment_failure_count(void);

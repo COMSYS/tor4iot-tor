@@ -79,7 +79,8 @@
 #include "rephist.h"
 
 #include "channeltls.h"
-#include "iot_ticket.h"
+#include "iot_entry.h"
+#include "iot_delegation.h"
 
 static edge_connection_t *relay_lookup_conn(circuit_t *circ, cell_t *cell,
                                             cell_direction_t cell_direction,

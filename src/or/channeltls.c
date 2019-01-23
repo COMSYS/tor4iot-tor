@@ -61,7 +61,7 @@
 #include "channelpadding_negotiation.h"
 #include "channelpadding.h"
 
-#include "iot_ticket.h"
+#include "iot_entry.h"
 
 /** How many CELL_PADDING cells have we received, ever? */
 uint64_t stats_n_padding_cells_processed = 0;

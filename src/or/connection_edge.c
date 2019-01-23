@@ -96,7 +96,7 @@
 #include "routerset.h"
 #include "circuitbuild.h"
 
-#include "iot_ticket.h"
+#include "iot_delegation.h"
 
 #ifdef HAVE_LINUX_TYPES_H
 #include <linux/types.h>
