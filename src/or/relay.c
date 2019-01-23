@@ -1640,8 +1640,6 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
         log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL, "Relay command %d with zero "
                "stream_id. Dropping.", (int)rh.command);
         return 0;
-      case RELAY_COMMAND_TICKET_ACK:
-	log_info(LD_PROTOCOL, "Ticket ACK received!");
 	return 0;
       default:
         ;
@@ -2003,15 +2001,37 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
 //    case RELAY_COMMAND_SPLIT:
 //      iot_process_relay_split(circ);
 //      return 0;
-    case RELAY_COMMAND_PRE_TICKET:
+    case RELAY_COMMAND_PRE_TICKET1:
       iot_process_relay_pre_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
-    case RELAY_COMMAND_TICKET:
+    case RELAY_COMMAND_TICKET1:
       iot_process_relay_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
-    case RELAY_COMMAND_FAST_TICKET:
+    case RELAY_COMMAND_FAST_TICKET1:
       iot_process_relay_fast_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
+
+    case RELAY_COMMAND_TICKET_RELAYED1:
+    case RELAY_COMMAND_FAST_TICKET_RELAYED1:
+    	if (relay_send_command_from_edge(0, circ,
+    			rh.command + 1,
+				(const char *)(cell->payload + RELAY_HEADER_SIZE),
+				rh.length, NULL)) {
+    		log_warn(LD_GENERAL,
+    				"Unable to send cell to client");
+    		/* Stop right now, the circuit has been closed. */
+    		return -1;
+    	}
+      return 0;
+
+    case RELAY_COMMAND_TICKET_RELAYED2:
+    case RELAY_COMMAND_FAST_TICKET_RELAYED2:
+    	// Check HMAC
+    	if (!memcmp(cell->payload+RELAY_HEADER_SIZE, TO_ORIGIN_CIRCUIT(circ)->iot_expect_hmac, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN)) {
+    		connection_ap_handshake_send_begin(TO_ORIGIN_CIRCUIT(circ)->iot_entry_conn);
+    	} else {
+    		log_warn(LD_GENERAL, "Received *_TICKET_RELAYED2 cell but HMAC didnt match. Dropping.");
+    	}
   }
   log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,
          "Received unknown relay command %d. Perhaps the other side is using "

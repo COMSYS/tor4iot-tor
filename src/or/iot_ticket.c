@@ -44,6 +44,8 @@ const char iot_id[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
 STATIC smartlist_t *splitted_circuits = NULL;
 STATIC smartlist_t *connected_iot_dev = NULL;
 
+uint32_t iot_circ_id = 17;
+
 #define SPLITPOINT_BEFORE_HS(circ) circ->cpath->prev->prev->prev->prev
 #define SPLITPOINT(circ) SPLITPOINT_BEFORE_HS(circ)->prev
 
@@ -137,6 +139,10 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 		log_warn(LD_GENERAL, "Could not initialize cpath crypto.");
 	}
 
+	//Compute HMAC we expect in FAST_TICKET_RELAYED2 cell
+	crypto_hmac_sha256((char *) circ->iot_expect_hmac, (char *) iot_mac_key, DIGEST256_LEN, (char*) msg->ticket.hs_ntor_key,
+				HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
+
 	//Encrypt ticket
 	encrypt = aes_new_cipher(iot_key, msg->ticket.nonce, 128);
 	aes_crypt_inplace(encrypt, ((char*) &msg->ticket + IOT_TICKET_NONCE_LEN),
@@ -153,7 +159,7 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 	log_debug(LD_GENERAL, "Sending fast ticket");
 
 	if (relay_send_command_from_edge(0, TO_CIRCUIT(circ),
-			RELAY_COMMAND_FAST_TICKET,
+			RELAY_COMMAND_FAST_TICKET1,
 			(const char*) msg,
 			sizeof(iot_relay_fast_ticket_t),
 			circ->cpath->prev)<0) {
@@ -175,9 +181,29 @@ int
 iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 	iot_fast_ticket_send(circ);
 
-	TO_CONN(ENTRY_TO_EDGE_CONN(circ->iot_entry_conn))->state = AP_CONN_STATE_CIRCUIT_WAIT;
-	connection_ap_handshake_send_begin(circ->iot_entry_conn);
+	// Lets wait for the FAST_TICKET_RELAYED2 message
+	TO_CONN(ENTRY_TO_EDGE_CONN(circ->iot_entry_conn))->state = AP_CONN_STATE_IOT_WAIT;
 
+	return 0;
+}
+
+static or_connection_t *iot_find_iot_device(const uint8_t *target_id) {
+	if (connected_iot_dev) {
+		log_info(LD_GENERAL, "Looking for connected IoT device:");
+		SMARTLIST_FOREACH_BEGIN(connected_iot_dev, or_connection_t *, c) {
+			log_debug(LD_GENERAL, "Check %p", c);
+			if (!memcmp(c->iot_id, target_id, IOT_ID_LEN)) {
+				log_info(LD_GENERAL, "FOUND!");
+				return c;
+				break;
+			}
+			log_info(LD_GENERAL, "DIDNT MATCH");
+		}SMARTLIST_FOREACH_END(c);
+	} else {
+		log_warn(LD_GENERAL,
+				"Got a ticket but there never was a IoT device connected.");
+		return 0;
+	}
 	return 0;
 }
 
@@ -193,22 +219,38 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
 	log_info(LD_GENERAL, "Got IoT fast ticket with IoT id of size %ld.",
 			sizeof(iot_relay_fast_ticket_t));
 
-	if (!splitted_circuits) {
-		splitted_circuits = smartlist_new();
-	}
+    or_connection_t *conn = iot_find_iot_device(msg->iot_id);
 
-	circ->state = CIRCUIT_STATE_FAST_JOIN_WAIT;
-	circ->join_cookie = msg->cookie;
-	smartlist_add(splitted_circuits, circ);
+    if (!conn)
+    	return;
 
-	log_info(LD_GENERAL, "Added circuit for joining with cookie 0x%08x",
-			circ->join_cookie);
+    circuit_set_n_circid_chan(circ, iot_circ_id,
+    		TLS_CHAN_TO_BASE(conn->chan));
 
-	iot_relay_to_device(msg->iot_id, sizeof(iot_fast_ticket_t),
-			(uint8_t*) (&msg->ticket), CELL_IOT_FAST_TICKET);
+    iot_circ_id++;
+
+    circ->state = CIRCUIT_STATE_OPEN;
+
+    var_cell_t *cell;
+
+    cell = var_cell_new(sizeof(iot_ticket_t));
+
+    cell->circ_id = iot_circ_id;
+    cell->command = CELL_IOT_FAST_TICKET;
+    cell->cell_num = TLS_CHAN_TO_BASE(conn->chan)->cell_num_out;
+    TLS_CHAN_TO_BASE(conn->chan)->cell_num_out++;
+    memcpy(cell->payload, payload, length);
+
+    connection_or_write_var_cell_to_buf(cell, conn);
+
+    struct timespec fwd_monotonic;
+    clock_gettime(CLOCK_MONOTONIC, &fwd_monotonic);
 
 	log_notice(LD_GENERAL, "RECVTICKET:%lus%luns", recv_monotonic.tv_sec,
 			recv_monotonic.tv_nsec);
+
+    log_notice(LD_GENERAL, "FWDTICKET:%lus%luns", fwd_monotonic.tv_sec,
+    		fwd_monotonic.tv_nsec);
 }
 
 int iot_set_circ_info(const hs_service_t *hs, iot_circ_info_t *info) {
@@ -317,7 +359,7 @@ void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 			split_point->extend_info->nickname);
 
 	//Send it!
-	relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET,
+	relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET1,
 			(const char* ) msg, sizeof(iot_relay_ticket_t), split_point);
 
 	struct timespec sent_monotonic;
@@ -369,22 +411,7 @@ static uint8_t iot_relay_to_device(const uint8_t *target_id, size_t length,
 		const uint8_t *payload, uint8_t command) {
 	or_connection_t* conn = NULL;
 
-	if (connected_iot_dev) {
-		log_info(LD_GENERAL, "Looking for connected IoT device:");
-		SMARTLIST_FOREACH_BEGIN(connected_iot_dev, or_connection_t *, c) {
-			log_debug(LD_GENERAL, "Check %p", c);
-			if (!memcmp(c->iot_id, target_id, IOT_ID_LEN)) {
-				log_info(LD_GENERAL, "FOUND!");
-				conn = c;
-				break;
-			}
-			log_info(LD_GENERAL, "DIDNT MATCH");
-		}SMARTLIST_FOREACH_END(c);
-	} else {
-		log_warn(LD_GENERAL,
-				"Got a ticket but there never was a IoT device connected.");
-		return 0;
-	}
+	conn = iot_find_iot_device(target_id);
 
 	if (!conn) {
 		return 0;
@@ -449,44 +476,10 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
 	log_info(LD_GENERAL, "Added circuit for joining with cookie 0x%08x",
 			circ->join_cookie);
 
-	uint8_t found = 0;
-	found = iot_relay_to_device(msg->iot_id, sizeof(iot_ticket_t),
+	iot_relay_to_device(msg->iot_id, sizeof(iot_ticket_t),
 			(uint8_t*) (&msg->ticket), CELL_IOT_TICKET);
 
 	cell_t cell;
-
-	if (found) {
-		relay_header_t rh;
-
-		circ->state = CIRCUIT_STATE_JOIN_WAIT;
-
-		memset(&cell, 0, sizeof(cell_t));
-		cell.command = CELL_RELAY;
-		cell.circ_id = TO_OR_CIRCUIT(circ)->p_circ_id;
-
-		memset(&rh, 0, sizeof(rh));
-		rh.command = RELAY_COMMAND_TICKET_ACK;
-		rh.stream_id = 0;
-		rh.length = 0;
-		rh.recognized = 0;
-		relay_header_pack(cell.payload, &rh);
-
-		circuit_package_relay_cell(&cell, circ, CELL_DIRECTION_IN, NULL, 0);
-	}
-
-	// Use backup of crypto and digest state
-	/* XXX: This is kind of dangerous. If the RELAY_BEGIN cell of
-	 * the client is before this point it will break as we would use
-	 * the other crypto status. Better: Use both in parallel one for sending
-	 * and one for received buffer messages.
-	 */
-//	aes_cipher_free(TO_OR_CIRCUIT(circ)->p_crypto);
-//	TO_OR_CIRCUIT(circ)->p_crypto = TO_OR_CIRCUIT(circ)->p_crypto_iot;
-//	TO_OR_CIRCUIT(circ)->p_crypto_iot = NULL;
-//
-//	crypto_digest_free(TO_OR_CIRCUIT(circ)->p_digest);
-//	TO_OR_CIRCUIT(circ)->p_digest = TO_OR_CIRCUIT(circ)->p_digest_iot;
-//	TO_OR_CIRCUIT(circ)->p_digest_iot = NULL;
 
 	memset(&cell, 0, sizeof(cell_t));
 	cell.command = CELL_DESTROY;
@@ -597,21 +590,6 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 			tor_assert(
 					TO_OR_CIRCUIT(circ)->p_chan == TLS_CHAN_TO_BASE(conn->chan));
 
-
-			circ->state = CIRCUIT_STATE_OPEN;
-
-			if (TO_CONN(conn)->state != OR_CONN_STATE_OPEN) {
-				connection_or_set_state_open(conn);
-			}
-
-			TLS_CHAN_TO_BASE(conn->chan)->cell_num = 1;
-
-			smartlist_remove(splitted_circuits, circ);
-
-			break;
-		case CIRCUIT_STATE_FAST_JOIN_WAIT:
-			circuit_set_n_circid_chan(circ, cell->circ_id,
-					TLS_CHAN_TO_BASE(conn->chan));
 
 			circ->state = CIRCUIT_STATE_OPEN;
 

@@ -650,11 +650,20 @@ typedef enum {
 #define RELAY_COMMAND_INTRODUCE_ACK 40
 
 //IOT
-#define RELAY_COMMAND_PRE_TICKET 51
-#define RELAY_COMMAND_TICKET 52
-#define RELAY_COMMAND_TICKET_ACK 53
+#define RELAY_COMMAND_PRE_TICKET1 50
+#define RELAY_COMMAND_PRE_TICKET2 51
 
-#define RELAY_COMMAND_FAST_TICKET 54
+#define RELAY_COMMAND_TICKET1 53
+#define RELAY_COMMAND_TICKET2 54
+
+#define RELAY_COMMAND_FAST_TICKET1 55
+#define RELAY_COMMAND_FAST_TICKET2 56
+
+#define RELAY_COMMAND_TICKET_RELAYED1 57
+#define RELAY_COMMAND_TICKET_RELAYED2 58
+
+#define RELAY_COMMAND_FAST_TICKET_RELAYED1 59
+#define RELAY_COMMAND_FAST_TICKET_RELAYED2 60
 
 /* Reasons why an OR connection is closed. */
 #define END_OR_CONN_REASON_DONE           1
@@ -3549,6 +3558,8 @@ typedef struct origin_circuit_t {
 
 #define HSv3_REND_INFO 84
   uint8_t iot_rend_info[HSv3_REND_INFO];
+
+  uint8_t iot_expect_hmac[DIGEST256_LEN];
 } origin_circuit_t;
 
 struct onion_queue_t;
