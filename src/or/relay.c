@@ -2016,7 +2016,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     case RELAY_COMMAND_FAST_TICKET_RELAYED:
     	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED2 cell.\n");
     	// Check HMAC
-    	if (!memcmp(cell->payload+RELAY_HEADER_SIZE, circ->iot_expect_hmac, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN)) {
+    	if (!memcmp(cell->payload+RELAY_HEADER_SIZE, circ->iot_expect_hmac, DIGEST256_LEN)) {
     		connection_ap_handshake_send_begin(circ->iot_entry_conn);
     	} else {
     		log_warn(LD_GENERAL, "Received *_TICKET_RELAYED2 cell but HMAC didnt match %02x %02x (%02x %02x). Dropping.", (cell->payload+RELAY_HEADER_SIZE)[0], (cell->payload+RELAY_HEADER_SIZE)[1], circ->iot_expect_hmac[0], circ->iot_expect_hmac[1]);
