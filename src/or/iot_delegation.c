@@ -285,7 +285,7 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 	}
 
 	//Compute HMAC we expect in FAST_TICKET_RELAYED2 cell
-	crypto_hmac_sha256((char *) circ->iot_expect_hmac, (char *) iot_mac_key, DIGEST256_LEN, (char*) msg->ticket.hs_ntor_key,
+	crypto_hmac_sha256((char *) circ->iot_expect_hmac, (char *) iot_mac_key, 16, (char*) msg->ticket.hs_ntor_key,
 				HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
 
 	//Encrypt ticket
