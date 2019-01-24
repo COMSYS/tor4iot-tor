@@ -2019,7 +2019,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     	if (!memcmp(cell->payload+RELAY_HEADER_SIZE, TO_ORIGIN_CIRCUIT(circ)->iot_expect_hmac, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN)) {
     		connection_ap_handshake_send_begin(TO_ORIGIN_CIRCUIT(circ)->iot_entry_conn);
     	} else {
-    		log_warn(LD_GENERAL, "Received *_TICKET_RELAYED2 cell but HMAC didnt match %02x %02x (%02x %02x). Dropping.", cell->payload+RELAY_HEADER_SIZE[0], cell->payload+RELAY_HEADER_SIZE[1], TO_ORIGIN_CIRCUIT(circ)->iot_expect_hmac[0], TO_ORIGIN_CIRCUIT(circ)->iot_expect_hmac[1]);
+    		log_warn(LD_GENERAL, "Received *_TICKET_RELAYED2 cell but HMAC didnt match %02x %02x (%02x %02x). Dropping.", (cell->payload+RELAY_HEADER_SIZE)[0], (cell->payload+RELAY_HEADER_SIZE)[1], TO_ORIGIN_CIRCUIT(circ)->iot_expect_hmac[0], TO_ORIGIN_CIRCUIT(circ)->iot_expect_hmac[1]);
     	}
     	return 0;
   }
