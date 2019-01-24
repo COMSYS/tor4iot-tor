@@ -476,7 +476,7 @@ command_process_iotrelayed_cell(cell_t *cell, channel_t *chan) {
 	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED1. Relaying as *_TICKET_RELAYED2.");
 	if (relay_send_command_from_edge(0, circ,
 			(cell->command == CELL_IOT_TICKET_RELAYED ? RELAY_COMMAND_TICKET_RELAYED : RELAY_COMMAND_FAST_TICKET_RELAYED),
-			(const char *)(cell->payload + RELAY_HEADER_SIZE),
+			(const char *)(cell->payload),
 			HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN, NULL)) {
 		log_warn(LD_GENERAL,
 				"Unable to send cell to client");
