@@ -2014,6 +2014,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
 
     case RELAY_COMMAND_TICKET_RELAYED1:
     case RELAY_COMMAND_FAST_TICKET_RELAYED1:
+    	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED1. Relaying as *_TICKET_RELAYED2.");
     	if (relay_send_command_from_edge(0, circ,
     			rh.command + 1,
 				(const char *)(cell->payload + RELAY_HEADER_SIZE),
@@ -2027,6 +2028,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
 
     case RELAY_COMMAND_TICKET_RELAYED2:
     case RELAY_COMMAND_FAST_TICKET_RELAYED2:
+    	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED2 cell.\n");
     	// Check HMAC
     	if (!memcmp(cell->payload+RELAY_HEADER_SIZE, TO_ORIGIN_CIRCUIT(circ)->iot_expect_hmac, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN)) {
     		connection_ap_handshake_send_begin(TO_ORIGIN_CIRCUIT(circ)->iot_entry_conn);
