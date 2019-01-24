@@ -71,6 +71,7 @@ static void command_handle_incoming_channel(channel_listener_t *listener,
 /* These are the main functions for processing cells */
 static void command_process_create_cell(cell_t *cell, channel_t *chan);
 static void command_process_created_cell(cell_t *cell, channel_t *chan);
+static void command_process_iotrelayed_cell(cell_t *cell, channel_t *chan);
 static void command_process_relay_cell(cell_t *cell, channel_t *chan);
 static void command_process_destroy_cell(cell_t *cell, channel_t *chan);
 
@@ -199,6 +200,9 @@ command_process_cell(channel_t *chan, cell_t *cell)
     case CELL_DESTROY:
       ++stats_n_destroy_cells_processed;
       PROCESS_CELL(destroy, cell, chan);
+      break;
+    case CELL_IOT_FAST_TICKET_RELAYED:
+      PROCESS_CELL(iotrelayed, cell, chan);
       break;
     default:
       log_fn(LOG_INFO, LD_PROTOCOL,
@@ -460,6 +464,25 @@ command_process_created_cell(cell_t *cell, channel_t *chan)
     relay_send_command_from_edge(0, circ, command,
                                  (const char*)payload, len, NULL);
   }
+}
+
+static void
+command_process_iotrelayed_cell(cell_t *cell, channel_t *chan) {
+	circuit_t *circ;
+
+	circ = circuit_get_by_circid_channel(cell->circ_id, chan);
+
+
+	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED1. Relaying as *_TICKET_RELAYED2.");
+	if (relay_send_command_from_edge(0, circ,
+			(cell->command == CELL_IOT_TICKET_RELAYED ? RELAY_COMMAND_TICKET_RELAYED : RELAY_COMMAND_FAST_TICKET_RELAYED),
+			(const char *)(cell->payload + RELAY_HEADER_SIZE),
+			HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN, NULL)) {
+		log_warn(LD_GENERAL,
+				"Unable to send cell to client");
+		/* Stop right now, the circuit has been closed. */
+		return;
+	}
 }
 
 /** Process a 'relay' or 'relay_early' <b>cell</b> that just arrived from

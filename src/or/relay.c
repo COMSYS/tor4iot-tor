@@ -2002,32 +2002,18 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
 //    case RELAY_COMMAND_SPLIT:
 //      iot_process_relay_split(circ);
 //      return 0;
-    case RELAY_COMMAND_PRE_TICKET1:
+    case RELAY_COMMAND_PRE_TICKET:
       iot_process_relay_pre_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
-    case RELAY_COMMAND_TICKET1:
+    case RELAY_COMMAND_TICKET:
       iot_process_relay_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
-    case RELAY_COMMAND_FAST_TICKET1:
+    case RELAY_COMMAND_FAST_TICKET:
       iot_process_relay_fast_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
 
-    case RELAY_COMMAND_TICKET_RELAYED1:
-    case RELAY_COMMAND_FAST_TICKET_RELAYED1:
-    	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED1. Relaying as *_TICKET_RELAYED2.");
-    	if (relay_send_command_from_edge(0, circ,
-    			rh.command + 1,
-				(const char *)(cell->payload + RELAY_HEADER_SIZE),
-				rh.length, NULL)) {
-    		log_warn(LD_GENERAL,
-    				"Unable to send cell to client");
-    		/* Stop right now, the circuit has been closed. */
-    		return -1;
-    	}
-      return 0;
-
-    case RELAY_COMMAND_TICKET_RELAYED2:
-    case RELAY_COMMAND_FAST_TICKET_RELAYED2:
+    case RELAY_COMMAND_TICKET_RELAYED:
+    case RELAY_COMMAND_FAST_TICKET_RELAYED:
     	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED2 cell.\n");
     	// Check HMAC
     	if (!memcmp(cell->payload+RELAY_HEADER_SIZE, TO_ORIGIN_CIRCUIT(circ)->iot_expect_hmac, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN)) {

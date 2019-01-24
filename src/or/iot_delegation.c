@@ -149,7 +149,7 @@ void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 			split_point->extend_info->nickname);
 
 	//Send it!
-	relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET1,
+	relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET,
 			(const char* ) msg, sizeof(iot_relay_ticket_t), split_point);
 
 	struct timespec sent_monotonic;
@@ -304,7 +304,7 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 	log_debug(LD_GENERAL, "Sending fast ticket");
 
 	if (relay_send_command_from_edge(0, TO_CIRCUIT(circ),
-			RELAY_COMMAND_FAST_TICKET1,
+			RELAY_COMMAND_FAST_TICKET,
 			(const char*) msg,
 			sizeof(iot_relay_fast_ticket_t),
 			circ->cpath->prev)<0) {
