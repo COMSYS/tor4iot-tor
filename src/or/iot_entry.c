@@ -294,6 +294,10 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
 
     circ->state = CIRCUIT_STATE_OPEN;
 
+    if (TO_CONN(conn)->state != OR_CONN_STATE_OPEN) {
+    	connection_or_set_state_open(conn);
+    }
+
     var_cell_t *cell;
 
     cell = var_cell_new(sizeof(iot_fast_ticket_t));
