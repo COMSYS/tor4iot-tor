@@ -288,7 +288,7 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 	crypto_hmac_sha256((char *) circ->iot_expect_hmac, (char *) iot_mac_key, 16, (char*) msg->ticket.hs_ntor_key,
 				HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
 
-	tor_debug("Expecting HMAC starts with %02x %02x", circ->iot_expect_hmac[0], circ->iot_expect_hmac[1]);
+	log_debug(LD_GENERAL, "Expecting HMAC starts with %02x %02x", circ->iot_expect_hmac[0], circ->iot_expect_hmac[1]);
 
 	//Encrypt ticket
 	encrypt = aes_new_cipher(iot_key, msg->ticket.nonce, 128);
