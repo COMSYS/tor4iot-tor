@@ -3293,6 +3293,9 @@ typedef struct circuit_t {
   /** Hashtable node: used to look up the circuit by its HS token using the HS
       circuitmap. */
   HT_ENTRY(circuit_t) hs_circuitmap_node;
+
+  entry_connection_t *iot_entry_conn;
+  uint8_t iot_expect_hmac[DIGEST256_LEN];
 } circuit_t;
 
 /** Largest number of relay_early cells that we can send on a given
@@ -3552,13 +3555,10 @@ typedef struct origin_circuit_t {
    * to 2*CircuitsAvailableTimoeut. */
   int circuit_idle_timeout;
 
-
-  entry_connection_t *iot_entry_conn;
-
 #define HSv3_REND_INFO 84
   uint8_t iot_rend_info[HSv3_REND_INFO];
 
-  uint8_t iot_expect_hmac[DIGEST256_LEN];
+
 } origin_circuit_t;
 
 struct onion_queue_t;

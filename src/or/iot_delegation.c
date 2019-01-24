@@ -242,7 +242,7 @@ iot_circ_launch_entry_point(entry_connection_t *conn, uint8_t handover) {
 		return 0;
 	}
 
-	circ->iot_entry_conn = conn;
+	circ->base_.iot_entry_conn = conn;
 
 	return 0;
 }
@@ -285,10 +285,10 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 	}
 
 	//Compute HMAC we expect in FAST_TICKET_RELAYED2 cell
-	crypto_hmac_sha256((char *) circ->iot_expect_hmac, (char *) iot_mac_key, 16, (char*) msg->ticket.hs_ntor_key,
+	crypto_hmac_sha256((char *) circ->base_.iot_expect_hmac, (char *) iot_mac_key, 16, (char*) msg->ticket.hs_ntor_key,
 				HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
 
-	log_debug(LD_GENERAL, "Expecting HMAC starts with %02x %02x", circ->iot_expect_hmac[0], circ->iot_expect_hmac[1]);
+	log_debug(LD_GENERAL, "Expecting HMAC starts with %02x %02x", circ->base_.iot_expect_hmac[0], circ->base_.iot_expect_hmac[1]);
 
 	//Encrypt ticket
 	encrypt = aes_new_cipher(iot_key, msg->ticket.nonce, 128);
@@ -315,7 +315,7 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 	}
 
 	finalize_rend_circuit(circ, cpath, is_service_side);
-	link_apconn_to_circ(circ->iot_entry_conn, circ, cpath);
+	link_apconn_to_circ(circ->base_.iot_entry_conn, circ, cpath);
 }
 
 void
@@ -329,7 +329,7 @@ iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 	iot_fast_ticket_send(circ);
 
 	// Lets wait for the FAST_TICKET_RELAYED2 message
-	TO_CONN(ENTRY_TO_EDGE_CONN(circ->iot_entry_conn))->state = AP_CONN_STATE_IOT_WAIT;
+	TO_CONN(ENTRY_TO_EDGE_CONN(circ->base_.iot_entry_conn))->state = AP_CONN_STATE_IOT_WAIT;
 
 	return 0;
 }
