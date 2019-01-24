@@ -296,7 +296,7 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
 
     var_cell_t *cell;
 
-    cell = var_cell_new(sizeof(iot_ticket_t));
+    cell = var_cell_new(sizeof(iot_fast_ticket_t));
 
     cell->circ_id = iot_circ_id;
     cell->command = CELL_IOT_FAST_TICKET;
