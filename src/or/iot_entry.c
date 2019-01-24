@@ -287,16 +287,14 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
     if (!conn)
     	return;
 
-    circuit_set_n_circid_chan(circ, iot_circ_id,
-    		TLS_CHAN_TO_BASE(conn->chan));
-
-    iot_circ_id++;
-
-    circ->state = CIRCUIT_STATE_OPEN;
-
     if (TO_CONN(conn)->state != OR_CONN_STATE_OPEN) {
     	connection_or_set_state_open(conn);
     }
+
+    circuit_set_n_circid_chan(circ, iot_circ_id,
+    		TLS_CHAN_TO_BASE(conn->chan));
+
+    circ->state = CIRCUIT_STATE_OPEN;
 
     var_cell_t *cell;
 
@@ -307,6 +305,8 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
     cell->cell_num = TLS_CHAN_TO_BASE(conn->chan)->cell_num_out;
     TLS_CHAN_TO_BASE(conn->chan)->cell_num_out++;
     memcpy(cell->payload, &msg->ticket, length);
+
+    iot_circ_id++;
 
     connection_or_write_var_cell_to_buf(cell, conn);
 
