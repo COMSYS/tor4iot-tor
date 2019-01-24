@@ -1675,11 +1675,8 @@ circuit_has_opened(origin_circuit_t *circ)
       hs_service_circuit_has_opened(circ);
       break;
     case CIRCUIT_PURPOSE_ENTRY_IOT:
-      /* at the client, connecting to IoT Entry */
-      iot_client_entry_circuit_has_opened(circ);
-      break;
     case CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER:
-      iot_client_entry_handover_circuit_has_opened(circ);
+      iot_client_entry_circuit_has_opened(circ);
       break;
     case CIRCUIT_PURPOSE_TESTING:
       circuit_testing_opened(circ);

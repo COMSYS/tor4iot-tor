@@ -314,14 +314,14 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 		log_warn(LD_GENERAL, "Couldn't send FAST_TICKET cell");
 	}
 
+	struct timespec sent_ticket;
+	clock_gettime(CLOCK_MONOTONIC, &sent_ticket);
+
+	log_notice(LD_GENERAL, "SENTTICKET:%lus%luns", sent_ticket.tv_sec,
+			sent_ticket.tv_nsec);
+
 	finalize_rend_circuit(circ, cpath, is_service_side);
 	link_apconn_to_circ(circ->base_.iot_entry_conn, circ, cpath);
-}
-
-void
-iot_client_entry_handover_circuit_has_opened(origin_circuit_t *circ) {
-	iot_fast_ticket_send(circ); // Send ticket to our serving IoT device
-	iot_ticket_send(circ, IOT_TICKET_TYPE_CLIENT); // Send ticket to our client IoT device
 }
 
 int
