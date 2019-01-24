@@ -302,7 +302,7 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
     cell->command = CELL_IOT_FAST_TICKET;
     cell->cell_num = TLS_CHAN_TO_BASE(conn->chan)->cell_num_out;
     TLS_CHAN_TO_BASE(conn->chan)->cell_num_out++;
-    memcpy(cell->payload, msg->ticket, length);
+    memcpy(cell->payload, &msg->ticket, length);
 
     connection_or_write_var_cell_to_buf(cell, conn);
 
