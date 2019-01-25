@@ -2019,16 +2019,10 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     	// Check HMAC
 		clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_ticketack);
     	if (!memcmp(cell->payload+RELAY_HEADER_SIZE, circ->iot_expect_hmac, DIGEST256_LEN)) {
-    		switch(circ->purpose) {
-    		case CIRCUIT_PURPOSE_ENTRY_IOT:
-    			connection_ap_handshake_send_begin(circ->iot_entry_conn);
-    			return 0;
-    		case CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER:
+    		if (circ->handover) {
     			iot_ticket_send(TO_ORIGIN_CIRCUIT(circ), IOT_TICKET_TYPE_CLIENT); // Send ticket to our client IoT device
-    			return 0;
-    		default:
-    			log_warn(LD_GENERAL, "Received valid TICKET_RELAYED2 cell but circuit has purpose %d", circ->purpose);
-    			return 0;
+    		} else {
+    			connection_ap_handshake_send_begin(circ->iot_entry_conn);
     		}
     	} else {
     		log_warn(LD_GENERAL, "Received *_TICKET_RELAYED2 cell but HMAC didnt match %02x %02x (%02x %02x). Dropping.", (cell->payload+RELAY_HEADER_SIZE)[0], (cell->payload+RELAY_HEADER_SIZE)[1], circ->iot_expect_hmac[0], circ->iot_expect_hmac[1]);

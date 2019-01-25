@@ -203,6 +203,7 @@ iot_circ_launch_entry_point(entry_connection_t *conn, uint8_t handover) {
 	}
 
 	circ->base_.iot_entry_conn = conn;
+	circ->base_.handover = handover;
 
 	return 0;
 }

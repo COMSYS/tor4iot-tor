@@ -3300,6 +3300,8 @@ typedef struct circuit_t {
 
   entry_connection_t *iot_entry_conn;
   uint8_t iot_expect_hmac[DIGEST256_LEN];
+
+  int handover:1;
 } circuit_t;
 
 /** Largest number of relay_early cells that we can send on a given
