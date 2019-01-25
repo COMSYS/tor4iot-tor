@@ -280,7 +280,6 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 
 	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_ticketend);
 
-	pathbias_count_build_attempt(circ);
 	finalize_rend_circuit(circ, cpath, is_service_side);
 	link_apconn_to_circ(circ->base_.iot_entry_conn, circ, cpath);
 }
