@@ -26,6 +26,7 @@
 
 #include "circuituse.h"
 #include "circuitbuild.h"
+#include "circpathbias.h"
 
 #include "hs_circuit.h"
 
