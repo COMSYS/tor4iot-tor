@@ -2015,25 +2015,24 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
 
     case RELAY_COMMAND_TICKET_RELAYED:
     case RELAY_COMMAND_FAST_TICKET_RELAYED:
-    	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED2 cell.\n");
-    	struct timespec relayed;
-    	clock_gettime(CLOCK_MONOTONIC, &relayed);
+    	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED2 cell.");
     	// Check HMAC
+		clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_ticketack);
     	if (!memcmp(cell->payload+RELAY_HEADER_SIZE, circ->iot_expect_hmac, DIGEST256_LEN)) {
     		switch(circ->purpose) {
     		case CIRCUIT_PURPOSE_ENTRY_IOT:
-    			clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_ticketack);
     			connection_ap_handshake_send_begin(circ->iot_entry_conn);
-    			break;
+    			return 0;
     		case CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER:
     			iot_ticket_send(TO_ORIGIN_CIRCUIT(circ), IOT_TICKET_TYPE_CLIENT); // Send ticket to our client IoT device
-    			break;
+    			return 0;
+    		default:
+    			log_warn(LD_GENERAL, "Received valid TICKET_RELAYED2 cell but circuit has purpose %d", circ->purpose);
+    			return 0;
     		}
     	} else {
     		log_warn(LD_GENERAL, "Received *_TICKET_RELAYED2 cell but HMAC didnt match %02x %02x (%02x %02x). Dropping.", (cell->payload+RELAY_HEADER_SIZE)[0], (cell->payload+RELAY_HEADER_SIZE)[1], circ->iot_expect_hmac[0], circ->iot_expect_hmac[1]);
     	}
-    	log_notice(LD_GENERAL, "SENDTICKET:%lus%luns", relayed.tv_sec,
-    			relayed.tv_nsec);
     	return 0;
   }
   log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,
