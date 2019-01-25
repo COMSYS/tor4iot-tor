@@ -1423,6 +1423,8 @@ connection_ap_handle_iot(entry_connection_t *conn,
 
   log_debug(LD_GENERAL, "Handling .iot address: %s", socks->address);
 
+  clock_gettime(CLOCK_MONOTONIC, &conn->iot_mes_start);
+
   connection_t *base_conn = ENTRY_TO_CONN(conn);
   base_conn->state = AP_CONN_STATE_IOT_WAIT;
 

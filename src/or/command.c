@@ -343,6 +343,8 @@ command_process_create_cell(cell_t *cell, channel_t *chan)
     return;
   }
 
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_circreceived);
+
   if (connection_or_digest_is_known_relay(chan->identity_digest)) {
     rep_hist_note_circuit_handshake_requested(create_cell->handshake_type);
   }
@@ -472,6 +474,7 @@ command_process_iotrelayed_cell(cell_t *cell, channel_t *chan) {
 
 	circ = circuit_get_by_circid_channel(cell->circ_id, chan);
 
+	clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_relayticketrelayed);
 
 	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED1. Relaying as *_TICKET_RELAYED2.");
 	if (relay_send_command_from_edge(0, circ,

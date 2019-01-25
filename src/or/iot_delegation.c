@@ -78,10 +78,6 @@ static void iot_ticket_set_relay_crypto(iot_crypto_aes_relay_t *iot_crypto,
 			relay->f_aesctrkey[0], relay->b_aesctrkey[0]);
 }
 
-static inline uint64_t as_nanoseconds(struct timespec* ts) {
-	return ts->tv_sec * (uint64_t) 1000000000L + ts->tv_nsec;
-}
-
 void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 	iot_relay_ticket_t *msg;
 	crypt_path_t *split_point;
@@ -158,42 +154,6 @@ void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 	//New version: SP closes the circuit
 	//circuit_mark_for_close(TO_CIRCUIT(circ), END_CIRC_REASON_FINISHED);
 
-	log_notice(LD_GENERAL, "SENDTICKET:%lus%luns", send_monotonic.tv_sec,
-			send_monotonic.tv_nsec);
-	log_notice(LD_GENERAL, "SENTTICKET:%lus%luns", sent_monotonic.tv_sec,
-			sent_monotonic.tv_nsec);
-	log_notice(LD_GENERAL, "BEGANCIRC:%lus%luns",
-			circ->base_.my_timestamp_began.tv_sec,
-			circ->base_.my_timestamp_began.tv_nsec);
-	log_notice(LD_GENERAL, "COMPLETEDCIRC:%lus%luns",
-			circ->base_.my_timestamp_complete.tv_sec,
-			circ->base_.my_timestamp_complete.tv_nsec);
-
-	log_notice(LD_GENERAL, "CPATHSTART:%lus%luns",
-			circ->base_.my_timestamp_cpath_start.tv_sec,
-			circ->base_.my_timestamp_cpath_start.tv_nsec);
-	log_notice(LD_GENERAL, "CPATHEND:%lus%luns",
-			circ->base_.my_timestamp_cpath_end.tv_sec,
-			circ->base_.my_timestamp_cpath_end.tv_nsec);
-
-	uint64_t my_timecons_ntor = 0;
-	uint64_t my_timecons_c25519 = 0;
-
-	for (int i = 0; i < circ->base_.ntor_mes; i = i + 2) {
-		my_timecons_ntor += as_nanoseconds(
-				&circ->base_.my_timestamps_ntor[i + 1])
-						- as_nanoseconds(&circ->base_.my_timestamps_ntor[i]);
-	}
-
-	for (int i = 0; i < circ->base_.curve25519_mes; i = i + 2) {
-		my_timecons_c25519 += as_nanoseconds(
-				&circ->base_.my_timestamps_c25519[i + 1])
-						- as_nanoseconds(&circ->base_.my_timestamps_c25519[i]);
-	}
-
-	log_notice(LD_GENERAL, "CONSNTOR:%"PRIu64"ns", my_timecons_ntor);
-	log_notice(LD_GENERAL, "CONSC25519:%"PRIu64"ns", my_timecons_c25519);
-
 	tor_free(msg);
 }
 
@@ -258,6 +218,8 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 			circ->base_.purpose == CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER);
 	log_info(LD_REND, "Sending a FAST_TICKET cell");
 
+	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_ticketstart);
+
 	// Create FAST TICKET
 	msg = tor_malloc(sizeof(iot_relay_fast_ticket_t));
 
@@ -314,11 +276,7 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 		log_warn(LD_GENERAL, "Couldn't send FAST_TICKET cell");
 	}
 
-	struct timespec sent_ticket;
-	clock_gettime(CLOCK_MONOTONIC, &sent_ticket);
-
-	log_notice(LD_GENERAL, "SENTTICKET:%lus%luns", sent_ticket.tv_sec,
-			sent_ticket.tv_nsec);
+	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_ticketend);
 
 	finalize_rend_circuit(circ, cpath, is_service_side);
 	link_apconn_to_circ(circ->base_.iot_entry_conn, circ, cpath);
@@ -332,4 +290,46 @@ iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 	TO_CONN(ENTRY_TO_EDGE_CONN(circ->base_.iot_entry_conn))->state = AP_CONN_STATE_IOT_WAIT;
 
 	return 0;
+}
+
+static void
+print_mes(const char *label, struct timespec *time) {
+	log_notice(LD_GENERAL, "%s:%lus%luns", label, time->tv_sec, time->tv_nsec);
+}
+
+void
+iot_delegation_print_measurements(circuit_t *circ) {
+	origin_circuit_t *o_circ = TO_ORIGIN_CIRCUIT(circ);
+	crypt_path_t *cpath_iot, *cpath_temp;
+
+	print_mes("START", &circ->iot_entry_conn->iot_mes_start);
+	print_mes("CPATHSTART", &o_circ->iot_mes_cpathstart);
+	print_mes("CPATHEND", &o_circ->iot_mes_cpathend);
+	print_mes("CIRCSTART", &o_circ->iot_mes_circstart);
+
+	cpath_iot = o_circ->cpath->prev;
+	cpath_temp = o_circ->cpath;
+
+	while (cpath_temp != cpath_iot) {
+		print_mes("NTOR1START", &cpath_temp->iot_mes_ntor1start);
+		print_mes("X255191START", &cpath_temp->iot_mes_x255191start);
+		print_mes("X255191END", &cpath_temp->iot_mes_x255191end);
+		print_mes("NTOR1END", &cpath_temp->iot_mes_ntor1end);
+
+		print_mes("NTOR2START", &cpath_temp->iot_mes_ntor2start);
+		print_mes("X255192START", &cpath_temp->iot_mes_x255192start);
+		print_mes("X255192END", &cpath_temp->iot_mes_x255192end);
+		print_mes("X255193START", &cpath_temp->iot_mes_x255193start);
+		print_mes("X255193END", &cpath_temp->iot_mes_x255193end);
+		print_mes("NTOR2END", &cpath_temp->iot_mes_ntor2end);
+
+		cpath_temp = cpath_temp->next;
+	}
+
+	print_mes("CIRCEND", &o_circ->iot_mes_circstart);
+
+	print_mes("TICKETSTART", &o_circ->iot_mes_ticketstart);
+	print_mes("TICKETEND", &o_circ->iot_mes_ticketend);
+
+	print_mes("TICKETACK", &o_circ->iot_mes_ticketack);
 }

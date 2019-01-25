@@ -82,11 +82,6 @@ static uint8_t iot_relay_to_device(const uint8_t *target_id, size_t length,
 
 	connection_or_write_var_cell_to_buf(cell, conn);
 
-	struct timespec fwd_monotonic;
-	clock_gettime(CLOCK_MONOTONIC, &fwd_monotonic);
-	log_notice(LD_GENERAL, "FWDTICKET:%lus%luns", fwd_monotonic.tv_sec,
-			fwd_monotonic.tv_nsec);
-
 	var_cell_free(cell);
 
 	return 1;
@@ -272,8 +267,7 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 
 void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
 		const uint8_t *payload) {
-	struct timespec recv_monotonic;
-	clock_gettime(CLOCK_MONOTONIC, &recv_monotonic);
+	clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_ticketreceived);
 
 	iot_relay_fast_ticket_t *msg = (iot_relay_fast_ticket_t*) payload;
 
@@ -281,6 +275,8 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
 
 	log_info(LD_GENERAL, "Got IoT fast ticket with IoT id of size %ld.",
 			sizeof(iot_relay_fast_ticket_t));
+
+
 
     or_connection_t *conn = iot_find_iot_device(msg->iot_id);
 
@@ -312,12 +308,22 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
 
     var_cell_free(cell);
 
-    struct timespec fwd_monotonic;
-    clock_gettime(CLOCK_MONOTONIC, &fwd_monotonic);
-
-	log_notice(LD_GENERAL, "RECVTICKET:%lus%luns", recv_monotonic.tv_sec,
-			recv_monotonic.tv_nsec);
-
-    log_notice(LD_GENERAL, "FWDTICKET:%lus%luns", fwd_monotonic.tv_sec,
-    		fwd_monotonic.tv_nsec);
+    clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_ticketrelayed);
 }
+
+static void
+print_mes(const char *label, struct timespec *time) {
+	log_notice(LD_GENERAL, "%s:%lus%luns", label, time->tv_sec, time->tv_nsec);
+}
+
+void
+iot_entry_print_measurements(circuit_t *circ) {
+	or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
+
+	print_mes("CIRCRECEIVED", &or_circ->iot_mes_circreceived);
+	print_mes("CIRCDONE", &or_circ->iot_mes_circdone);
+	print_mes("TICKETRECEIVED", &or_circ->iot_mes_ticketreceived);
+	print_mes("TICKETRELAYED", &or_circ->iot_mes_ticketrelayed);
+	print_mes("RELAYTICKETRELAYED", &or_circ->iot_mes_relayticketrelayed);
+}
+

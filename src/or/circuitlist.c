@@ -83,6 +83,9 @@
 
 #include "ht.h"
 
+#include "iot_delegation.h"
+#include "iot_entry.h"
+
 /********* START VARIABLES **********/
 
 /** A global list of all circuits at this hop. */
@@ -1890,6 +1893,12 @@ circuit_mark_for_close_, (circuit_t *circ, int reason, int line,
   assert_circuit_ok(circ);
   tor_assert(line);
   tor_assert(file);
+
+  if (circ->purpose == CIRCUIT_PURPOSE_ENTRY_IOT) {
+	  iot_delegation_print_measurements(circ);
+  } else if (circ->n_chan->cell_num) {
+	  iot_entry_print_measurements(circ);
+  }
 
   if (circ->marked_for_close) {
     log_warn(LD_BUG,

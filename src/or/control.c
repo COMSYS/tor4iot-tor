@@ -2597,22 +2597,6 @@ circuit_describe_status_for_controller(origin_circuit_t *circ)
     smartlist_add_asprintf(descparts, "TIME_CREATED=%s", tbuf);
   }
 
-  smartlist_add_asprintf(descparts, "MY_TIME_BEGAN=%lus%luns", circ->base_.my_timestamp_began.tv_sec, circ->base_.my_timestamp_began.tv_nsec);
-  smartlist_add_asprintf(descparts, "MY_TIME_COMPLETE=%lus%luns", circ->base_.my_timestamp_complete.tv_sec, circ->base_.my_timestamp_complete.tv_nsec);
-
-  uint64_t my_timecons_ntor = 0;
-  uint64_t my_timecons_c25519 = 0;
-
-  for (int i=0; i<circ->base_.ntor_mes; i=i+2) {
-    my_timecons_ntor += as_nanoseconds(&circ->base_.my_timestamps_ntor[i+1]) - as_nanoseconds(&circ->base_.my_timestamps_ntor[i]);
-  }
-  smartlist_add_asprintf(descparts, "MY_CONS_NTOR=%"PRIu64"ns%dv", my_timecons_ntor, circ->base_.ntor_mes);
-
-  for (int i=0; i<circ->base_.curve25519_mes; i=i+2) {
-    my_timecons_c25519 += as_nanoseconds(&circ->base_.my_timestamps_c25519[i+1]) - as_nanoseconds(&circ->base_.my_timestamps_c25519[i]);
-  }
-  smartlist_add_asprintf(descparts, "MY_CONS_CURVE25519=%"PRIu64"ns%dv", my_timecons_c25519, circ->base_.curve25519_mes);
-
   // Show username and/or password if available.
   if (circ->socks_username_len > 0) {
     char* socks_username_escaped = esc_for_log_len(circ->socks_username,

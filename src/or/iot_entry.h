@@ -57,4 +57,7 @@ void iot_remove_connected_iot (or_connection_t *conn);
  */
 void iot_join(or_connection_t *conn, const var_cell_t *cell);
 
+void
+iot_entry_print_measurements(circuit_t *circ);
+
 #endif /* SRC_OR_IOT_ENTRY_H_ */

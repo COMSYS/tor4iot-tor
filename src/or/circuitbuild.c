@@ -416,8 +416,6 @@ onion_populate_cpath(origin_circuit_t *circ)
   tor_assert(circ);
   tor_assert(circ->build_state);
 
-  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamp_cpath_start);
-
   while (r == 0) {
     r = onion_extend_cpath(circ);
     if (r < 0) {
@@ -425,8 +423,6 @@ onion_populate_cpath(origin_circuit_t *circ)
       return -1;
     }
   }
-
-  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamp_cpath_end);
 
   /* The path is complete */
   tor_assert(r == 1);
@@ -518,11 +514,15 @@ circuit_establish_circuit(uint8_t purpose, extend_info_t *exit_ei, int flags)
       circ->build_state->iot_circ_info = exit_ei->iot_circ_info;
   }
 
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_cpathstart);
+
   if (onion_pick_cpath_exit(circ, exit_ei, is_hs_v3_rp_circuit) < 0 ||
       onion_populate_cpath(circ) < 0) {
     circuit_mark_for_close(TO_CIRCUIT(circ), END_CIRC_REASON_NOPATH);
     return NULL;
   }
+
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_cpathend);
 
   control_event_circuit_status(circ, CIRC_EVENT_LAUNCHED, 0);
 
@@ -975,7 +975,7 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
 
   log_debug(LD_CIRC,"First skin; sending create cell.");
 
-  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamp_began);
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_circstart);
 
   if (circ->build_state->onehop_tunnel) {
     control_event_bootstrap(BOOTSTRAP_STATUS_ONEHOP_CREATE, 0);
@@ -1004,22 +1004,17 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
     cc.handshake_type = ONION_HANDSHAKE_TYPE_FAST;
   }
 
-  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamps_ntor[circ->base_.ntor_mes]);
-  circ->base_.ntor_mes++;
+  clock_gettime(CLOCK_MONOTONIC, &circ->cpath->iot_mes_ntor1start);
 
   len = onion_skin_create(cc.handshake_type,
                           circ->cpath->extend_info,
                           &circ->cpath->handshake_state,
                           cc.onionskin);
 
-  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamps_ntor[circ->base_.ntor_mes]);
-  circ->base_.ntor_mes++;
+  clock_gettime(CLOCK_MONOTONIC, &circ->cpath->iot_mes_ntor1end);
 
-  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_before1, sizeof(struct timespec));
-  circ->base_.curve25519_mes++;
-
-  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_after1, sizeof(struct timespec));
-  circ->base_.curve25519_mes++;
+  memcpy(&circ->cpath->iot_mes_x255191start, &circ->cpath->handshake_state.mes.c25519_before1, sizeof(struct timespec));
+  memcpy(&circ->cpath->iot_mes_x255191end, &circ->cpath->handshake_state.mes.c25519_after1, sizeof(struct timespec));
 
   if (len < 0) {
     log_warn(LD_CIRC,"onion_skin_create (first hop) failed.");
@@ -1185,22 +1180,17 @@ circuit_send_intermediate_onion_skin(origin_circuit_t *circ,
    * in the extend2 cell if we're configured to use it, though. */
   ed25519_pubkey_copy(&ec.ed_pubkey, &hop->extend_info->ed_identity);
 
-  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamps_ntor[circ->base_.ntor_mes]);
-  circ->base_.ntor_mes++;
+  clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor1start);
 
   len = onion_skin_create(ec.create_cell.handshake_type,
                           hop->extend_info,
                           &hop->handshake_state,
                           ec.create_cell.onionskin);
 
-  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamps_ntor[circ->base_.ntor_mes]);
-  circ->base_.ntor_mes++;
+  clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor1end);
 
-  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_before1, sizeof(struct timespec));
-  circ->base_.curve25519_mes++;
-
-  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_after1, sizeof(struct timespec));
-  circ->base_.curve25519_mes++;
+  memcpy(&circ->cpath->iot_mes_x255191start, &hop->handshake_state.mes.c25519_before1, sizeof(struct timespec));
+  memcpy(&circ->cpath->iot_mes_x255191end, &hop->handshake_state.mes.c25519_after1, sizeof(struct timespec));
 
   if (len < 0) {
     log_warn(LD_CIRC,"onion_skin_create failed.");
@@ -1549,8 +1539,7 @@ circuit_finish_handshake(origin_circuit_t *circ,
   }
   tor_assert(hop->state == CPATH_STATE_AWAITING_KEYS);
 
-  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamps_ntor[circ->base_.ntor_mes]);
-  circ->base_.ntor_mes++;
+  clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor2start);
 
   {
     const char *msg = NULL;
@@ -1566,20 +1555,12 @@ circuit_finish_handshake(origin_circuit_t *circ,
     }
   }
 
-  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamps_ntor[circ->base_.ntor_mes]);
-  circ->base_.ntor_mes++;
+  clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor2end);
 
-  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_before1, sizeof(struct timespec));
-  circ->base_.curve25519_mes++;
-
-  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_after1, sizeof(struct timespec));
-  circ->base_.curve25519_mes++;
-
-  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_before2, sizeof(struct timespec));
-  circ->base_.curve25519_mes++;
-
-  memcpy(&circ->base_.my_timestamps_c25519[circ->base_.curve25519_mes], &circ->cpath->handshake_state.mes.c25519_after2, sizeof(struct timespec));
-  circ->base_.curve25519_mes++;
+  memcpy(&hop->iot_mes_x255192start, &circ->cpath->handshake_state.mes.c25519_before1, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255192end, &circ->cpath->handshake_state.mes.c25519_after1, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255193start, &circ->cpath->handshake_state.mes.c25519_before2, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255193end, &circ->cpath->handshake_state.mes.c25519_after2, sizeof(struct timespec));
 
   onion_handshake_state_release(&hop->handshake_state);
 
@@ -1693,6 +1674,8 @@ onionskin_answer(or_circuit_t *circ,
                                circ->p_chan, &cell, CELL_DIRECTION_IN, 0);
   log_debug(LD_CIRC,"Finished sending '%s' cell.",
             used_create_fast ? "created_fast" : "created");
+
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_circdone);
 
   /* Ignore the local bit when ExtendAllowPrivateAddresses is set:
    * it violates the assumption that private addresses are local.

@@ -2022,6 +2022,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     	if (!memcmp(cell->payload+RELAY_HEADER_SIZE, circ->iot_expect_hmac, DIGEST256_LEN)) {
     		switch(circ->purpose) {
     		case CIRCUIT_PURPOSE_ENTRY_IOT:
+    			clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_ticketack);
     			connection_ap_handshake_send_begin(circ->iot_entry_conn);
     			break;
     		case CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER:

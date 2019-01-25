@@ -41,4 +41,7 @@ void iot_ticket_send(origin_circuit_t *circ, uint8_t type);
  */
 void iot_inform_split(origin_circuit_t *circ);
 
+void
+iot_delegation_print_measurements(circuit_t *circ);
+
 #endif /* SRC_OR_IOT_DELEGATION_H_ */

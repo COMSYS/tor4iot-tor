@@ -1882,6 +1882,8 @@ typedef struct entry_connection_t {
 
   /** Are we a socks SocksSocket listener? */
   unsigned int is_socks_socket:1;
+
+  struct timespec iot_mes_start;
 } entry_connection_t;
 
 /** Subtype of connection_t for an "directory connection" -- that is, an HTTP
@@ -3034,6 +3036,18 @@ typedef struct crypt_path_t {
                        * at this step? */
   int deliver_window; /**< How many cells are we willing to deliver originating
                        * at this step? */
+
+  struct timespec iot_mes_ntor1start;
+  struct timespec iot_mes_ntor1end;
+  struct timespec iot_mes_ntor2start;
+  struct timespec iot_mes_ntor2end;
+
+  struct timespec iot_mes_x255191start;
+  struct timespec iot_mes_x255191end;
+  struct timespec iot_mes_x255192start;
+  struct timespec iot_mes_x255192end;
+  struct timespec iot_mes_x255193start;
+  struct timespec iot_mes_x255193end;
 } crypt_path_t;
 
 /** A reference-counted pointer to a crypt_path_t, used only to share
@@ -3216,16 +3230,6 @@ typedef struct circuit_t {
 
   /** This timestamp marks when the circuit is completely extended. */
   struct timespec my_timestamp_complete;
-
-  struct timespec my_timestamp_cpath_start;
-  struct timespec my_timestamp_cpath_end;
-
-
-  struct timespec my_timestamps_ntor[40];
-  struct timespec my_timestamps_c25519[50];
-
-  uint8_t ntor_mes;
-  uint8_t curve25519_mes;
 
   /** When the circuit was first used, or 0 if the circuit is clean.
    *
@@ -3558,7 +3562,14 @@ typedef struct origin_circuit_t {
 #define HSv3_REND_INFO 84
   uint8_t iot_rend_info[HSv3_REND_INFO];
 
+  struct timespec iot_mes_cpathstart;
+  struct timespec iot_mes_cpathend;
+  struct timespec iot_mes_circstart;
+  struct timespec iot_mes_circend;
 
+  struct timespec iot_mes_ticketstart;
+  struct timespec iot_mes_ticketend;
+  struct timespec iot_mes_ticketack;
 } origin_circuit_t;
 
 struct onion_queue_t;
@@ -3654,6 +3665,15 @@ typedef struct or_circuit_t {
    * to zero, it is initialized to the default value.
    */
   uint32_t max_middle_cells;
+
+  struct timespec iot_mes_circreceived;
+  struct timespec iot_mes_circdone;
+
+  struct timespec iot_mes_ticketreceived;
+  struct timespec iot_mes_ticketrelayed;
+
+  struct timespec iot_mes_relayticketrelayed;
+
 } or_circuit_t;
 
 #if REND_COOKIE_LEN != DIGEST_LEN
