@@ -503,7 +503,7 @@ onion_skin_create(int type,
                                &node->curve25519_onion_key,
                                &state_out->u.ntor,
                                onion_skin_out,
-			       &state_out->mes) < 0)
+							   &state_out->mes) < 0)
       return -1;
 
     r = NTOR_ONIONSKIN_LEN;

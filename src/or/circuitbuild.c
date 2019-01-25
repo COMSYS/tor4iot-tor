@@ -1189,8 +1189,8 @@ circuit_send_intermediate_onion_skin(origin_circuit_t *circ,
 
   clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor1end);
 
-  memcpy(&circ->cpath->iot_mes_x255191start, &hop->handshake_state.mes.c25519_before1, sizeof(struct timespec));
-  memcpy(&circ->cpath->iot_mes_x255191end, &hop->handshake_state.mes.c25519_after1, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255191start, &hop->handshake_state.mes.c25519_before1, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255191end, &hop->handshake_state.mes.c25519_after1, sizeof(struct timespec));
 
   if (len < 0) {
     log_warn(LD_CIRC,"onion_skin_create failed.");
@@ -1557,10 +1557,10 @@ circuit_finish_handshake(origin_circuit_t *circ,
 
   clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor2end);
 
-  memcpy(&hop->iot_mes_x255192start, &circ->cpath->handshake_state.mes.c25519_before1, sizeof(struct timespec));
-  memcpy(&hop->iot_mes_x255192end, &circ->cpath->handshake_state.mes.c25519_after1, sizeof(struct timespec));
-  memcpy(&hop->iot_mes_x255193start, &circ->cpath->handshake_state.mes.c25519_before2, sizeof(struct timespec));
-  memcpy(&hop->iot_mes_x255193end, &circ->cpath->handshake_state.mes.c25519_after2, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255192start, &hop->handshake_state.mes.c25519_before1, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255192end, &hop->handshake_state.mes.c25519_after1, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255193start, &hop->handshake_state.mes.c25519_before2, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255193end, &hop->handshake_state.mes.c25519_after2, sizeof(struct timespec));
 
   onion_handshake_state_release(&hop->handshake_state);
 

@@ -87,7 +87,7 @@ onion_skin_ntor_create(const uint8_t *router_id,
                        const curve25519_public_key_t *router_key,
                        ntor_handshake_state_t **handshake_state_out,
                        uint8_t *onion_skin_out,
-		       c25519_measurement_t *mes)
+					   c25519_measurement_t *mes)
 {
   ntor_handshake_state_t *state;
   uint8_t *op;
