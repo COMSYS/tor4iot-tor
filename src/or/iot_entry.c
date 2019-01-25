@@ -290,6 +290,7 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
     circuit_set_n_circid_chan(circ, iot_circ_id,
     		TLS_CHAN_TO_BASE(conn->chan));
 
+    circ->purpose = CIRCUIT_PURPOSE_IOT;
     circ->state = CIRCUIT_STATE_OPEN;
 
     var_cell_t *cell;

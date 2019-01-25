@@ -2022,6 +2022,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     		if (circ->handover) {
     			iot_ticket_send(TO_ORIGIN_CIRCUIT(circ), IOT_TICKET_TYPE_CLIENT); // Send ticket to our client IoT device
     		} else {
+    			pathbias_count_build_success(TO_ORIGIN_CIRCUIT(circ));
     			connection_ap_handshake_send_begin(circ->iot_entry_conn);
     		}
     	} else {
