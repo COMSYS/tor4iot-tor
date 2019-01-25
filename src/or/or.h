@@ -601,7 +601,7 @@ typedef enum {
 
 /** True iff the circuit purpose <b>p</b> is for a circuit that
  * originated at this node. */
-#define CIRCUIT_PURPOSE_IS_ORIGIN(p) ((p)>CIRCUIT_PURPOSE_OR_MAX_)
+#define CIRCUIT_PURPOSE_IS_ORIGIN(p) ((p)>CIRCUIT_PURPOSE_OR_MAX_ && (p) != CIRCUIT_PURPOSE_IOT)
 /** True iff the circuit purpose <b>p</b> is for a circuit that originated
  * here to serve as a client.  (Hidden services don't count here.) */
 #define CIRCUIT_PURPOSE_IS_CLIENT(p)  \
