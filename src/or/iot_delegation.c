@@ -335,5 +335,5 @@ iot_delegation_print_measurements(circuit_t *circ) {
 	print_mes("TICKETEND", &o_circ->iot_mes_ticketend);
 
 	print_mes("TICKETACK", &o_circ->iot_mes_ticketack);
-	log_notice(LD_GENERAL, "%s", circuit_list_path(o_circ, 0));
+	log_notice(LD_GENERAL, "CHOSENRELAYS:%s", circuit_list_path(o_circ, 0));
 }
