@@ -220,6 +220,10 @@ channel_tls_connect(const tor_addr_t *addr, uint16_t port,
             "Got orconn %p for channel with global id " U64_FORMAT,
             tlschan->conn, U64_PRINTF_ARG(chan->global_identifier));
 
+  struct timespec time;
+  clock_gettime(CLOCK_MONOTONIC, &time);
+  log_notice(LD_GENERAL, "TLSHANDSHAKE:%lus%luns:%s", time.tv_sec, time.tv_nsec, id_digest);
+
   goto done;
 
  err:
