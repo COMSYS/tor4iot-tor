@@ -222,7 +222,9 @@ channel_tls_connect(const tor_addr_t *addr, uint16_t port,
 
   struct timespec time;
   clock_gettime(CLOCK_MONOTONIC, &time);
-  log_notice(LD_GENERAL, "TLSHANDSHAKE:%lus%luns:%s", time.tv_sec, time.tv_nsec, id_digest);
+  char buf[NODE_DESC_BUF_LEN];
+  format_node_description(buf,id_digest, 0, NULL, addr, 0);
+  log_notice(LD_GENERAL, "TLSHANDSHAKE:%lus%luns:%s", time.tv_sec, time.tv_nsec, buf);
 
   goto done;
 
