@@ -1428,7 +1428,7 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 		}
     }
 
-    log_info(LD_OR, "Got DTLS connection request. Handling.");
+    log_debug(LD_OR, "Got DTLS connection request. Handling.");
 
     /* remember the remote address */
     tor_addr_t addr;
