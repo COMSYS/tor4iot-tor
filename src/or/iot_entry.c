@@ -322,8 +322,8 @@ iot_entry_print_measurements(circuit_t *circ) {
 	print_mes("CIRCDONE", &or_circ->iot_mes_circdone);
 	print_mes("TICKETRECEIVED", &or_circ->iot_mes_ticketreceived);
 	print_mes("TICKETRELAYED", &or_circ->iot_mes_ticketrelayed);
-	print_mes("HANDOVERTICKETRECEIVED", &or_circ->iot_mes_ticketreceived);
-	print_mes("HANDOVERTICKETRELAYED", &or_circ->iot_mes_ticketrelayed);
+	print_mes("HANDOVERTICKETRECEIVED", &or_circ->iot_mes_handoverticketreceived);
+	print_mes("HANDOVERTICKETRELAYED", &or_circ->iot_mes_handoverticketrelayed);
 	print_mes("RELAYTICKETRELAYED", &or_circ->iot_mes_relayticketrelayed);
 	print_mes("JOINREQ", &or_circ->iot_mes_joinreq);
 	print_mes("JOINDONE", &or_circ->iot_mes_joindone);

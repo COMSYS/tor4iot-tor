@@ -1918,7 +1918,7 @@ circuit_mark_for_close_, (circuit_t *circ, int reason, int line,
 
   if (CIRCUIT_IS_ORIGIN(circ)) {
     if ((pathbias_check_close(TO_ORIGIN_CIRCUIT(circ), reason) == -1) &&
-    		(circ->purpose != CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER)) {
+    		(!circ->handover)) {
       /* Don't close it yet, we need to test it first */
       return;
     }
