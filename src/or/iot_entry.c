@@ -103,8 +103,7 @@ void iot_process_relay_pre_ticket(circuit_t *circ, size_t length,
 
 void iot_process_relay_ticket(circuit_t *circ, size_t length,
 		const uint8_t *payload) {
-	struct timespec recv_monotonic;
-	clock_gettime(CLOCK_MONOTONIC, &recv_monotonic);
+	clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_handoverticketreceived);
 
 	iot_relay_ticket_t *msg = (iot_relay_ticket_t*) payload;
 
@@ -134,8 +133,7 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
 	append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, &cell,
 			CELL_DIRECTION_IN, 0);
 
-	log_notice(LD_GENERAL, "RECVTICKET:%lus%luns", recv_monotonic.tv_sec,
-			recv_monotonic.tv_nsec);
+	clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_handoverticketrelayed);
 }
 
 void iot_info(or_connection_t *conn, const var_cell_t *cell) {
@@ -224,6 +222,8 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 	}
 
 	if (circ) {
+		memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_joinreq, &req_monotonic, sizeof(struct timespec));
+
 		log_info(LD_GENERAL, "Join circuits by cookie 0x%08x",
 				((uint32_t* )cell->payload)[0]);
 
@@ -250,14 +250,11 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 			break;
 		}
 
+		if (conn->base_.state != OR_CONN_STATE_OPEN) {
+			  connection_or_change_state(conn, OR_CONN_STATE_OPEN);
+		}
 
-		struct timespec done_monotonic;
-		clock_gettime(CLOCK_MONOTONIC, &done_monotonic);
-		log_notice(LD_GENERAL, "JOINREQ:%lus%luns", req_monotonic.tv_sec,
-				req_monotonic.tv_nsec);
-		log_notice(LD_GENERAL, "JOINDONE:%lus%luns", done_monotonic.tv_sec,
-				done_monotonic.tv_nsec);
-
+		clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_joindone);
 	} else {
 		log_info(LD_GENERAL,
 				"Tried to join circuit, but cookies didnt match. 0x%08x ?",
@@ -314,7 +311,9 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
 
 static void
 print_mes(const char *label, struct timespec *time) {
-	log_notice(LD_GENERAL, "%s:%lus%luns", label, time->tv_sec, time->tv_nsec);
+	if (time->tv_sec != 0 || time->tv_nsec != 0) {
+	  log_notice(LD_GENERAL, "%s:%lus%luns", label, time->tv_sec, time->tv_nsec);
+	}
 }
 
 void
@@ -325,6 +324,10 @@ iot_entry_print_measurements(circuit_t *circ) {
 	print_mes("CIRCDONE", &or_circ->iot_mes_circdone);
 	print_mes("TICKETRECEIVED", &or_circ->iot_mes_ticketreceived);
 	print_mes("TICKETRELAYED", &or_circ->iot_mes_ticketrelayed);
+	print_mes("HANDOVERTICKETRECEIVED", &or_circ->iot_mes_ticketreceived);
+	print_mes("HANDOVERTICKETRELAYED", &or_circ->iot_mes_ticketrelayed);
 	print_mes("RELAYTICKETRELAYED", &or_circ->iot_mes_relayticketrelayed);
+	print_mes("JOINREQ", &or_circ->iot_mes_joinreq);
+	print_mes("JOINDONE", &or_circ->iot_mes_joindone);
 }
 

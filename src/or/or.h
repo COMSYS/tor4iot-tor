@@ -1732,7 +1732,6 @@ typedef struct or_connection_t {
   uint64_t bytes_xmitted, bytes_xmitted_by_tls;
 
   uint8_t iot_id[IOT_ID_LEN];
-
 } or_connection_t;
 
 /** Subtype of connection_t for an "edge connection" -- that is, an entry (ap)
@@ -3676,6 +3675,11 @@ typedef struct or_circuit_t {
 
   struct timespec iot_mes_relayticketrelayed;
 
+  struct timespec iot_mes_handoverticketreceived;
+  struct timespec iot_mes_handoverticketrelayed;
+
+  struct timespec iot_mes_joinreq;
+  struct timespec iot_mes_joindone;
 } or_circuit_t;
 
 #if REND_COOKIE_LEN != DIGEST_LEN

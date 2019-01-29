@@ -297,7 +297,9 @@ iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 
 static void
 print_mes(const char *label, struct timespec *time) {
-	log_notice(LD_GENERAL, "%s:%lus%luns", label, time->tv_sec, time->tv_nsec);
+	if (time->tv_sec != 0 || time->tv_nsec != 0) {
+	  log_notice(LD_GENERAL, "%s:%lus%luns", label, time->tv_sec, time->tv_nsec);
+	}
 }
 
 void
