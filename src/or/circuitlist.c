@@ -1896,7 +1896,7 @@ circuit_mark_for_close_, (circuit_t *circ, int reason, int line,
 
   if (circ->purpose == CIRCUIT_PURPOSE_C_REND_JOINED) {
 	  iot_delegation_print_measurements(circ);
-  } else if (circ->purpose == CIRCUIT_PURPOSE_IOT) {
+  } else if (circ->purpose == CIRCUIT_PURPOSE_IOT || circ->join_cookie != 0) {
 	  iot_entry_print_measurements(circ);
   }
 

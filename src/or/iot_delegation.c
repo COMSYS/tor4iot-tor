@@ -86,8 +86,7 @@ void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 
 	tor_assert(circ);
 
-	struct timespec send_monotonic;
-	clock_gettime(CLOCK_MONOTONIC, &send_monotonic);
+	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_handoverticketstart);
 
 	log_info(LD_REND, "Sending ticket.");
 
@@ -149,11 +148,7 @@ void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 	relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET,
 			(const char* ) msg, sizeof(iot_relay_ticket_t), split_point);
 
-	struct timespec sent_monotonic;
-	clock_gettime(CLOCK_MONOTONIC, &sent_monotonic);
-
-	//New version: SP closes the circuit
-	//circuit_mark_for_close(TO_CIRCUIT(circ), END_CIRC_REASON_FINISHED);
+	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_handoverticketend);
 
 	tor_free(msg);
 }
@@ -337,5 +332,9 @@ iot_delegation_print_measurements(circuit_t *circ) {
 	print_mes("TICKETEND", &o_circ->iot_mes_ticketend);
 
 	print_mes("TICKETACK", &o_circ->iot_mes_ticketack);
+
+	print_mes("HANDOVERTICKETSTART", &o_circ->iot_mes_handoverticketstart);
+	print_mes("HANDOVERTICKETEND", &o_circ->iot_mes_handoverticketend);
+
 	log_notice(LD_GENERAL, "CHOSENRELAYS:%s", circuit_list_path(o_circ, 0));
 }

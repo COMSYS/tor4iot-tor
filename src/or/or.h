@@ -3571,6 +3571,9 @@ typedef struct origin_circuit_t {
   struct timespec iot_mes_ticketstart;
   struct timespec iot_mes_ticketend;
   struct timespec iot_mes_ticketack;
+
+  struct timespec iot_mes_handoverticketstart;
+  struct timespec iot_mes_handoverticketend;
 } origin_circuit_t;
 
 struct onion_queue_t;
