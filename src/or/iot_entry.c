@@ -115,6 +115,8 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
 	if (!splitted_circuits) {
 		splitted_circuits = smartlist_new();
 	}
+
+	circ->state = CIRCUIT_STATE_JOIN_WAIT;
 	circ->join_cookie = msg->cookie;
 	smartlist_add(splitted_circuits, circ);
 
@@ -248,10 +250,6 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 			smartlist_remove(splitted_circuits, circ);
 
 			break;
-		}
-
-		if (conn->base_.state != OR_CONN_STATE_OPEN) {
-			  connection_or_change_state(conn, OR_CONN_STATE_OPEN);
 		}
 
 		clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_joindone);
