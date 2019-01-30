@@ -3224,12 +3224,6 @@ typedef struct circuit_t {
   /** This timestamp marks when the init_circuit_base constructor ran. */
   struct timeval timestamp_created;
 
-  /** This timestamp marks when the circuit starts to be extended extended. */
-  struct timespec my_timestamp_began;
-
-  /** This timestamp marks when the circuit is completely extended. */
-  struct timespec my_timestamp_complete;
-
   /** When the circuit was first used, or 0 if the circuit is clean.
    *
    * XXXX Note that some code will artifically adjust this value backward

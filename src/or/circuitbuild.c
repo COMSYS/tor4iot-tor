@@ -1067,7 +1067,7 @@ circuit_build_no_more_hops(origin_circuit_t *circ)
     return - END_CIRC_REASON_INTERNAL;
   }
 
-  clock_gettime(CLOCK_MONOTONIC, &circ->base_.my_timestamp_complete);
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_circend);
 
   /* XXXX #21422 -- the rest of this branch needs careful thought!
    * Some of the things here need to happen when a circuit becomes
