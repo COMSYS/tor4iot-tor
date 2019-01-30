@@ -2427,7 +2427,7 @@ link_apconn_to_circ(entry_connection_t *apconn, origin_circuit_t *circ,
 {
   const node_t *exitnode = NULL;
 
-  circ->base_->iot_entry_conn = apconn;
+  circ->base_.iot_entry_conn = apconn;
 
   /* add it into the linked list of streams on this circuit */
   log_debug(LD_APP|LD_CIRC, "attaching new conn to circ. n_circ_id %u.",
