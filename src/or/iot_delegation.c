@@ -329,6 +329,8 @@ iot_delegation_print_measurements(circuit_t *circ) {
 
 	print_mes("CIRCEND", &o_circ->iot_mes_circend);
 
+	print_mes("INTRODUCE1_SENT", &o_circ->iot_mes_hs_introduce1_sent);
+
 	print_mes("TICKETSTART", &o_circ->iot_mes_ticketstart);
 	print_mes("TICKETEND", &o_circ->iot_mes_ticketend);
 
