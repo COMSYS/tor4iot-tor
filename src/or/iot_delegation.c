@@ -326,7 +326,7 @@ iot_delegation_print_measurements(circuit_t *circ) {
 		cpath_temp = cpath_temp->next;
 	}
 
-	print_mes("CIRCEND", &o_circ->iot_mes_circstart);
+	print_mes("CIRCEND", &o_circ->iot_mes_circend);
 
 	print_mes("TICKETSTART", &o_circ->iot_mes_ticketstart);
 	print_mes("TICKETEND", &o_circ->iot_mes_ticketend);
