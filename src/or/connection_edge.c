@@ -1423,8 +1423,6 @@ connection_ap_handle_iot(entry_connection_t *conn,
 
   log_debug(LD_GENERAL, "Handling .iot address: %s", socks->address);
 
-  clock_gettime(CLOCK_MONOTONIC, &conn->iot_mes_start);
-
   connection_t *base_conn = ENTRY_TO_CONN(conn);
   base_conn->state = AP_CONN_STATE_IOT_WAIT;
 
@@ -1796,6 +1794,8 @@ connection_ap_handshake_rewrite_and_attach(entry_connection_t *conn,
        Bar is not listed in it?  I say yes, but our revised manpage branch
        implies no. */
   }
+
+  clock_gettime(CLOCK_MONOTONIC, &conn->iot_mes_start);
 
   // IoT
   if (addresstype == IOT_HOSTNAME) {

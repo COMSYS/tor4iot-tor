@@ -2553,6 +2553,8 @@ connection_ap_handshake_attach_chosen_circuit(entry_connection_t *conn,
   tor_assert(conn->socks_request);
   tor_assert(circ);
 
+  circ->base_.iot_entry_conn = conn;
+
   if (base_conn->purpose == IOT_PURPOSE_CONNECT) {
 	  return 1;
   }

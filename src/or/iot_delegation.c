@@ -303,6 +303,7 @@ iot_delegation_print_measurements(circuit_t *circ) {
 	crypt_path_t *cpath_iot, *cpath_temp;
 
 	print_mes("START", &circ->iot_entry_conn->iot_mes_start);
+	print_mes("INTRODUCE2_RECEIVED", &o_circ->iot_mes_hs_introduce2_received);
 	print_mes("CPATHSTART", &o_circ->iot_mes_cpathstart);
 	print_mes("CPATHEND", &o_circ->iot_mes_cpathend);
 	print_mes("CIRCSTART", &o_circ->iot_mes_circstart);

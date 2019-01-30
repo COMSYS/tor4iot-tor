@@ -415,8 +415,6 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
       circ_flags |= CIRCLAUNCH_ONEHOP_TUNNEL;
     }
 
-    memcpy(&info->gotrequest, &temp, sizeof(struct timespec));
-
     //IOT: This is where we set our purpose
     if (1) { //service->config.is_iot) { //XXX: Make it true for now
       circ = circuit_launch_by_extend_info(CIRCUIT_PURPOSE_S_CONNECT_REND_IOT, info,
@@ -427,6 +425,7 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
     }
     if (circ != NULL) {
       /* Stop retrying, we have a circuit! */
+      memcpy(&circ->iot_mes_hs_introduce2_received, &temp, sizeof(struct timespec));
       break;
     }
   }
@@ -1148,6 +1147,8 @@ hs_circ_send_introduce1(origin_circuit_t *intro_circ,
              TO_CIRCUIT(intro_circ)->n_circ_id);
     goto done;
   }
+
+  clock_gettime(CLOCK_MONOTONIC, &rend_circ->iot_mes_hs_introduce1_sent);
 
   /* Success. */
   ret = 0;

@@ -2903,8 +2903,6 @@ typedef struct extend_info_t {
 
   //IOT:
   iot_circ_info_t iot_circ_info;
-
-  struct timespec gotrequest;
 } extend_info_t;
 
 /** Certificate for v3 directory protocol: binds long-term authority identity
@@ -3568,6 +3566,9 @@ typedef struct origin_circuit_t {
 
   struct timespec iot_mes_handoverticketstart;
   struct timespec iot_mes_handoverticketend;
+
+  struct timespec iot_mes_hs_introduce1_sent;
+  struct timespec iot_mes_hs_introduce2_received;
 } origin_circuit_t;
 
 struct onion_queue_t;
