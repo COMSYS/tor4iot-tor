@@ -1894,7 +1894,7 @@ circuit_mark_for_close_, (circuit_t *circ, int reason, int line,
   tor_assert(line);
   tor_assert(file);
 
-  if (circ->purpose == CIRCUIT_PURPOSE_C_REND_JOINED) {
+  if (circ->purpose == CIRCUIT_PURPOSE_C_REND_JOINED || circ->purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
 	  iot_delegation_print_measurements(circ);
   } else if (circ->purpose == CIRCUIT_PURPOSE_IOT || circ->join_cookie != 0) {
 	  iot_entry_print_measurements(circ);
