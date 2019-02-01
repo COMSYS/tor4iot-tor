@@ -2157,6 +2157,8 @@ connection_or_write_cell_to_buf(cell_t *cell, or_connection_t *conn)
 
   if (conn->base_.state == OR_CONN_STATE_OR_HANDSHAKING_V3)
     or_handshake_state_record_cell(conn, conn->handshake_state, cell, 0);
+
+  clock_gettime(CLOCK_MONOTONIC, &cell->sent);
 }
 
 /** Pack a variable-length <b>cell</b> into wire-format, and write it onto
@@ -2184,6 +2186,8 @@ connection_or_write_var_cell_to_buf,(var_cell_t *cell,
                           cell->payload_len, TO_CONN(conn));
   if (conn->base_.state == OR_CONN_STATE_OR_HANDSHAKING_V3)
     or_handshake_state_record_var_cell(conn, conn->handshake_state, cell, 0);
+
+  clock_gettime(CLOCK_MONOTONIC, &cell->sent);
 
   /* Touch the channel's active timestamp if there is one */
   if (conn->chan)
@@ -2254,6 +2258,8 @@ connection_or_process_cells_from_inbuf(or_connection_t *conn)
       char buf[CELL_MAX_NETWORK_SIZE+2];
       cell_t cell;
       size_t cell_network_size = get_cell_network_size(conn->wide_circ_ids) + (TO_CONN(conn)->type == CONN_TYPE_OR_UDP ? sizeof(cell.cell_num) : 0);
+
+      clock_gettime(CLOCK_MONOTONIC, &cell.received);
 
       if (connection_get_inbuf_len(TO_CONN(conn))
           < cell_network_size) /* whole response available? */

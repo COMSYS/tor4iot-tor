@@ -475,6 +475,7 @@ command_process_iotrelayed_cell(cell_t *cell, channel_t *chan) {
 	circ = circuit_get_by_circid_channel(cell->circ_id, chan);
 
 	clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_relayticketrelayed);
+	memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_relayticketrelayedfrombuf, &cell->received, sizeof(struct timespec));
 
 	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED1. Relaying as *_TICKET_RELAYED2.");
 	if (relay_send_command_from_edge(0, circ,
@@ -486,6 +487,7 @@ command_process_iotrelayed_cell(cell_t *cell, channel_t *chan) {
 		/* Stop right now, the circuit has been closed. */
 		return;
 	}
+	memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_relayticketrelayedtobuf, &circ->temp2, sizeof(struct timespec));
 }
 
 /** Process a 'relay' or 'relay_early' <b>cell</b> that just arrived from

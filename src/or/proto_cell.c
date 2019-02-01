@@ -70,6 +70,9 @@ fetch_var_cell_from_buf(buf_t *buf, var_cell_t **out, int linkproto)
     return 1;
 
   result = var_cell_new(length);
+
+  clock_gettime(CLOCK_MONOTONIC, &result->received);
+
   result->command = command;
   if (wide_circ_ids)
     result->circ_id = ntohl(get_uint32(hdr));

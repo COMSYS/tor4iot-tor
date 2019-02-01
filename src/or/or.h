@@ -1210,6 +1210,9 @@ typedef struct circuitmux_s circuitmux_t;
 /** Parsed onion routing cell.  All communication between nodes
  * is via cells. */
 typedef struct cell_t {
+  struct timespec received;
+  struct timespec sent;
+
   circid_t circ_id; /**< Circuit which received the cell. */
   uint8_t command; /**< Type of the cell: one of CELL_PADDING, CELL_CREATE,
                     * CELL_DESTROY, etc */
@@ -1220,6 +1223,9 @@ typedef struct cell_t {
 
 /** Parsed variable-length onion routing cell. */
 typedef struct var_cell_t {
+  struct timespec received;
+  struct timespec sent;
+
   /** Type of the cell: CELL_VERSIONS, etc. */
   uint8_t command;
   /** Circuit thich received the cell */
@@ -3293,6 +3299,9 @@ typedef struct circuit_t {
   uint8_t iot_expect_hmac[DIGEST256_LEN];
 
   int handover:1;
+
+  struct timespec temp1;
+  struct timespec temp2;
 } circuit_t;
 
 /** Largest number of relay_early cells that we can send on a given
@@ -3555,6 +3564,11 @@ typedef struct origin_circuit_t {
 #define HSv3_REND_INFO 84
   uint8_t iot_rend_info[HSv3_REND_INFO];
 
+  struct timespec iot_mes_ipcpathstart;
+  struct timespec iot_mes_ipcpathend;
+  struct timespec iot_mes_ipcircstart;
+  struct timespec iot_mes_ipcircend;
+
   struct timespec iot_mes_cpathstart;
   struct timespec iot_mes_cpathend;
   struct timespec iot_mes_circstart;
@@ -3562,13 +3576,25 @@ typedef struct origin_circuit_t {
 
   struct timespec iot_mes_ticketstart;
   struct timespec iot_mes_ticketend;
+  struct timespec iot_mes_ticket_to_buf;
+
+  struct timespec iot_mes_ticketack_from_buf;
   struct timespec iot_mes_ticketack;
 
   struct timespec iot_mes_handoverticketstart;
   struct timespec iot_mes_handoverticketend;
+  struct timespec iot_mes_handoverticket_to_buf;
 
+  struct timespec iot_mes_hs_introduce1_to_buf;
   struct timespec iot_mes_hs_introduce1_sent;
   struct timespec iot_mes_hs_introduce2_received;
+  struct timespec iot_mes_hs_introduce2_from_buf;
+
+  struct timespec iot_mes_hs_rend2_received;
+  struct timespec iot_mes_hs_rend2_from_buf;
+
+  struct timespec iot_mes_hsfinalizestart;
+  struct timespec iot_mes_hsfinalizeend;
 } origin_circuit_t;
 
 struct onion_queue_t;
@@ -3668,14 +3694,21 @@ typedef struct or_circuit_t {
   struct timespec iot_mes_circreceived;
   struct timespec iot_mes_circdone;
 
+  struct timespec iot_mes_ticketfrombuf;
   struct timespec iot_mes_ticketreceived;
   struct timespec iot_mes_ticketrelayed;
+  struct timespec iot_mes_tickettobuf;
 
+  struct timespec iot_mes_relayticketrelayedfrombuf;
   struct timespec iot_mes_relayticketrelayed;
+  struct timespec iot_mes_relayticketrelayedtobuf;
 
+  struct timespec iot_mes_handoverticketfrombuf;
   struct timespec iot_mes_handoverticketreceived;
   struct timespec iot_mes_handoverticketrelayed;
+  struct timespec iot_mes_handovertickettobuf;
 
+  struct timespec iot_mes_joinfrombuf;
   struct timespec iot_mes_joinreq;
   struct timespec iot_mes_joindone;
 } or_circuit_t;

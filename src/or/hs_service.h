@@ -237,6 +237,7 @@ typedef struct hs_service_t {
 
   /* XXX: Credential (client auth.) #20700. */
 
+
 } hs_service_t;
 
 /* For the service global hash map, we define a specific type for it which

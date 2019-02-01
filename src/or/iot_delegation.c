@@ -306,6 +306,12 @@ iot_delegation_print_measurements(circuit_t *circ) {
 		print_mes("START", &circ->iot_entry_conn->iot_mes_start);
 	}
 
+	print_mes("IP_CPATHSTART", &o_circ->iot_mes_ipcpathstart);
+	print_mes("IP_CPATHEND", &o_circ->iot_mes_ipcpathend);
+	print_mes("IP_CIRCSTART", &o_circ->iot_mes_ipcircstart);
+	print_mes("IP_CIRCEND", &o_circ->iot_mes_ipcircend);
+
+	print_mes("INTRODUCE2_FROM_BUF", &o_circ->iot_mes_hs_introduce2_from_buf);
 	print_mes("INTRODUCE2_RECEIVED", &o_circ->iot_mes_hs_introduce2_received);
 	print_mes("CPATHSTART", &o_circ->iot_mes_cpathstart);
 	print_mes("CPATHEND", &o_circ->iot_mes_cpathend);
@@ -333,14 +339,18 @@ iot_delegation_print_measurements(circuit_t *circ) {
 	print_mes("CIRCEND", &o_circ->iot_mes_circend);
 
 	print_mes("INTRODUCE1_SENT", &o_circ->iot_mes_hs_introduce1_sent);
+	print_mes("INTRODUCE1_TO_BUF", &o_circ->iot_mes_hs_introduce1_to_buf);
 
 	print_mes("TICKETSTART", &o_circ->iot_mes_ticketstart);
 	print_mes("TICKETEND", &o_circ->iot_mes_ticketend);
+	print_mes("TICKET_TO_BUF", &o_circ->iot_mes_ticket_to_buf);
 
+	print_mes("TICKETACK_FROM_BUF", &o_circ->iot_mes_ticketack_from_buf);
 	print_mes("TICKETACK", &o_circ->iot_mes_ticketack);
 
 	print_mes("HANDOVERTICKETSTART", &o_circ->iot_mes_handoverticketstart);
 	print_mes("HANDOVERTICKETEND", &o_circ->iot_mes_handoverticketend);
+	print_mes("HANDOVERTICKET_TO_BUF", &o_circ->iot_mes_handoverticket_to_buf);
 
 	log_notice(LD_GENERAL, "CHOSENRELAYS:%s", circuit_list_path(o_circ, 0));
 }

@@ -1995,6 +1995,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     case RELAY_COMMAND_RENDEZVOUS2:
     case RELAY_COMMAND_INTRO_ESTABLISHED:
     case RELAY_COMMAND_RENDEZVOUS_ESTABLISHED:
+      memcpy(&circ->temp1, &cell->received, sizeof(struct timespec));
       rend_process_relay_cell(circ, layer_hint,
                               rh.command, rh.length,
                               cell->payload+RELAY_HEADER_SIZE);
@@ -2007,9 +2008,11 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
       iot_process_relay_pre_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
     case RELAY_COMMAND_TICKET:
+      memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_handoverticketfrombuf, &cell->received, sizeof (struct timespec));
       iot_process_relay_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
     case RELAY_COMMAND_FAST_TICKET:
+      memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_ticketfrombuf, &cell->received, sizeof (struct timespec));
       iot_process_relay_fast_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
       return 0;
 
@@ -2018,6 +2021,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED2 cell.");
     	// Check HMAC
 		clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_ticketack);
+		memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_ticketack_from_buf, &cell->received, sizeof(struct timespec));
     	if (!memcmp(cell->payload+RELAY_HEADER_SIZE, circ->iot_expect_hmac, DIGEST256_LEN)) {
     		if (circ->handover) {
     			iot_ticket_send(TO_ORIGIN_CIRCUIT(circ), IOT_TICKET_TYPE_CLIENT); // Send ticket to our client IoT device
@@ -2576,6 +2580,8 @@ cell_queue_append_packed_copy(circuit_t *circ, cell_queue_t *queue,
   (void)use_stats;
 
   copy->inserted_time = (uint32_t) monotime_coarse_absolute_msec();
+
+  clock_gettime(CLOCK_MONOTONIC, &circ->temp2);
 
   cell_queue_append(queue, copy);
 }
@@ -3187,6 +3193,8 @@ append_cell_to_circuit_queue(circuit_t *circ, channel_t *chan,
      * circuit active. */
     log_debug(LD_GENERAL, "Made a circuit active.");
   }
+
+  clock_gettime(CLOCK_MONOTONIC, &cell->sent);
 
   /* New way: mark this as having waiting cells for the scheduler */
   scheduler_channel_has_waiting_cells(chan);

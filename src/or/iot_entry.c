@@ -38,6 +38,13 @@ uint32_t iot_circ_id = 17;
 STATIC smartlist_t *splitted_circuits = NULL;
 STATIC smartlist_t *connected_iot_dev = NULL;
 
+static void
+print_mes(const char *label, const struct timespec *time) {
+	if (time->tv_sec != 0 || time->tv_nsec != 0) {
+	  log_notice(LD_GENERAL, "%s:%lus%luns", label, time->tv_sec, time->tv_nsec);
+	}
+}
+
 static or_connection_t *iot_find_iot_device(const uint8_t *target_id) {
 	if (connected_iot_dev) {
 		log_info(LD_GENERAL, "Looking for connected IoT device:");
@@ -59,7 +66,7 @@ static or_connection_t *iot_find_iot_device(const uint8_t *target_id) {
 }
 
 static uint8_t iot_relay_to_device(const uint8_t *target_id, size_t length,
-		const uint8_t *payload, uint8_t command) {
+		const uint8_t *payload, uint8_t command, struct timespec *tobuf) {
 	or_connection_t* conn = NULL;
 
 	conn = iot_find_iot_device(target_id);
@@ -82,6 +89,9 @@ static uint8_t iot_relay_to_device(const uint8_t *target_id, size_t length,
 
 	connection_or_write_var_cell_to_buf(cell, conn);
 
+	if (tobuf)
+		memcpy(tobuf, &cell->sent, sizeof(struct timespec));
+
 	var_cell_free(cell);
 
 	return 1;
@@ -91,14 +101,11 @@ void iot_process_relay_pre_ticket(circuit_t *circ, size_t length,
 		const uint8_t *payload) {
 	(void) circ;
 
-	struct timespec recv_monotonic;
-	clock_gettime(CLOCK_MONOTONIC, &recv_monotonic);
-
 	log_info(LD_GENERAL, "Got IoT pre ticket with IoT id of size %ld.",
 			length - IOT_ID_LEN);
 
 	iot_relay_to_device(payload, length - IOT_ID_LEN, payload + IOT_ID_LEN,
-			CELL_IOT_PRE_TICKET);
+			CELL_IOT_PRE_TICKET, NULL);
 }
 
 void iot_process_relay_ticket(circuit_t *circ, size_t length,
@@ -124,7 +131,7 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
 			circ->join_cookie);
 
 	iot_relay_to_device(msg->iot_id, sizeof(iot_ticket_t),
-			(uint8_t*) (&msg->ticket), CELL_IOT_TICKET);
+			(uint8_t*) (&msg->ticket), CELL_IOT_TICKET, &TO_OR_CIRCUIT(circ)->iot_mes_handovertickettobuf);
 
 	cell_t cell;
 
@@ -139,6 +146,9 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
 }
 
 void iot_info(or_connection_t *conn, const var_cell_t *cell) {
+	struct timespec info_received;
+	clock_gettime(CLOCK_MONOTONIC, &info_received);
+
 	log_info(LD_GENERAL,
 			"Got a INFO cell for circ_id %u on channel " U64_FORMAT " (%p)",
 			(unsigned )cell->circ_id,
@@ -178,6 +188,13 @@ void iot_info(or_connection_t *conn, const var_cell_t *cell) {
 	log_debug(LD_GENERAL, "Add connection %p to iot smart list.", conn);
 
 	connection_or_set_state_joining(conn);
+
+	struct timespec info_registered;
+	clock_gettime(CLOCK_MONOTONIC, &info_registered);
+
+	print_mes("INFO_FROM_BUF", &cell->received);
+	print_mes("INFO_RECEIVED", &info_received);
+	print_mes("INFO_REGISTERED", &info_registered);
 }
 
 void iot_remove_connected_iot(or_connection_t *conn) {
@@ -301,17 +318,11 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
     iot_circ_id++;
 
     connection_or_write_var_cell_to_buf(cell, conn);
+    memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_tickettobuf, &cell->sent, sizeof(struct timespec));
 
     var_cell_free(cell);
 
     clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_ticketrelayed);
-}
-
-static void
-print_mes(const char *label, struct timespec *time) {
-	if (time->tv_sec != 0 || time->tv_nsec != 0) {
-	  log_notice(LD_GENERAL, "%s:%lus%luns", label, time->tv_sec, time->tv_nsec);
-	}
 }
 
 void
@@ -320,11 +331,22 @@ iot_entry_print_measurements(circuit_t *circ) {
 
 	print_mes("CIRCRECEIVED", &or_circ->iot_mes_circreceived);
 	print_mes("CIRCDONE", &or_circ->iot_mes_circdone);
+
+	print_mes("TICKET_FROM_BUF", &or_circ->iot_mes_ticketfrombuf);
 	print_mes("TICKETRECEIVED", &or_circ->iot_mes_ticketreceived);
 	print_mes("TICKETRELAYED", &or_circ->iot_mes_ticketrelayed);
+	print_mes("TICKET_TO_BUF", &or_circ->iot_mes_tickettobuf);
+
+	print_mes("HANDOVERTICKET_FROM_BUF", &or_circ->iot_mes_handoverticketfrombuf);
 	print_mes("HANDOVERTICKETRECEIVED", &or_circ->iot_mes_handoverticketreceived);
 	print_mes("HANDOVERTICKETRELAYED", &or_circ->iot_mes_handoverticketrelayed);
+	print_mes("HANDOVERTICKET_TO_BUF", &or_circ->iot_mes_handoverticketfrombuf);
+
+	print_mes("RELAYTICKETRELAYED_FROM_BUF", &or_circ->iot_mes_relayticketrelayedfrombuf);
 	print_mes("RELAYTICKETRELAYED", &or_circ->iot_mes_relayticketrelayed);
+	print_mes("RELAYTICKETRELAYED_TO_BUF", &or_circ->iot_mes_relayticketrelayedtobuf);
+
+	print_mes("JOINREQ_FROM_BUF", &or_circ->iot_mes_joinfrombuf);
 	print_mes("JOINREQ", &or_circ->iot_mes_joinreq);
 	print_mes("JOINDONE", &or_circ->iot_mes_joindone);
 }
