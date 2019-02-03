@@ -1138,6 +1138,8 @@ hs_circ_send_introduce1(origin_circuit_t *intro_circ,
     goto done;
   }
 
+  clock_gettime(CLOCK_MONOTONIC, &rend_circ->iot_mes_hs_introduce1_ready);
+
   if (relay_send_command_from_edge(CONTROL_CELL_ID, TO_CIRCUIT(intro_circ),
                                    RELAY_COMMAND_INTRODUCE1,
                                    (const char *) payload, payload_len,
@@ -1147,8 +1149,6 @@ hs_circ_send_introduce1(origin_circuit_t *intro_circ,
              TO_CIRCUIT(intro_circ)->n_circ_id);
     goto done;
   }
-
-  clock_gettime(CLOCK_MONOTONIC, &rend_circ->iot_mes_hs_introduce1_sent);
 
   memcpy(&rend_circ->iot_mes_ipcircstart, &intro_circ->iot_mes_circstart, sizeof(struct timespec));
   memcpy(&rend_circ->iot_mes_ipcircend, &intro_circ->iot_mes_circend, sizeof(struct timespec));

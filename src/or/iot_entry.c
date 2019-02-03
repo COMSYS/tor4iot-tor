@@ -139,10 +139,10 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
 	cell.command = CELL_DESTROY;
 	cell.circ_id = TO_OR_CIRCUIT(circ)->p_circ_id;
 
+	clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_handoverticketrelayed);
+
 	append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, &cell,
 			CELL_DIRECTION_IN, 0);
-
-	clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_handoverticketrelayed);
 }
 
 void iot_info(or_connection_t *conn, const var_cell_t *cell) {

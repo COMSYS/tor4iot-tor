@@ -819,12 +819,31 @@ relay_send_command_from_edge_,(streamid_t stream_id, circuit_t *circ,
     }
   }
 
+  switch(relay_command) {
+  case RELAY_COMMAND_BEGIN:
+	  clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_begin_ready);
+	  break;
+  case RELAY_COMMAND_INTRODUCE1:
+	  clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_introduce1_ready);
+	  break;
+  }
+
   if (circuit_package_relay_cell_(&cell, circ, cell_direction, cpath_layer,
                                  stream_id, filename, lineno) < 0) {
     log_warn(LD_BUG,"circuit_package_relay_cell failed. Closing.");
     circuit_mark_for_close(circ, END_CIRC_REASON_INTERNAL);
     return -1;
   }
+
+  switch(relay_command) {
+  case RELAY_COMMAND_BEGIN:
+	  memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_begin_to_buf, &circ->temp2, sizeof(struct timespec));
+	  break;
+  case RELAY_COMMAND_INTRODUCE1:
+	  memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_introduce1_to_buf, &circ->temp2, sizeof(struct timespec));
+	  break;
+  }
+
   return 0;
 }
 
@@ -1485,6 +1504,10 @@ connection_edge_process_relay_cell_not_open(
     int ttl;
     entry_connection_t *entry_conn = EDGE_TO_ENTRY_CONN(conn);
     tor_assert(CIRCUIT_IS_ORIGIN(circ));
+
+    clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected);
+    memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected_from_buf, &cell->received, sizeof(struct timespec));
+
     if (conn->base_.state != AP_CONN_STATE_CONNECT_WAIT) {
       log_fn(LOG_PROTOCOL_WARN, LD_APP,
              "Got 'connected' while not in state connect_wait. Dropping.");
@@ -2581,9 +2604,9 @@ cell_queue_append_packed_copy(circuit_t *circ, cell_queue_t *queue,
 
   copy->inserted_time = (uint32_t) monotime_coarse_absolute_msec();
 
-  clock_gettime(CLOCK_MONOTONIC, &circ->temp2);
-
   cell_queue_append(queue, copy);
+
+  clock_gettime(CLOCK_MONOTONIC, &circ->temp2);
 }
 
 /** Initialize <b>queue</b> as an empty cell queue. */

@@ -144,11 +144,11 @@ void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 	log_info(LD_GENERAL, "Sending ticket to %s",
 			split_point->extend_info->nickname);
 
+	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_handoverticketend);
+
 	//Send it!
 	relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET,
 			(const char* ) msg, sizeof(iot_relay_ticket_t), split_point);
-
-	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_handoverticketend);
 
 	tor_free(msg);
 }
@@ -338,8 +338,11 @@ iot_delegation_print_measurements(circuit_t *circ) {
 
 	print_mes("CIRCEND", &o_circ->iot_mes_circend);
 
-	print_mes("INTRODUCE1_SENT", &o_circ->iot_mes_hs_introduce1_sent);
+	print_mes("INTRODUCE1_READY", &o_circ->iot_mes_hs_introduce1_ready);
 	print_mes("INTRODUCE1_TO_BUF", &o_circ->iot_mes_hs_introduce1_to_buf);
+
+	print_mes("RENDEZVOUS2_FROM_BUF", &o_circ->iot_mes_hs_rend2_from_buf);
+	print_mes("RENDEZVOUS2", &o_circ->iot_mes_hs_rend2_received);
 
 	print_mes("TICKETSTART", &o_circ->iot_mes_ticketstart);
 	print_mes("TICKETEND", &o_circ->iot_mes_ticketend);
@@ -351,6 +354,12 @@ iot_delegation_print_measurements(circuit_t *circ) {
 	print_mes("HANDOVERTICKETSTART", &o_circ->iot_mes_handoverticketstart);
 	print_mes("HANDOVERTICKETEND", &o_circ->iot_mes_handoverticketend);
 	print_mes("HANDOVERTICKET_TO_BUF", &o_circ->iot_mes_handoverticket_to_buf);
+
+	print_mes("BEGIN_READY", &o_circ->iot_mes_hs_begin_ready);
+	print_mes("BEGIN_TO_BUF", &o_circ->iot_mes_hs_begin_to_buf);
+
+	print_mes("CONNECTED_RECV", &o_circ->iot_mes_hs_connected);
+	print_mes("CONNECTED_FROM_BUF", &o_circ->iot_mes_hs_connected_from_buf);
 
 	log_notice(LD_GENERAL, "CHOSENRELAYS:%s", circuit_list_path(o_circ, 0));
 }
