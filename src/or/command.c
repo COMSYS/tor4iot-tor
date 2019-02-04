@@ -488,6 +488,7 @@ command_process_iotrelayed_cell(cell_t *cell, channel_t *chan) {
 		return;
 	}
 	memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_relayticketrelayedtobuf, &circ->temp2, sizeof(struct timespec));
+	TO_OR_CIRCUIT(circ)->mes = 1;
 }
 
 /** Process a 'relay' or 'relay_early' <b>cell</b> that just arrived from

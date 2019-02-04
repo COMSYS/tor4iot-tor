@@ -351,10 +351,10 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
     return 0;
   }
 
-  if (IS_OR_CIRCUIT(circ)) {
+  if (CIRCUIT_IS_ORCIRC(circ)) {
 	  or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
-	  if (or_circ->process_cells_out < PROCESS_CELLS) {
-		  memcpy(or_circ->iot_mes_relay_cell_in[or_circ->process_cells_in], cell->received, sizeof(struct timespec));
+	  if (or_circ->process_cells_out < PROCESS_CELLS && or_circ->mes) {
+		  memcpy(&or_circ->iot_mes_relay_cell_in[or_circ->process_cells_in], &cell->received, sizeof(struct timespec));
 		  or_circ->process_cells_in++;
 	  }
   }
@@ -443,10 +443,10 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
 
   append_cell_to_circuit_queue(circ, chan, cell, cell_direction, 0);
 
-  if (IS_OR_CIRCUIT(circ)) {
+  if (CIRCUIT_IS_ORCIRC(circ)) {
 	  or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
 	  if (or_circ->process_cells_out < PROCESS_CELLS) {
-		  memcpy(or_circ->iot_mes_relay_cell_out[or_circ->process_cells_out], circ->temp2, sizeof(struct timespec));
+		  memcpy(&or_circ->iot_mes_relay_cell_out[or_circ->process_cells_out], &circ->temp2, sizeof(struct timespec));
 		  or_circ->process_cells_out++;
 	  }
   }
@@ -1509,14 +1509,23 @@ connection_edge_process_relay_cell_not_open(
   }
 
   if (conn->base_.type == CONN_TYPE_AP &&
-      rh->command == RELAY_COMMAND_CONNECTED) {
+      (rh->command == RELAY_COMMAND_CONNECTED || rh->command == RELAY_COMMAND_MEASURE_ACK)) {
     tor_addr_t addr;
     int ttl;
     entry_connection_t *entry_conn = EDGE_TO_ENTRY_CONN(conn);
     tor_assert(CIRCUIT_IS_ORIGIN(circ));
 
-    clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected);
-    memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected_from_buf, &cell->received, sizeof(struct timespec));
+    if (rh->command == RELAY_COMMAND_CONNECTED) {
+    	clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected);
+    	memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected_from_buf, &cell->received, sizeof(struct timespec));
+
+    	if (entry_conn->socks_request->command == SOCKS_COMMAND_CONNECT_MES) {
+    		relay_send_command_from_edge(rh->stream_id, circ, RELAY_COMMAND_MEASURE,
+    				(char*)cell->payload+RELAY_HEADER_SIZE, rh->length,
+					TO_ORIGIN_CIRCUIT(circ)->cpath);
+    		return 0;
+    	}
+    }
 
     if (conn->base_.state != AP_CONN_STATE_CONNECT_WAIT) {
       log_fn(LOG_PROTOCOL_WARN, LD_APP,
@@ -1668,6 +1677,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     switch (rh.command) {
       case RELAY_COMMAND_BEGIN:
       case RELAY_COMMAND_CONNECTED:
+      case RELAY_COMMAND_MEASURE_ACK:
       case RELAY_COMMAND_END:
       case RELAY_COMMAND_RESOLVE:
       case RELAY_COMMAND_RESOLVED:
@@ -1702,7 +1712,15 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     }
   }
 
+  or_circuit_t *or_circ;
+
   switch (rh.command) {
+  	case RELAY_COMMAND_MEASURE:
+  		relay_send_command_from_edge(rh.stream_id, circ, RELAY_COMMAND_MEASURE_ACK,
+  				(char*) cell->payload + RELAY_HEADER_SIZE, rh.length, NULL);
+  		or_circ = TO_OR_CIRCUIT(circ);
+  		or_circ->mes = 1;
+  		return 0;
     case RELAY_COMMAND_DROP:
       rep_hist_padding_count_read(PADDING_TYPE_DROP);
 //      log_info(domain,"Got a relay-level padding cell. Dropping.");
@@ -1930,6 +1948,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
                         get_uint8(cell->payload + RELAY_HEADER_SIZE));
       return 0;
     case RELAY_COMMAND_CONNECTED:
+    case RELAY_COMMAND_MEASURE_ACK:
       if (conn) {
         log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,
                "'connected' unsupported while open. Closing circ.");

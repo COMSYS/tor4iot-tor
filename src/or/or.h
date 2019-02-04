@@ -659,6 +659,9 @@ typedef enum {
 #define RELAY_COMMAND_TICKET_RELAYED 57
 #define RELAY_COMMAND_FAST_TICKET_RELAYED 59
 
+#define RELAY_COMMAND_MEASURE 70
+#define RELAY_COMMAND_MEASURE_ACK 71
+
 
 /* Reasons why an OR connection is closed. */
 #define END_OR_CONN_REASON_DONE           1
@@ -3719,10 +3722,12 @@ typedef struct or_circuit_t {
   struct timespec iot_mes_joindone;
 
 #define PROCESS_CELLS 4
-  struct timespec iot_mes_relay_cell_in[PROCESS_CELLS];
-  struct timespec iot_mes_relay_cell_out[PROCESS_CELLS];
-  uint8_t process_cells_in;
-  uint8_t process_cells_out;
+  struct timespec iot_mes_relay_cell_in[PROCESS_CELLS]; // Timestamps of incoming cells
+  struct timespec iot_mes_relay_cell_out[PROCESS_CELLS]; // Timestamps of the same cells when outgoing
+  uint8_t process_cells_in; // How many incoming cells do we have measured?
+  uint8_t process_cells_out; // Same for outgoing cells
+
+  uint8_t mes; // Only measure that on some circuits after it is activated.
 } or_circuit_t;
 
 #if REND_COOKIE_LEN != DIGEST_LEN

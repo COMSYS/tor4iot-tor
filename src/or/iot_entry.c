@@ -270,6 +270,8 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 		}
 
 		clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_joindone);
+
+		TO_OR_CIRCUIT(circ)->mes = 1;
 	} else {
 		log_info(LD_GENERAL,
 				"Tried to join circuit, but cookies didnt match. 0x%08x ?",
