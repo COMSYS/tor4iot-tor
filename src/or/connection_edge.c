@@ -1908,7 +1908,7 @@ connection_ap_handshake_rewrite_and_attach(entry_connection_t *conn,
       }
       tor_assert(!automap);
       rep_hist_note_used_resolve(now); /* help predict this next time */
-    } else if (socks->command == SOCKS_COMMAND_CONNECT) {
+    } else if (socks->command == SOCKS_COMMAND_CONNECT || socks->command == SOCKS_COMMAND_CONNECT_MES) {
       /* Now see if this is a connect request that we can reject immediately */
 
       tor_assert(!automap);
@@ -3900,7 +3900,7 @@ connection_ap_can_use_exit(const entry_connection_t *conn,
     return 1;
   }
 
-  if (conn->socks_request->command == SOCKS_COMMAND_CONNECT) {
+  if (conn->socks_request->command == SOCKS_COMMAND_CONNECT || conn->socks_request->command == SOCKS_COMMAND_CONNECT_MES) {
     tor_addr_t addr, *addrp = NULL;
     addr_policy_result_t r;
     if (0 == tor_addr_parse(&addr, conn->socks_request->address)) {

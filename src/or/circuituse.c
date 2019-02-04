@@ -2046,7 +2046,8 @@ circuit_get_open_circ_or_launch(entry_connection_t *conn,
 
   /* Will the exit policy of the exit node apply to this stream? */
   check_exit_policy =
-      conn->socks_request->command == SOCKS_COMMAND_CONNECT &&
+      (conn->socks_request->command == SOCKS_COMMAND_CONNECT ||
+    		  conn->socks_request->command == SOCKS_COMMAND_CONNECT_MES) &&
       !conn->use_begindir &&
       !connection_edge_is_rendezvous_stream(ENTRY_TO_EDGE_CONN(conn));
 
@@ -2579,7 +2580,8 @@ connection_ap_handshake_attach_chosen_circuit(entry_connection_t *conn,
   link_apconn_to_circ(conn, circ, cpath);
 
   tor_assert(conn->socks_request);
-  if (conn->socks_request->command == SOCKS_COMMAND_CONNECT) {
+  if (conn->socks_request->command == SOCKS_COMMAND_CONNECT ||
+		  conn->socks_request->command == SOCKS_COMMAND_CONNECT_MES) {
     if (!conn->use_begindir)
       consider_recording_trackhost(conn, circ);
     if (connection_ap_handshake_send_begin(conn) < 0)

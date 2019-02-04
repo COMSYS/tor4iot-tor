@@ -313,6 +313,7 @@ parse_socks(const char *data, size_t datalen, socks_request_t *req,
       }
       req->command = (unsigned char) *(data+1);
       if (req->command != SOCKS_COMMAND_CONNECT &&
+          req->command != SOCKS_COMMAND_CONNECT_MES &&
           req->command != SOCKS_COMMAND_RESOLVE &&
           req->command != SOCKS_COMMAND_RESOLVE_PTR) {
         /* not a connect or resolve or a resolve_ptr? we don't support it. */
@@ -431,6 +432,7 @@ parse_socks(const char *data, size_t datalen, socks_request_t *req,
       // buf_pullup(buf, 1280);
       req->command = (unsigned char) *(data+1);
       if (req->command != SOCKS_COMMAND_CONNECT &&
+    	  req->command != SOCKS_COMMAND_CONNECT_MES &&
           req->command != SOCKS_COMMAND_RESOLVE) {
         /* not a connect or resolve? we don't support it. (No resolve_ptr with
          * socks4.) */

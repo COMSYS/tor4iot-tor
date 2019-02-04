@@ -4995,8 +4995,10 @@ static inline void or_state_mark_dirty(or_state_t *state, time_t when)
 /** Please turn this IP address into an FQDN, privately. */
 #define SOCKS_COMMAND_RESOLVE_PTR   0xF1
 
+#define SOCKS_COMMAND_CONNECT_MES   0xA1
+
 /* || 0 is for -Wparentheses-equality (-Wall?) appeasement under clang */
-#define SOCKS_COMMAND_IS_CONNECT(c) (((c)==SOCKS_COMMAND_CONNECT) || 0)
+#define SOCKS_COMMAND_IS_CONNECT(c) (((c)==SOCKS_COMMAND_CONNECT) || (c)==SOCKS_COMMAND_CONNECT_MES || 0)
 #define SOCKS_COMMAND_IS_RESOLVE(c) ((c)==SOCKS_COMMAND_RESOLVE || \
                                      (c)==SOCKS_COMMAND_RESOLVE_PTR)
 
