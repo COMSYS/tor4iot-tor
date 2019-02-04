@@ -2526,8 +2526,11 @@ getinfo_helper_downloads(control_connection_t *control_conn,
   }
 }
 
-static inline uint64_t as_nanoseconds(struct timespec* ts) {
-    return ts->tv_sec * (uint64_t)1000000000L + ts->tv_nsec;
+static void
+add_mes(smartlist_t* list, const char *label, struct timespec *time) {
+	if (time->tv_sec != 0 || time->tv_nsec != 0) {
+		smartlist_add_asprintf(list, "%s:%lus%luns", label, time->tv_sec, time->tv_nsec);
+	}
 }
 
 /** Allocate and return a description of <b>circ</b>'s current status,
@@ -2612,6 +2615,33 @@ circuit_describe_status_for_controller(origin_circuit_t *circ)
                            socks_password_escaped);
     tor_free(socks_password_escaped);
   }
+
+  add_mes(descparts, "CPATHSTART", &circ->iot_mes_cpathstart);
+  add_mes(descparts, "CPATHEND", &circ->iot_mes_cpathend);
+  add_mes(descparts, "CIRCSTART", &circ->iot_mes_circstart);
+
+  crypt_path_t *cpath_last, *cpath_temp;
+
+  cpath_last = circ->cpath->prev;
+  cpath_temp = circ->cpath;
+
+  while (cpath_temp != cpath_last) {
+	  add_mes(descparts, "NTOR1START", &cpath_temp->iot_mes_ntor1start);
+	  add_mes(descparts, "X255191START", &cpath_temp->iot_mes_x255191start);
+	  add_mes(descparts, "X255191END", &cpath_temp->iot_mes_x255191end);
+	  add_mes(descparts, "NTOR1END", &cpath_temp->iot_mes_ntor1end);
+
+	  add_mes(descparts, "NTOR2START", &cpath_temp->iot_mes_ntor2start);
+	  add_mes(descparts, "X255192START", &cpath_temp->iot_mes_x255192start);
+	  add_mes(descparts, "X255192END", &cpath_temp->iot_mes_x255192end);
+	  add_mes(descparts, "X255193START", &cpath_temp->iot_mes_x255193start);
+	  add_mes(descparts, "X255193END", &cpath_temp->iot_mes_x255193end);
+	  add_mes(descparts, "NTOR2END", &cpath_temp->iot_mes_ntor2end);
+
+	  cpath_temp = cpath_temp->next;
+  }
+
+  add_mes(descparts, "CIRCEND", &circ->iot_mes_circend);
 
   rv = smartlist_join_strings(descparts, " ", 0, NULL);
 

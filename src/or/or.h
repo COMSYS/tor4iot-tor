@@ -3717,6 +3717,12 @@ typedef struct or_circuit_t {
   struct timespec iot_mes_joinfrombuf;
   struct timespec iot_mes_joinreq;
   struct timespec iot_mes_joindone;
+
+#define PROCESS_CELLS 4
+  struct timespec iot_mes_relay_cell_in[PROCESS_CELLS];
+  struct timespec iot_mes_relay_cell_out[PROCESS_CELLS];
+  uint8_t process_cells_in;
+  uint8_t process_cells_out;
 } or_circuit_t;
 
 #if REND_COOKIE_LEN != DIGEST_LEN

@@ -349,5 +349,15 @@ iot_entry_print_measurements(circuit_t *circ) {
 	print_mes("JOINREQ_FROM_BUF", &or_circ->iot_mes_joinfrombuf);
 	print_mes("JOINREQ", &or_circ->iot_mes_joinreq);
 	print_mes("JOINDONE", &or_circ->iot_mes_joindone);
+
+	char buf[20];
+
+	for (uint8_t i=0; i<PROCESS_CELLS; i++) {
+		sprintf(buf, "PROCESSEDCELL_%d_IN", i);
+		print_mes(buf, &or_circ->iot_mes_relay_cell_in[i]);
+
+		sprintf(buf, "PROCESSEDCELL_%d_OUT", i);
+		print_mes(buf, &or_circ->iot_mes_relay_cell_out[i]);
+	}
 }
 

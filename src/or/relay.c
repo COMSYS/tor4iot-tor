@@ -351,6 +351,14 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
     return 0;
   }
 
+  if (IS_OR_CIRCUIT(circ)) {
+	  or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
+	  if (or_circ->process_cells_out < PROCESS_CELLS) {
+		  memcpy(or_circ->iot_mes_relay_cell_in[or_circ->process_cells_in], cell->received, sizeof(struct timespec));
+		  or_circ->process_cells_in++;
+	  }
+  }
+
   /* not recognized. pass it on. */
   if (cell_direction == CELL_DIRECTION_OUT) {
 //		if (circ->state == CIRCUIT_STATE_FAST_JOIN_WAIT) {
@@ -435,10 +443,12 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
 
   append_cell_to_circuit_queue(circ, chan, cell, cell_direction, 0);
 
-  if (circ->already_split) {
-      struct timespec queued;
-      clock_gettime(CLOCK_MONOTONIC, &queued);
-      log_notice(LD_GENERAL, "QUEUED:%lus%luns", queued.tv_sec, queued.tv_nsec);
+  if (IS_OR_CIRCUIT(circ)) {
+	  or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
+	  if (or_circ->process_cells_out < PROCESS_CELLS) {
+		  memcpy(or_circ->iot_mes_relay_cell_out[or_circ->process_cells_out], circ->temp2, sizeof(struct timespec));
+		  or_circ->process_cells_out++;
+	  }
   }
 
   return 0;
