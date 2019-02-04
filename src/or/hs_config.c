@@ -311,6 +311,7 @@ config_generic_service(const config_line_t *line_,
   int have_version = 0, have_allow_unknown_ports = 0;
   int have_dir_group_read = 0, have_max_streams = 0;
   int have_max_streams_close = 0;
+  int have_delegation = 0;
 
   tor_assert(line_);
   tor_assert(options);
@@ -421,6 +422,18 @@ config_generic_service(const config_line_t *line_,
       }
       have_max_streams_close = 1;
       continue;
+    }
+    /* Maximum amount of streams before we close the circuit. */
+    if (!strcasecmp(line->key, "HiddenServiceDelegation")) {
+    	config->is_delegation =
+    			(unsigned int) helper_parse_uint64(line->key, line->value, 0, 1, &ok);
+    	if (!ok || have_delegation) {
+    		if (have_delegation)
+    			dup_opt_seen = line->key;
+    		goto err;
+    	}
+    	have_delegation = 1;
+    	continue;
     }
   }
 

@@ -416,7 +416,7 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
     }
 
     //IOT: This is where we set our purpose
-    if (1) { //service->config.is_iot) { //XXX: Make it true for now
+    if (service->config.is_delegation) {
       circ = circuit_launch_by_extend_info(CIRCUIT_PURPOSE_S_CONNECT_REND_IOT, info,
                                          circ_flags);
     } else {
