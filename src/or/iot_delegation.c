@@ -264,6 +264,8 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 
 	log_debug(LD_GENERAL, "Sending fast ticket");
 
+	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_ticketend);
+
 	if (relay_send_command_from_edge(0, TO_CIRCUIT(circ),
 			RELAY_COMMAND_FAST_TICKET,
 			(const char*) msg,
@@ -273,7 +275,7 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 		log_warn(LD_GENERAL, "Couldn't send FAST_TICKET cell");
 	}
 
-	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_ticketend);
+	memcpy(&circ->iot_mes_ticket_to_buf, &TO_CIRCUIT(circ)->temp2, sizeof(struct timespec));
 
 	pathbias_count_use_attempt(circ);
 	finalize_rend_circuit(circ, cpath, is_service_side);
@@ -303,19 +305,19 @@ iot_delegation_print_measurements(circuit_t *circ) {
 	crypt_path_t *cpath_iot, *cpath_temp;
 
 	if (circ->iot_entry_conn) {
-		print_mes("START", &circ->iot_entry_conn->iot_mes_start);
+		print_mes("MEASUREMENT_START", &circ->iot_entry_conn->iot_mes_start);
 	}
 
-	print_mes("IP_CPATHSTART", &o_circ->iot_mes_ipcpathstart);
-	print_mes("IP_CPATHEND", &o_circ->iot_mes_ipcpathend);
-	print_mes("IP_CIRCSTART", &o_circ->iot_mes_ipcircstart);
-	print_mes("IP_CIRCEND", &o_circ->iot_mes_ipcircend);
+	print_mes("IP_CPATH_START", &o_circ->iot_mes_ipcpathstart);
+	print_mes("IP_CPATH_DONE", &o_circ->iot_mes_ipcpathend);
+	print_mes("IP_CIRC_START", &o_circ->iot_mes_ipcircstart);
+	print_mes("IP_CIRC_DONE", &o_circ->iot_mes_ipcircend);
 
 	print_mes("INTRODUCE2_FROM_BUF", &o_circ->iot_mes_hs_introduce2_from_buf);
-	print_mes("INTRODUCE2_RECEIVED", &o_circ->iot_mes_hs_introduce2_received);
-	print_mes("CPATHSTART", &o_circ->iot_mes_cpathstart);
-	print_mes("CPATHEND", &o_circ->iot_mes_cpathend);
-	print_mes("CIRCSTART", &o_circ->iot_mes_circstart);
+	print_mes("INTRODUCE2_RECV", &o_circ->iot_mes_hs_introduce2_received);
+	print_mes("CPATH_START", &o_circ->iot_mes_cpathstart);
+	print_mes("CPATH_DONE", &o_circ->iot_mes_cpathend);
+	print_mes("CIRC_START", &o_circ->iot_mes_circstart);
 
 	cpath_iot = o_circ->cpath->prev;
 	cpath_temp = o_circ->cpath;
@@ -336,30 +338,36 @@ iot_delegation_print_measurements(circuit_t *circ) {
 		cpath_temp = cpath_temp->next;
 	}
 
-	print_mes("CIRCEND", &o_circ->iot_mes_circend);
+	print_mes("CIRC_DONE", &o_circ->iot_mes_circend);
 
-	print_mes("INTRODUCE1_READY", &o_circ->iot_mes_hs_introduce1_ready);
+	print_mes("INTRODUCE1_DONE", &o_circ->iot_mes_hs_introduce1_ready);
 	print_mes("INTRODUCE1_TO_BUF", &o_circ->iot_mes_hs_introduce1_to_buf);
 
 	print_mes("RENDEZVOUS2_FROM_BUF", &o_circ->iot_mes_hs_rend2_from_buf);
-	print_mes("RENDEZVOUS2", &o_circ->iot_mes_hs_rend2_received);
+	print_mes("RENDEZVOUS2_RECV", &o_circ->iot_mes_hs_rend2_received);
 
-	print_mes("TICKETSTART", &o_circ->iot_mes_ticketstart);
-	print_mes("TICKETEND", &o_circ->iot_mes_ticketend);
+	print_mes("TICKET_START", &o_circ->iot_mes_ticketstart);
+	print_mes("TICKET_END", &o_circ->iot_mes_ticketend);
 	print_mes("TICKET_TO_BUF", &o_circ->iot_mes_ticket_to_buf);
 
 	print_mes("TICKETACK_FROM_BUF", &o_circ->iot_mes_ticketack_from_buf);
-	print_mes("TICKETACK", &o_circ->iot_mes_ticketack);
+	print_mes("TICKETACK_RECV", &o_circ->iot_mes_ticketack);
 
-	print_mes("HANDOVERTICKETSTART", &o_circ->iot_mes_handoverticketstart);
-	print_mes("HANDOVERTICKETEND", &o_circ->iot_mes_handoverticketend);
+	print_mes("HANDOVERTICKET_START", &o_circ->iot_mes_handoverticketstart);
+	print_mes("HANDOVERTICKET_DONE", &o_circ->iot_mes_handoverticketend);
 	print_mes("HANDOVERTICKET_TO_BUF", &o_circ->iot_mes_handoverticket_to_buf);
 
-	print_mes("BEGIN_READY", &o_circ->iot_mes_hs_begin_ready);
-	print_mes("BEGIN_TO_BUF", &o_circ->iot_mes_hs_begin_to_buf);
+	print_mes("R_BEGIN_DONE", &o_circ->iot_mes_hs_begin_ready);
+	print_mes("R_BEGIN_TO_BUF", &o_circ->iot_mes_hs_begin_to_buf);
 
-	print_mes("CONNECTED_RECV", &o_circ->iot_mes_hs_connected);
-	print_mes("CONNECTED_FROM_BUF", &o_circ->iot_mes_hs_connected_from_buf);
+	print_mes("R_CONNECTED_RECV", &o_circ->iot_mes_hs_connected);
+	print_mes("R_CONNECTED_FROM_BUF", &o_circ->iot_mes_hs_connected_from_buf);
+
+	print_mes("PAYLOAD_REQUEST_DONE", &o_circ->iot_mes_payload_request_done);
+	print_mes("PAYLOAD_REQUEST_TO_BUF", &o_circ->iot_mes_payload_request_to_buf);
+
+	print_mes("PAYLOAD_RESPONSE_FROM_BUF", &o_circ->iot_mes_payload_response_from_buf);
+	print_mes("PAYLOAD_RESPONSE_DONE", &o_circ->iot_mes_payload_response_recv);
 
 	log_notice(LD_GENERAL, "CHOSENRELAYS:%s", circuit_list_path(o_circ, 0));
 }

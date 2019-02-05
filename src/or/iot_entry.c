@@ -331,26 +331,26 @@ void
 iot_entry_print_measurements(circuit_t *circ) {
 	or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
 
-	print_mes("CIRCRECEIVED", &or_circ->iot_mes_circreceived);
-	print_mes("CIRCDONE", &or_circ->iot_mes_circdone);
+	print_mes("CIRC_RECV", &or_circ->iot_mes_circreceived);
+	print_mes("CIRC_READY", &or_circ->iot_mes_circdone);
 
 	print_mes("TICKET_FROM_BUF", &or_circ->iot_mes_ticketfrombuf);
-	print_mes("TICKETRECEIVED", &or_circ->iot_mes_ticketreceived);
-	print_mes("TICKETRELAYED", &or_circ->iot_mes_ticketrelayed);
+	print_mes("TICKET_RECV", &or_circ->iot_mes_ticketreceived);
+	print_mes("TICKET_RELAYED", &or_circ->iot_mes_ticketrelayed);
 	print_mes("TICKET_TO_BUF", &or_circ->iot_mes_tickettobuf);
 
 	print_mes("HANDOVERTICKET_FROM_BUF", &or_circ->iot_mes_handoverticketfrombuf);
-	print_mes("HANDOVERTICKETRECEIVED", &or_circ->iot_mes_handoverticketreceived);
-	print_mes("HANDOVERTICKETRELAYED", &or_circ->iot_mes_handoverticketrelayed);
+	print_mes("HANDOVERTICKET_RECV", &or_circ->iot_mes_handoverticketreceived);
+	print_mes("HANDOVERTICKET_RELAY", &or_circ->iot_mes_handoverticketrelayed);
 	print_mes("HANDOVERTICKET_TO_BUF", &or_circ->iot_mes_handoverticketfrombuf);
 
-	print_mes("RELAYTICKETRELAYED_FROM_BUF", &or_circ->iot_mes_relayticketrelayedfrombuf);
-	print_mes("RELAYTICKETRELAYED", &or_circ->iot_mes_relayticketrelayed);
-	print_mes("RELAYTICKETRELAYED_TO_BUF", &or_circ->iot_mes_relayticketrelayedtobuf);
+	print_mes("TICKETACK_FROM_BUF", &or_circ->iot_mes_relayticketrelayedfrombuf);
+	print_mes("TICKETACK_RECV", &or_circ->iot_mes_relayticketrelayed);
+	print_mes("TICKETACK_TO_BUF", &or_circ->iot_mes_relayticketrelayedtobuf);
 
 	print_mes("JOINREQ_FROM_BUF", &or_circ->iot_mes_joinfrombuf);
-	print_mes("JOINREQ", &or_circ->iot_mes_joinreq);
-	print_mes("JOINDONE", &or_circ->iot_mes_joindone);
+	print_mes("JOINREQ_RECV", &or_circ->iot_mes_joinreq);
+	print_mes("JOIN_DONE", &or_circ->iot_mes_joindone);
 
 	char buf[20];
 

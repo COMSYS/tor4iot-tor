@@ -3604,6 +3604,16 @@ typedef struct origin_circuit_t {
 
   struct timespec iot_mes_hs_connected;
   struct timespec iot_mes_hs_connected_from_buf;
+
+  struct timespec iot_mes_payload_request_done;
+  struct timespec iot_mes_payload_request_to_buf;
+  int iot_mes_payload_request_already_set : 1;
+
+  struct timespec iot_mes_payload_response_from_buf;
+  struct timespec iot_mes_payload_response_recv;
+  int iot_mes_payload_response_already_set : 1;
+
+  int measure : 1; // Independent from purpose this is true when we like to print measurements
 } origin_circuit_t;
 
 struct onion_queue_t;

@@ -1523,6 +1523,7 @@ connection_edge_process_relay_cell_not_open(
     		relay_send_command_from_edge(rh->stream_id, circ, RELAY_COMMAND_MEASURE,
     				(char*)cell->payload+RELAY_HEADER_SIZE, rh->length,
 					TO_ORIGIN_CIRCUIT(circ)->cpath);
+          TO_ORIGIN_CIRCUIT(circ)->measure = 1;
     		return 0;
     	}
     }
@@ -1758,6 +1759,16 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
 
       return connection_exit_begin_conn(cell, circ);
     case RELAY_COMMAND_DATA:
+
+      if (CIRCUIT_IS_ORIGIN(circ)) {
+        origin_circuit_t *o_circ = TO_ORIGIN_CIRCUIT(circ);
+        if (!o_circ->iot_mes_payload_response_already_set) {
+          clock_gettime(CLOCK_MONOTONIC, &o_circ->iot_mes_payload_response_recv);
+          memcpy(&o_circ->iot_mes_payload_response_from_buf, &cell->received, sizeof(struct timespec));
+          o_circ->iot_mes_payload_response_already_set = 1;
+        }
+      }
+
       ++stats_n_data_cells_received;
       if (( layer_hint && --layer_hint->deliver_window < 0) ||
           (!layer_hint && --circ->deliver_window < 0)) {
@@ -2216,10 +2227,25 @@ connection_edge_package_raw_inbuf(edge_connection_t *conn, int package_partial,
     buf_add(entry_conn->pending_optimistic_data, payload, length);
   }
 
+  if (CIRCUIT_IS_ORIGIN(circ)) {
+    origin_circuit_t *or_circ = TO_ORIGIN_CIRCUIT(circ);
+    if (!or_circ->iot_mes_payload_request_already_set) {
+      clock_gettime(CLOCK_MONOTONIC, &or_circ->iot_mes_payload_request_done);
+    }
+  }
+
   if (connection_edge_send_command(conn, RELAY_COMMAND_DATA,
                                    payload, length) < 0 )
     /* circuit got marked for close, don't continue, don't need to mark conn */
     return 0;
+
+  if (CIRCUIT_IS_ORIGIN(circ)) {
+    origin_circuit_t *or_circ = TO_ORIGIN_CIRCUIT(circ);
+    if (!or_circ->iot_mes_payload_request_already_set) {
+      memcpy(&or_circ->iot_mes_payload_request_done, &circ->temp2, sizeof(struct timespec));
+      or_circ->iot_mes_payload_request_already_set = 1;
+    }
+  }
 
   if (!cpath_layer) { /* non-rendezvous exit */
     tor_assert(circ->package_window > 0);

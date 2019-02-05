@@ -1895,7 +1895,9 @@ circuit_mark_for_close_, (circuit_t *circ, int reason, int line,
   tor_assert(file);
 
   if (CIRCUIT_IS_ORIGIN(circ)) {
-	  if (circ->purpose == CIRCUIT_PURPOSE_C_REND_JOINED || circ->purpose == CIRCUIT_PURPOSE_S_REND_JOINED) {
+	  if (circ->purpose == CIRCUIT_PURPOSE_C_REND_JOINED ||
+        circ->purpose == CIRCUIT_PURPOSE_S_REND_JOINED ||
+        TO_ORIGIN_CIRCUIT(circ)->measure) {
 		  iot_delegation_print_measurements(circ);
 	  }
   } else if (CIRCUIT_IS_ORCIRC(circ)) {
