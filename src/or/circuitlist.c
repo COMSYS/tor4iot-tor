@@ -1902,7 +1902,9 @@ circuit_mark_for_close_, (circuit_t *circ, int reason, int line,
 	  }
   } else if (CIRCUIT_IS_ORCIRC(circ)) {
 	  or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
-	  if (circ->purpose == CIRCUIT_PURPOSE_IOT || circ->join_cookie != 0 || or_circ->mes) {
+	  if (circ->purpose == CIRCUIT_PURPOSE_IOT ||
+        circ->join_cookie != 0 ||
+        or_circ->mes) {
 		  iot_entry_print_measurements(circ);
 	  }
   }
