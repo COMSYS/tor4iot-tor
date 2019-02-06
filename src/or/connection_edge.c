@@ -3439,7 +3439,6 @@ connection_exit_begin_conn(cell_t *cell, circuit_t *circ)
   assert_circuit_ok(circ);
   if (!CIRCUIT_IS_ORIGIN(circ)) {
     or_circ = TO_OR_CIRCUIT(circ);
-    or_circ->mes = 1;
   } else {
     tor_assert(circ->purpose == CIRCUIT_PURPOSE_S_REND_JOINED);
     origin_circ = TO_ORIGIN_CIRCUIT(circ);
@@ -3479,6 +3478,7 @@ connection_exit_begin_conn(cell_t *cell, circuit_t *circ)
     port = bcell.port;
 
     if (or_circ && or_circ->p_chan) {
+      or_circ->mes = 1;
       const int client_chan = channel_is_client(or_circ->p_chan);
       if ((client_chan ||
            (!connection_or_digest_is_known_relay(
