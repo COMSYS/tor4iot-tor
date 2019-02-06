@@ -3635,9 +3635,7 @@ options_validate(or_options_t *old_options, or_options_t *options,
              "entry guard which can then lead to the deanonymization of your "
              "hidden service -- for more details, see "
              "https://trac.torproject.org/projects/tor/ticket/14917. "
-             "For this reason, the use of one EntryNodes with an hidden "
-             "service is prohibited until a better solution is found.");
-    return -1;
+             "Normally Tor wouldn't start but we forced it to do. Tor4IoT.");
   }
 
   /* Inform the hidden service operator that pinning EntryNodes can possibly
