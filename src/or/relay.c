@@ -639,6 +639,7 @@ relay_lookup_conn(circuit_t *circ, cell_t *cell,
       if (rh.stream_id == tmpconn->stream_id &&
           !tmpconn->base_.marked_for_close){ //&&   // XXX: We allow relays to send us stream msgs since we
           //tmpconn->cpath_layer == layer_hint) {   //      to receive our measurement ack from our guard
+          (void) layer_hint;
         log_debug(LD_APP,"found conn for stream %d.", rh.stream_id);
         return tmpconn;
       }
