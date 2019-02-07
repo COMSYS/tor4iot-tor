@@ -242,6 +242,7 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 
 	if (circ) {
 		memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_joinreq, &req_monotonic, sizeof(struct timespec));
+		memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_joinfrombuf, &cell->received, sizeof(struct timespec));
 
 		log_info(LD_GENERAL, "Join circuits by cookie 0x%08x",
 				((uint32_t* )cell->payload)[0]);

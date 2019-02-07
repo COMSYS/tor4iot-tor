@@ -2242,7 +2242,7 @@ connection_edge_package_raw_inbuf(edge_connection_t *conn, int package_partial,
   if (CIRCUIT_IS_ORIGIN(circ)) {
     origin_circuit_t *or_circ = TO_ORIGIN_CIRCUIT(circ);
     if (!or_circ->iot_mes_payload_request_already_set) {
-      memcpy(&or_circ->iot_mes_payload_request_done, &circ->temp2, sizeof(struct timespec));
+      memcpy(&or_circ->iot_mes_payload_request_to_buf, &circ->temp2, sizeof(struct timespec));
       or_circ->iot_mes_payload_request_already_set = 1;
     }
   }

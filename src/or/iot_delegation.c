@@ -150,6 +150,8 @@ void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 	relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET,
 			(const char* ) msg, sizeof(iot_relay_ticket_t), split_point);
 
+	memcpy(&circ->iot_mes_handoverticket_to_buf, &TO_CIRCUIT(circ)->temp2, sizeof(struct timespec));
+
 	tor_free(msg);
 }
 
@@ -347,7 +349,7 @@ iot_delegation_print_measurements(circuit_t *circ) {
 	print_mes("RENDEZVOUS2_RECV", &o_circ->iot_mes_hs_rend2_received);
 
 	print_mes("TICKET_START", &o_circ->iot_mes_ticketstart);
-	print_mes("TICKET_END", &o_circ->iot_mes_ticketend);
+	print_mes("TICKET_DONE", &o_circ->iot_mes_ticketend);
 	print_mes("TICKET_TO_BUF", &o_circ->iot_mes_ticket_to_buf);
 
 	print_mes("TICKETACK_FROM_BUF", &o_circ->iot_mes_ticketack_from_buf);
