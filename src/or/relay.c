@@ -832,13 +832,19 @@ relay_send_command_from_edge_,(streamid_t stream_id, circuit_t *circ,
 
   switch(relay_command) {
   case RELAY_COMMAND_BEGIN:
-	  clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_begin_ready);
+    if (CIRCUIT_IS_ORIGIN(circ)) {
+	    clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_begin_ready);
+    }
 	  break;
   case RELAY_COMMAND_INTRODUCE1:
-	  clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_introduce1_ready);
+    if (CIRCUIT_IS_ORIGIN(circ)) {
+	    clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_introduce1_ready);
+    }
 	  break;
   case RELAY_COMMAND_CONNECTED:
-    clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_relay_connected_done);
+    if (CIRCUIT_IS_ORCIRC(circ)) {
+      clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_relay_connected_done);
+    }
     break;
   }
 
@@ -851,13 +857,19 @@ relay_send_command_from_edge_,(streamid_t stream_id, circuit_t *circ,
 
   switch(relay_command) {
   case RELAY_COMMAND_BEGIN:
-	  memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_begin_to_buf, &circ->temp2, sizeof(struct timespec));
+    if (CIRCUIT_IS_ORIGIN(circ)) {
+	    memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_begin_to_buf, &circ->temp2, sizeof(struct timespec));
+    }
 	  break;
   case RELAY_COMMAND_INTRODUCE1:
-	  memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_introduce1_to_buf, &circ->temp2, sizeof(struct timespec));
+    if (CIRCUIT_IS_ORIGIN(circ)) {
+	    memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_introduce1_to_buf, &circ->temp2, sizeof(struct timespec));
+    }
 	  break;
   case RELAY_COMMAND_CONNECTED:
-    memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_relay_connected_tobuf, &circ->temp2, sizeof(struct timespec));
+    if (CIRCUIT_IS_ORCIRC(circ)) {
+      memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_relay_connected_tobuf, &circ->temp2, sizeof(struct timespec));
+    }
   }
 
   return 0;
