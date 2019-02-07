@@ -1521,6 +1521,8 @@ connection_edge_process_relay_cell_not_open(
     tor_assert(CIRCUIT_IS_ORIGIN(circ));
 
     if (rh->command == RELAY_COMMAND_CONNECTED) {
+      log_info(LD_GENERAL, "Got connected, sending measurement cell to guard.");
+
     	clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected);
     	memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected_from_buf, &cell->received, sizeof(struct timespec));
 
@@ -1531,6 +1533,8 @@ connection_edge_process_relay_cell_not_open(
           TO_ORIGIN_CIRCUIT(circ)->measure = 1;
     		return 0;
     	}
+    } else {
+      log_info(LD_GENERAL, "Got measurement ACK, using as connected.");
     }
 
     if (conn->base_.state != AP_CONN_STATE_CONNECT_WAIT) {
@@ -1722,6 +1726,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
 
   switch (rh.command) {
   	case RELAY_COMMAND_MEASURE:
+      log_info(LD_GENERAL, "Got measurement command on circuit, answering with ACK.");
   		relay_send_command_from_edge(rh.stream_id, circ, RELAY_COMMAND_MEASURE_ACK,
   				(char*) cell->payload + RELAY_HEADER_SIZE, rh.length, NULL);
   		or_circ = TO_OR_CIRCUIT(circ);
