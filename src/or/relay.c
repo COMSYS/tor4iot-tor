@@ -445,7 +445,7 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
 
   if (CIRCUIT_IS_ORCIRC(circ)) {
 	  or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
-	  if (or_circ->process_cells_out < PROCESS_CELLS) {
+	  if (or_circ->process_cells_out < PROCESS_CELLS && or_circ->mes) {
 		  memcpy(&or_circ->iot_mes_relay_cell_out[or_circ->process_cells_out], &circ->temp2, sizeof(struct timespec));
 		  or_circ->process_cells_out++;
 	  }
@@ -1828,6 +1828,14 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
       stats_n_data_bytes_received += rh.length;
       connection_buf_add((char*)(cell->payload + RELAY_HEADER_SIZE),
                               rh.length, TO_CONN(conn));
+
+      if (CIRCUIT_IS_ORCIRC(circ)) {
+        or_circ = TO_OR_CIRCUIT(circ);
+        if (or_circ->process_cells_out < PROCESS_CELLS && or_circ->mes) {
+          clock_gettime(CLOCK_MONOTONIC, &or_circ->iot_mes_relay_cell_out[or_circ->process_cells_out]);
+          or_circ->process_cells_out++;
+        }
+      }
 
 #ifdef MEASUREMENTS_21206
       /* Count number of RELAY_DATA cells received on a linked directory
