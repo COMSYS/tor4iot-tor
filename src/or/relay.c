@@ -637,8 +637,8 @@ relay_lookup_conn(circuit_t *circ, cell_t *cell,
     for (tmpconn = TO_ORIGIN_CIRCUIT(circ)->p_streams; tmpconn;
          tmpconn=tmpconn->next_stream) {
       if (rh.stream_id == tmpconn->stream_id &&
-          !tmpconn->base_.marked_for_close &&
-          tmpconn->cpath_layer == layer_hint) {
+          !tmpconn->base_.marked_for_close){ //&&   // XXX: We allow relays to send us stream msgs since we
+          //tmpconn->cpath_layer == layer_hint) {   //      to receive our measurement ack from our guard
         log_debug(LD_APP,"found conn for stream %d.", rh.stream_id);
         return tmpconn;
       }
@@ -1521,12 +1521,11 @@ connection_edge_process_relay_cell_not_open(
     tor_assert(CIRCUIT_IS_ORIGIN(circ));
 
     if (rh->command == RELAY_COMMAND_CONNECTED) {
-      log_info(LD_GENERAL, "Got connected, sending measurement cell to guard.");
-
     	clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected);
     	memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected_from_buf, &cell->received, sizeof(struct timespec));
 
     	if (entry_conn->socks_request->command == SOCKS_COMMAND_CONNECT_MES) {
+        log_info(LD_GENERAL, "Got connected, sending measurement cell to guard.");
     		relay_send_command_from_edge(rh->stream_id, circ, RELAY_COMMAND_MEASURE,
     				(char*)cell->payload+RELAY_HEADER_SIZE, rh->length,
 					TO_ORIGIN_CIRCUIT(circ)->cpath);
@@ -1534,7 +1533,7 @@ connection_edge_process_relay_cell_not_open(
     		return 0;
     	}
     } else {
-      log_info(LD_GENERAL, "Got measurement ACK, using as connected.");
+      log_info(LD_GENERAL, "Got measurement ACK, using as connected cell.");
     }
 
     if (conn->base_.state != AP_CONN_STATE_CONNECT_WAIT) {
