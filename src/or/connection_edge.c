@@ -3478,6 +3478,8 @@ connection_exit_begin_conn(cell_t *cell, circuit_t *circ)
     port = bcell.port;
 
     if (or_circ && or_circ->p_chan) {
+      clock_gettime(CLOCK_MONOTONIC, &or_circ->iot_mes_relay_begin_recv);
+      memcpy(&or_circ->iot_mes_relay_begin_frombuf, &cell->received, sizeof(struct timespec));
       or_circ->mes = 1;
       const int client_chan = channel_is_client(or_circ->p_chan);
       if ((client_chan ||

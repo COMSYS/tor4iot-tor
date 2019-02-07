@@ -362,5 +362,13 @@ iot_entry_print_measurements(circuit_t *circ) {
 		sprintf(buf, "PROCESSEDCELL_%d_OUT", i);
 		print_mes(buf, &or_circ->iot_mes_relay_cell_out[i]);
 	}
+
+	print_mes("R_BEGIN_FROM_BUF", &or_circ->iot_mes_relay_begin_frombuf);
+	print_mes("R_BEGIN_RECV", &or_circ->iot_mes_relay_begin_recv);
+
+	print_mes("R_CONNECTED_DONE", &or_circ->iot_mes_relay_connected_done);
+	print_mes("R_CONNECTED_TO_BUF", &or_circ->iot_mes_relay_connected_tobuf);
+
+	log_notice(LD_GENERAL, "====================================");
 }
 

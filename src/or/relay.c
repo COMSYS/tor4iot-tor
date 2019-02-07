@@ -310,6 +310,14 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
 
   circuit_update_channel_usage(circ, cell);
 
+  if (CIRCUIT_IS_ORCIRC(circ)) {
+	  or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
+	  if (or_circ->process_cells_in < PROCESS_CELLS && or_circ->mes) {
+		  memcpy(&or_circ->iot_mes_relay_cell_in[or_circ->process_cells_in], &cell->received, sizeof(struct timespec));
+		  or_circ->process_cells_in++;
+	  }
+  }
+
   if (recognized) {
     edge_connection_t *conn = NULL;
 
@@ -349,14 +357,6 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
       }
     }
     return 0;
-  }
-
-  if (CIRCUIT_IS_ORCIRC(circ)) {
-	  or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
-	  if (or_circ->process_cells_out < PROCESS_CELLS && or_circ->mes) {
-		  memcpy(&or_circ->iot_mes_relay_cell_in[or_circ->process_cells_in], &cell->received, sizeof(struct timespec));
-		  or_circ->process_cells_in++;
-	  }
   }
 
   /* not recognized. pass it on. */
@@ -836,6 +836,9 @@ relay_send_command_from_edge_,(streamid_t stream_id, circuit_t *circ,
   case RELAY_COMMAND_INTRODUCE1:
 	  clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_introduce1_ready);
 	  break;
+  case RELAY_COMMAND_CONNECTED:
+    clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_relay_connected_done);
+    break;
   }
 
   if (circuit_package_relay_cell_(&cell, circ, cell_direction, cpath_layer,
@@ -852,6 +855,8 @@ relay_send_command_from_edge_,(streamid_t stream_id, circuit_t *circ,
   case RELAY_COMMAND_INTRODUCE1:
 	  memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_introduce1_to_buf, &circ->temp2, sizeof(struct timespec));
 	  break;
+  case RELAY_COMMAND_CONNECTED:
+    clock_gettime(&TO_OR_CIRCUIT(circ)->iot_mes_relay_connected_tobuf, &circ->temp2, sizeof(struct timespec));
   }
 
   return 0;
@@ -917,7 +922,7 @@ connection_edge_send_command(edge_connection_t *fromconn,
 
   return relay_send_command_from_edge(fromconn->stream_id, circ,
                                       relay_command, payload,
-                                      payload_len, cpath_layer);
+                                      payload_len, cpath_layer);                              
 }
 
 /** How many times will I retry a stream that fails due to DNS

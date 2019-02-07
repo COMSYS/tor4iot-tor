@@ -3731,6 +3731,12 @@ typedef struct or_circuit_t {
   struct timespec iot_mes_joinreq;
   struct timespec iot_mes_joindone;
 
+  struct timespec iot_mes_relay_begin_frombuf;
+  struct timespec iot_mes_relay_begin_recv;
+
+  struct timespec iot_mes_relay_connected_done;
+  struct timespec iot_mes_relay_connected_tobuf;
+
 #define PROCESS_CELLS 4
   struct timespec iot_mes_relay_cell_in[PROCESS_CELLS]; // Timestamps of incoming cells
   struct timespec iot_mes_relay_cell_out[PROCESS_CELLS]; // Timestamps of the same cells when outgoing
