@@ -856,7 +856,7 @@ relay_send_command_from_edge_,(streamid_t stream_id, circuit_t *circ,
 	  memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_introduce1_to_buf, &circ->temp2, sizeof(struct timespec));
 	  break;
   case RELAY_COMMAND_CONNECTED:
-    clock_gettime(&TO_OR_CIRCUIT(circ)->iot_mes_relay_connected_tobuf, &circ->temp2, sizeof(struct timespec));
+    memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_relay_connected_tobuf, &circ->temp2, sizeof(struct timespec));
   }
 
   return 0;
