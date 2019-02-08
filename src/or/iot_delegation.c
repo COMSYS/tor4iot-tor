@@ -306,7 +306,7 @@ iot_delegation_print_measurements(circuit_t *circ) {
 	origin_circuit_t *o_circ = TO_ORIGIN_CIRCUIT(circ);
 	crypt_path_t *cpath_iot, *cpath_temp;
 
-	log_notice(LD_GENERAL, "=== CIRCUIT %d closed (purpose %d) ===", circ->n_circ_id, circ->purpose);
+	log_notice(LD_GENERAL, "=== CIRCUIT %d closed (purpose %d) ===", TO_ORIGIN_CIRCUIT(circ)->global_identifier, circ->purpose);
 
 	if (circ->iot_entry_conn) {
 		print_mes("MEASUREMENT_START", &circ->iot_entry_conn->iot_mes_start);
