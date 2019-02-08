@@ -3770,6 +3770,7 @@ connection_exit_connect(edge_connection_t *edge_conn)
                                  RELAY_COMMAND_CONNECTED,
                                  NULL, 0);
     // IOT: Send a measurement hs cell to our guard as well
+    log_debug(LD_GENERAL, "Sending measurement cell from HS to guard.");
     relay_send_command_from_edge(0, edge_conn->on_circuit,
                                  RELAY_COMMAND_MEASURE_HS,
                                  NULL, 0, TO_ORIGIN_CIRCUIT(edge_conn->on_circuit)->cpath);

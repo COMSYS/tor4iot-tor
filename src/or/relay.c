@@ -1708,6 +1708,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
                "stream_id. Dropping.", (int)rh.command);
         return 0;
       case RELAY_COMMAND_MEASURE_HS:
+        log_debug(LD_GENERAL, "Received measurement cell from HS.");
         TO_OR_CIRCUIT(circ)->mes = 1;
 	return 0;
       default:
