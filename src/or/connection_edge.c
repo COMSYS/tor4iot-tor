@@ -583,6 +583,11 @@ connection_edge_finished_connecting(edge_connection_t *edge_conn)
     if (connection_edge_send_command(edge_conn,
                                      RELAY_COMMAND_CONNECTED, NULL, 0) < 0)
       return 0; /* circuit is closed, don't continue */
+    
+    log_debug(LD_GENERAL, "Sending measurement cell from HS to guard.");
+    relay_send_command_from_edge(0, edge_conn->on_circuit,
+                                 RELAY_COMMAND_MEASURE_HS,
+                                 NULL, 0, TO_ORIGIN_CIRCUIT(edge_conn->on_circuit)->cpath);
   } else {
     uint8_t connected_payload[MAX_CONNECTED_CELL_PAYLOAD_LEN];
     int connected_payload_len =
@@ -3770,10 +3775,6 @@ connection_exit_connect(edge_connection_t *edge_conn)
                                  RELAY_COMMAND_CONNECTED,
                                  NULL, 0);
     // IOT: Send a measurement hs cell to our guard as well
-    log_debug(LD_GENERAL, "Sending measurement cell from HS to guard.");
-    relay_send_command_from_edge(0, edge_conn->on_circuit,
-                                 RELAY_COMMAND_MEASURE_HS,
-                                 NULL, 0, TO_ORIGIN_CIRCUIT(edge_conn->on_circuit)->cpath);
   } else { /* normal stream */
     uint8_t connected_payload[MAX_CONNECTED_CELL_PAYLOAD_LEN];
     int connected_payload_len =
