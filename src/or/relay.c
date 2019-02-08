@@ -1710,6 +1710,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
       case RELAY_COMMAND_MEASURE_HS:
         log_debug(LD_GENERAL, "Received measurement cell from HS.");
         TO_OR_CIRCUIT(circ)->mes = 1;
+        TO_OR_CIRCUIT(circ)->mes_type = MES_TYPE_HS;
 	return 0;
       default:
         ;
@@ -1746,6 +1747,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
   				(char*) cell->payload + RELAY_HEADER_SIZE, rh.length, NULL);
   		or_circ = TO_OR_CIRCUIT(circ);
   		or_circ->mes = 1;
+      or_circ->mes_type = MES_TYPE_CLIENT;
   		return 0;
     case RELAY_COMMAND_DROP:
       rep_hist_padding_count_read(PADDING_TYPE_DROP);

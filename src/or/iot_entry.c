@@ -332,7 +332,8 @@ void
 iot_entry_print_measurements(circuit_t *circ) {
 	or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
 
-	log_notice(LD_GENERAL, "=== CIRCUIT %u closed (purpose %d) ===", circ->n_circ_id, circ->purpose);
+	log_notice(LD_GENERAL, "=== CIRCUIT %u closed (purpose %d (%d)) ===",
+					circ->n_circ_id, circ->purpose, or_circ->mes_type);
 
 	print_mes("CIRC_RECV", &or_circ->iot_mes_circreceived);
 	print_mes("CIRC_READY", &or_circ->iot_mes_circdone);

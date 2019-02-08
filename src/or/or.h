@@ -3749,6 +3749,10 @@ typedef struct or_circuit_t {
   uint8_t process_cells_out; // Same for outgoing cells
 
   uint8_t mes; // Only measure that on some circuits after it is activated.
+
+#define MES_TYPE_CLIENT 1
+#define MES_TYPE_HS 2
+  uint8_t mes_type;
 } or_circuit_t;
 
 #if REND_COOKIE_LEN != DIGEST_LEN
