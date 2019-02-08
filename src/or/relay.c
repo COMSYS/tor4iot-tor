@@ -1707,6 +1707,8 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
         log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL, "Relay command %d with zero "
                "stream_id. Dropping.", (int)rh.command);
         return 0;
+      case RELAY_COMMAND_MEASURE_HS:
+        TO_OR_CIRCUIT(circ)->mes = 1;
 	return 0;
       default:
         ;

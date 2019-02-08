@@ -659,8 +659,13 @@ typedef enum {
 #define RELAY_COMMAND_TICKET_RELAYED 57
 #define RELAY_COMMAND_FAST_TICKET_RELAYED 59
 
+//Client -> Client Guard
 #define RELAY_COMMAND_MEASURE 70
+//Client Guard -> Client
 #define RELAY_COMMAND_MEASURE_ACK 71
+
+//HS -> HS Guard
+#define RELAY_COMMAND_MEASURE_HS 72
 
 
 /* Reasons why an OR connection is closed. */
