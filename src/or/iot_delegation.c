@@ -318,21 +318,23 @@ iot_delegation_print_measurements(circuit_t *circ) {
 
 	struct iot_measurement_ip_cpath *ip_mes_temp = o_circ->ip_cpath_list;
 
-	do {
-		print_mes("IP_NTOR1START", &ip_mes_temp->iot_mes_ntor1start);
-		print_mes("IP_X255191START", &ip_mes_temp->iot_mes_x255191start);
-		print_mes("IP_X255191END", &ip_mes_temp->iot_mes_x255191end);
-		print_mes("IP_NTOR1END", &ip_mes_temp->iot_mes_ntor1end);
+	if (ip_mes_temp) {
+		do {
+			print_mes("IP_NTOR1START", &ip_mes_temp->iot_mes_ntor1start);
+			print_mes("IP_X255191START", &ip_mes_temp->iot_mes_x255191start);
+			print_mes("IP_X255191END", &ip_mes_temp->iot_mes_x255191end);
+			print_mes("IP_NTOR1END", &ip_mes_temp->iot_mes_ntor1end);
 
-		print_mes("IP_NTOR2START", &ip_mes_temp->iot_mes_ntor2start);
-		print_mes("IP_X255192START", &ip_mes_temp->iot_mes_x255192start);
-		print_mes("IP_X255192END", &ip_mes_temp->iot_mes_x255192end);
-		print_mes("IP_X255193START", &ip_mes_temp->iot_mes_x255193start);
-		print_mes("IP_X255193END", &ip_mes_temp->iot_mes_x255193end);
-		print_mes("IP_NTOR2END", &ip_mes_temp->iot_mes_ntor2end);
+			print_mes("IP_NTOR2START", &ip_mes_temp->iot_mes_ntor2start);
+			print_mes("IP_X255192START", &ip_mes_temp->iot_mes_x255192start);
+			print_mes("IP_X255192END", &ip_mes_temp->iot_mes_x255192end);
+			print_mes("IP_X255193START", &ip_mes_temp->iot_mes_x255193start);
+			print_mes("IP_X255193END", &ip_mes_temp->iot_mes_x255193end);
+			print_mes("IP_NTOR2END", &ip_mes_temp->iot_mes_ntor2end);
 
-		ip_mes_temp = ip_mes_temp->next;
-	} while (ip_mes_temp != o_circ->ip_cpath_list);
+			ip_mes_temp = ip_mes_temp->next;
+		} while (ip_mes_temp != o_circ->ip_cpath_list);
+	}
 
 	print_mes("IP_CIRC_DONE", &o_circ->iot_mes_ipcircend);
 
