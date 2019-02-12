@@ -2073,6 +2073,9 @@ circuit_get_open_circ_or_launch(entry_connection_t *conn,
                           desired_circuit_purpose,
                           need_uptime, need_internal);
 
+  // XXX: Build a new circuit!!
+  circ = NULL;
+
   if (circ) {
     /* We got a circuit that will work for this stream!  We can return it. */
     *circp = circ;
@@ -2176,6 +2179,10 @@ circuit_get_open_circ_or_launch(entry_connection_t *conn,
   circ = circuit_get_best(conn, 0 /* don't insist on open circuits */,
                           desired_circuit_purpose,
                           need_uptime, need_internal);
+
+  // XXX: DONT USE EXISTING CIRCUIT!!!
+  circ = NULL;
+  
   if (circ)
     log_debug(LD_CIRC, "one on the way!");
 
