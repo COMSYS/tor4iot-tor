@@ -399,10 +399,12 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
   }
 
   //IOT: Set split point information
-  if (iot_set_circ_info(service, &info->iot_circ_info) < 0) {
-      log_fn(LOG_PROTOCOL_WARN, LD_REND,
-	     "Did not find the split point.");
-      goto end;
+  if(service->config.is_delegation) {
+    if (iot_set_circ_info(service, &info->iot_circ_info) < 0) {
+        log_fn(LOG_PROTOCOL_WARN, LD_REND,
+        "Did not find the split point.");
+        goto end;
+    }
   }
 
   for (int i = 0; i < MAX_REND_FAILURES; i++) {
