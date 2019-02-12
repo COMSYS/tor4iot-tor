@@ -1086,6 +1086,36 @@ hs_circuit_setup_e2e_rend_circ_legacy_client(origin_circuit_t *circ,
   return 0;
 }
 
+static void
+rend_add_ip_cpath_measurement(origin_circuit_t *rend_circ, crypt_path_t *cpath) {
+  struct iot_measurement_ip_cpath *new = tor_malloc(sizeof(struct iot_measurement_ip_cpath));
+
+  memcpy(&new->iot_mes_ntor1start, &cpath->iot_mes_ntor1start, sizeof(struct timespec));
+  memcpy(&new->iot_mes_ntor1end, &cpath->iot_mes_ntor1end, sizeof(struct timespec));
+  memcpy(&new->iot_mes_ntor2start, &cpath->iot_mes_ntor2start, sizeof(struct timespec));
+  memcpy(&new->iot_mes_ntor2end, &cpath->iot_mes_ntor2end, sizeof(struct timespec));
+
+  memcpy(&new->iot_mes_x255191start, &cpath->iot_mes_x255191start, sizeof(struct timespec));
+  memcpy(&new->iot_mes_x255191end, &cpath->iot_mes_x255191end, sizeof(struct timespec));
+
+  memcpy(&new->iot_mes_x255192start, &cpath->iot_mes_x255192start, sizeof(struct timespec));
+  memcpy(&new->iot_mes_x255192end, &cpath->iot_mes_x255192end, sizeof(struct timespec));
+
+  memcpy(&new->iot_mes_x255193start, &cpath->iot_mes_x255193start, sizeof(struct timespec));
+  memcpy(&new->iot_mes_x255193end, &cpath->iot_mes_x255193end, sizeof(struct timespec));
+
+  if (rend_circ->ip_cpath_list) {
+    new->prev = rend_circ->ip_cpath_list->prev;
+    rend_circ->ip_cpath_list->prev->next = new;
+    new->next = rend_circ->ip_cpath_list;
+    rend_circ->ip_cpath_list->prev = new;
+  } else {
+    rend_circ->ip_cpath_list = new;
+    new->prev = new;
+    new->next = new;
+  }
+}
+
 /* Given the introduction circuit intro_circ, the rendezvous circuit
  * rend_circ, a descriptor intro point object ip and the service's
  * subcredential, send an INTRODUCE1 cell on intro_circ.
@@ -1154,6 +1184,12 @@ hs_circ_send_introduce1(origin_circuit_t *intro_circ,
   memcpy(&rend_circ->iot_mes_ipcircend, &intro_circ->iot_mes_circend, sizeof(struct timespec));
   memcpy(&rend_circ->iot_mes_ipcpathstart, &intro_circ->iot_mes_cpathstart, sizeof(struct timespec));
   memcpy(&rend_circ->iot_mes_ipcpathend, &intro_circ->iot_mes_cpathend, sizeof(struct timespec));
+
+  crypt_path_t *tmp = intro_circ->cpath;
+  do {
+    rend_add_ip_cpath_measurement(rend_circ, tmp);
+    tmp = tmp->next;
+  } while (tmp != intro_circ->cpath);
 
   memcpy(&rend_circ->iot_mes_hs_introduce1_ready, &intro_circ->iot_mes_hs_introduce1_ready, sizeof(struct timespec));
   memcpy(&rend_circ->iot_mes_hs_introduce1_to_buf, &intro_circ->iot_mes_hs_introduce1_to_buf, sizeof(struct timespec));

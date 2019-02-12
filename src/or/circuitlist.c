@@ -1900,6 +1900,21 @@ circuit_mark_for_close_, (circuit_t *circ, int reason, int line,
         TO_ORIGIN_CIRCUIT(circ)->measure) {
 		  iot_delegation_print_measurements(circ);
 	  }
+
+    if (TO_ORIGIN_CIRCUIT(circ)->ip_cpath_list) {
+      struct iot_measurement_ip_cpath *ip_mes_temp_first = TO_ORIGIN_CIRCUIT(circ)->ip_cpath_list;
+      struct iot_measurement_ip_cpath *ip_mes_temp_second = TO_ORIGIN_CIRCUIT(circ)->ip_cpath_list->next;
+
+      ip_mes_temp_first->prev->next = NULL; //make sure we stop freeing
+
+      do {
+        tor_free(ip_mes_temp_first);
+        if (ip_mes_temp_second) {
+          ip_mes_temp_first = ip_mes_temp_second;
+          ip_mes_temp_second = ip_mes_temp_second->next;
+        }
+      } while (ip_mes_temp_first);
+    }
   } else if (CIRCUIT_IS_ORCIRC(circ)) {
 	  or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
 	  if (circ->purpose == CIRCUIT_PURPOSE_IOT ||

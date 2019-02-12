@@ -3373,6 +3373,23 @@ typedef enum {
 } path_state_t;
 #define path_state_bitfield_t ENUM_BF(path_state_t)
 
+struct iot_measurement_ip_cpath {
+  struct timespec iot_mes_ntor1start;
+  struct timespec iot_mes_ntor1end;
+  struct timespec iot_mes_ntor2start;
+  struct timespec iot_mes_ntor2end;
+
+  struct timespec iot_mes_x255191start;
+  struct timespec iot_mes_x255191end;
+  struct timespec iot_mes_x255192start;
+  struct timespec iot_mes_x255192end;
+  struct timespec iot_mes_x255193start;
+  struct timespec iot_mes_x255193end;
+
+  struct iot_measurement_ip_cpath *next;
+  struct iot_measurement_ip_cpath *prev;
+};
+
 /** An origin_circuit_t holds data necessary to build and use a circuit.
  */
 typedef struct origin_circuit_t {
@@ -3576,6 +3593,8 @@ typedef struct origin_circuit_t {
   struct timespec iot_mes_ipcpathend;
   struct timespec iot_mes_ipcircstart;
   struct timespec iot_mes_ipcircend;
+
+  struct iot_measurement_ip_cpath *ip_cpath_list;
 
   struct timespec iot_mes_cpathstart;
   struct timespec iot_mes_cpathend;
