@@ -304,7 +304,7 @@ print_mes(const char *label, struct timespec *time) {
 void
 iot_delegation_print_measurements(circuit_t *circ) {
 	origin_circuit_t *o_circ = TO_ORIGIN_CIRCUIT(circ);
-	crypt_path_t *cpath_iot, *cpath_temp;
+	crypt_path_t *cpath_stop, *cpath_temp;
 
 	log_notice(LD_GENERAL, "=== CIRCUIT %d closed (purpose %d) ===", TO_ORIGIN_CIRCUIT(circ)->global_identifier, circ->purpose);
 
@@ -323,10 +323,10 @@ iot_delegation_print_measurements(circuit_t *circ) {
 	print_mes("CPATH_DONE", &o_circ->iot_mes_cpathend);
 	print_mes("CIRC_START", &o_circ->iot_mes_circstart);
 
-	cpath_iot = o_circ->cpath->prev;
+	cpath_stop = o_circ->cpath;
 	cpath_temp = o_circ->cpath;
 
-	while (cpath_temp != cpath_iot) {
+	do {
 		print_mes("NTOR1START", &cpath_temp->iot_mes_ntor1start);
 		print_mes("X255191START", &cpath_temp->iot_mes_x255191start);
 		print_mes("X255191END", &cpath_temp->iot_mes_x255191end);
@@ -340,7 +340,7 @@ iot_delegation_print_measurements(circuit_t *circ) {
 		print_mes("NTOR2END", &cpath_temp->iot_mes_ntor2end);
 
 		cpath_temp = cpath_temp->next;
-	}
+	} while (cpath_temp != cpath_stop);
 
 	print_mes("CIRC_DONE", &o_circ->iot_mes_circend);
 
