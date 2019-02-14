@@ -366,6 +366,7 @@ iot_delegation_print_measurements(circuit_t *circ) {
 	print_mes("CIRC_DONE", &o_circ->iot_mes_circend);
 
 	print_mes("INTRODUCE1_START", &o_circ->iot_mes_hs_introduce1_start);
+	print_mes("INTRODUCE1_BUILD", &o_circ->iot_mes_hs_introduce1_build);
 	print_mes("INTRODUCE1_DONE", &o_circ->iot_mes_hs_introduce1_ready);
 	print_mes("INTRODUCE1_TO_BUF", &o_circ->iot_mes_hs_introduce1_to_buf);
 

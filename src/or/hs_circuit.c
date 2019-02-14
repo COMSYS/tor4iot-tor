@@ -1140,6 +1140,8 @@ hs_circ_send_introduce1(origin_circuit_t *intro_circ,
   tor_assert(ip);
   tor_assert(subcredential);
 
+  clock_gettime(CLOCK_MONOTONIC, &rend_circ->iot_mes_hs_introduce1_build);
+
   /* This takes various objects in order to populate the introduce1 data
    * object which is used to build the content of the cell. */
   setup_introduce1_data(ip, rend_circ->build_state->chosen_exit,
