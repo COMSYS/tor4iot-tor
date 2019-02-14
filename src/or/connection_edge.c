@@ -3566,6 +3566,8 @@ connection_exit_begin_conn(cell_t *cell, circuit_t *circ)
     tor_free(address);
     /* We handle this circuit and stream in this function for all supported
      * hidden service version. */
+    clock_gettime(CLOCK_MONOTONIC, &origin_circ->iot_mes_hs_begin);
+    memcpy(&origin_circ->iot_mes_hs_begin_from_buf, &cell->received, sizeof(struct timespec));
     return handle_hs_exit_conn(circ, n_stream);
   }
   tor_strlower(address);

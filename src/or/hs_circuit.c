@@ -1191,6 +1191,7 @@ hs_circ_send_introduce1(origin_circuit_t *intro_circ,
     tmp = tmp->next;
   } while (tmp != intro_circ->cpath);
 
+  memcpy(&rend_circ->iot_mes_hs_introduce1_start, &intro_circ->iot_mes_hs_introduce1_start, sizeof(struct timespec));
   memcpy(&rend_circ->iot_mes_hs_introduce1_ready, &intro_circ->iot_mes_hs_introduce1_ready, sizeof(struct timespec));
   memcpy(&rend_circ->iot_mes_hs_introduce1_to_buf, &intro_circ->iot_mes_hs_introduce1_to_buf, sizeof(struct timespec));
 

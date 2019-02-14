@@ -365,6 +365,7 @@ iot_delegation_print_measurements(circuit_t *circ) {
 
 	print_mes("CIRC_DONE", &o_circ->iot_mes_circend);
 
+	print_mes("INTRODUCE1_START", &o_circ->iot_mes_hs_introduce1_start);
 	print_mes("INTRODUCE1_DONE", &o_circ->iot_mes_hs_introduce1_ready);
 	print_mes("INTRODUCE1_TO_BUF", &o_circ->iot_mes_hs_introduce1_to_buf);
 
@@ -387,6 +388,12 @@ iot_delegation_print_measurements(circuit_t *circ) {
 
 	print_mes("R_CONNECTED_RECV", &o_circ->iot_mes_hs_connected);
 	print_mes("R_CONNECTED_FROM_BUF", &o_circ->iot_mes_hs_connected_from_buf);
+
+	print_mes("R_BEGIN_RECV", &o_circ->iot_mes_hs_begin);
+	print_mes("R_BEGIN_FROM_BUF", &o_circ->iot_mes_hs_begin_from_buf);
+
+	print_mes("R_CONNECTED_DONE", &o_circ->iot_mes_hs_connected_ready);
+	print_mes("R_CONNECTED_TO_BUF", &o_circ->iot_mes_hs_connected_to_buf);
 
 	print_mes("PAYLOAD_REQUEST_DONE", &o_circ->iot_mes_payload_request_done);
 	print_mes("PAYLOAD_REQUEST_TO_BUF", &o_circ->iot_mes_payload_request_to_buf);

@@ -1309,6 +1309,8 @@ int
 hs_client_send_introduce1(origin_circuit_t *intro_circ,
                           origin_circuit_t *rend_circ)
 {
+  clock_gettime(CLOCK_MONOTONIC, &intro_circ->iot_mes_hs_introduce1_start);
+
   return (intro_circ->hs_ident) ? send_introduce1(intro_circ, rend_circ) :
                                   rend_client_send_introduction(intro_circ,
                                                                 rend_circ);

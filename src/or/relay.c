@@ -844,6 +844,8 @@ relay_send_command_from_edge_,(streamid_t stream_id, circuit_t *circ,
   case RELAY_COMMAND_CONNECTED:
     if (CIRCUIT_IS_ORCIRC(circ)) {
       clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_relay_connected_done);
+    } else if (CIRCUIT_IS_ORIGIN(circ)) {
+      clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected_ready);
     }
     break;
   }
@@ -869,6 +871,8 @@ relay_send_command_from_edge_,(streamid_t stream_id, circuit_t *circ,
   case RELAY_COMMAND_CONNECTED:
     if (CIRCUIT_IS_ORCIRC(circ)) {
       memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_relay_connected_tobuf, &circ->temp2, sizeof(struct timespec));
+    } else if (CIRCUIT_IS_ORIGIN(circ)) {
+      memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected_to_buf, &circ->temp2, sizeof(struct timespec));
     }
   }
 

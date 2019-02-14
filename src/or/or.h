@@ -3614,6 +3614,7 @@ typedef struct origin_circuit_t {
 
   struct timespec iot_mes_hs_introduce1_to_buf;
   struct timespec iot_mes_hs_introduce1_ready;
+  struct timespec iot_mes_hs_introduce1_start;
   struct timespec iot_mes_hs_introduce2_received;
   struct timespec iot_mes_hs_introduce2_from_buf;
 
@@ -3628,6 +3629,12 @@ typedef struct origin_circuit_t {
 
   struct timespec iot_mes_hs_connected;
   struct timespec iot_mes_hs_connected_from_buf;
+
+  struct timespec iot_mes_hs_begin;
+  struct timespec iot_mes_hs_begin_from_buf;
+
+  struct timespec iot_mes_hs_connected_ready;
+  struct timespec iot_mes_hs_connected_to_buf;
 
   struct timespec iot_mes_payload_request_done;
   struct timespec iot_mes_payload_request_to_buf;
