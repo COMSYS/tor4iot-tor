@@ -214,6 +214,12 @@ channel_tls_connect(const tor_addr_t *addr, uint16_t port,
     goto err;
   }
 
+  struct timespec time;
+  clock_gettime(CLOCK_MONOTONIC, &time);
+  char buf[NODE_DESC_BUF_LEN];
+  format_node_description(buf,id_digest, 0, NULL, addr, 0);
+  log_notice(LD_GENERAL, "TLSHANDSHAKE:%lus%luns:%s", time.tv_sec, time.tv_nsec, buf);
+
   log_debug(LD_CHANNEL,
             "Got orconn %p for channel with global id " U64_FORMAT,
             tlschan->conn, U64_PRINTF_ARG(chan->global_identifier));
