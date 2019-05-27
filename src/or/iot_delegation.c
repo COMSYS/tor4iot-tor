@@ -340,6 +340,8 @@ iot_delegation_print_measurements(circuit_t *circ) {
 
 	print_mes("INTRODUCE2_FROM_BUF", &o_circ->iot_mes_hs_introduce2_from_buf);
 	print_mes("INTRODUCE2_RECV", &o_circ->iot_mes_hs_introduce2_received);
+	print_mes("E2E_HS_NTORSTART", &o_circ->iot_mes_hs_ntor1_start);
+	print_mes("E2E_HS_NTOREND", &o_circ->iot_mes_hs_ntor1_end);
 	print_mes("CPATH_START", &o_circ->iot_mes_cpathstart);
 	print_mes("CPATH_DONE", &o_circ->iot_mes_cpathend);
 	print_mes("CIRC_START", &o_circ->iot_mes_circstart);
@@ -372,6 +374,9 @@ iot_delegation_print_measurements(circuit_t *circ) {
 
 	print_mes("RENDEZVOUS2_FROM_BUF", &o_circ->iot_mes_hs_rend2_from_buf);
 	print_mes("RENDEZVOUS2_RECV", &o_circ->iot_mes_hs_rend2_received);
+
+	print_mes("HS_FINALIZE_START", &o_circ->iot_mes_hsfinalizestart);
+	print_mes("HS_FINALIZE_DONE", &o_circ->iot_mes_hsfinalizeend);
 
 	print_mes("TICKET_START", &o_circ->iot_mes_ticketstart);
 	print_mes("TICKET_DONE", &o_circ->iot_mes_ticketend);

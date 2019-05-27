@@ -3619,6 +3619,9 @@ typedef struct origin_circuit_t {
   struct timespec iot_mes_hs_introduce2_received;
   struct timespec iot_mes_hs_introduce2_from_buf;
 
+  struct timespec iot_mes_hs_ntor1_start;
+  struct timespec iot_mes_hs_ntor1_end;
+
   struct timespec iot_mes_hs_rend2_received;
   struct timespec iot_mes_hs_rend2_from_buf;
 
