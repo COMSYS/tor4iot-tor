@@ -451,7 +451,7 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
    * to connect to the rendezvous point. */
   circ->build_state->expiry_time = now + MAX_REND_TIMEOUT;
 
-  clock_gettime(&circ->iot_mes_hs_ntor1_start, CLOCK_MONOTONIC);
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_hs_ntor1_start);
 
   /* Create circuit identifier and key material. */
   {
@@ -481,7 +481,7 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
     tor_assert(circ->hs_ident);
   }
 
-  clock_gettime(&circ->iot_mes_hs_ntor1_end, CLOCK_MONOTONIC);
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_hs_ntor1_end);
 
  end:
   extend_info_free(info);
