@@ -483,8 +483,8 @@ am__src_or_libtor_testing_a_SOURCES_DIST = src/or/addressmap.c \
 	src/or/routerlist.c src/or/routerparse.c src/or/routerset.c \
 	src/or/scheduler.c src/or/scheduler_kist.c \
 	src/or/scheduler_vanilla.c src/or/statefile.c src/or/status.c \
-	src/or/torcert.c src/or/onion_ntor.c src/or/iot_ticket.c \
-	src/or/ntmain.c
+	src/or/torcert.c src/or/onion_ntor.c src/or/iot_delegation.c \
+	src/or/iot_entry.c src/or/ntmain.c
 @BUILD_NT_SERVICES_TRUE@am__objects_19 = src/or/libtor_testing_a-ntmain.$(OBJEXT)
 am__objects_20 = src/or/libtor_testing_a-addressmap.$(OBJEXT) \
 	src/or/libtor_testing_a-bridges.$(OBJEXT) \
@@ -574,7 +574,8 @@ am__objects_20 = src/or/libtor_testing_a-addressmap.$(OBJEXT) \
 	src/or/libtor_testing_a-status.$(OBJEXT) \
 	src/or/libtor_testing_a-torcert.$(OBJEXT) \
 	src/or/libtor_testing_a-onion_ntor.$(OBJEXT) \
-	src/or/libtor_testing_a-iot_ticket.$(OBJEXT) $(am__objects_19)
+	src/or/libtor_testing_a-iot_delegation.$(OBJEXT) \
+	src/or/libtor_testing_a-iot_entry.$(OBJEXT) $(am__objects_19)
 am_src_or_libtor_testing_a_OBJECTS = $(am__objects_20)
 src_or_libtor_testing_a_OBJECTS =  \
 	$(am_src_or_libtor_testing_a_OBJECTS)
@@ -611,8 +612,8 @@ am__src_or_libtor_a_SOURCES_DIST = src/or/addressmap.c \
 	src/or/routerlist.c src/or/routerparse.c src/or/routerset.c \
 	src/or/scheduler.c src/or/scheduler_kist.c \
 	src/or/scheduler_vanilla.c src/or/statefile.c src/or/status.c \
-	src/or/torcert.c src/or/onion_ntor.c src/or/iot_ticket.c \
-	src/or/ntmain.c
+	src/or/torcert.c src/or/onion_ntor.c src/or/iot_delegation.c \
+	src/or/iot_entry.c src/or/ntmain.c
 @BUILD_NT_SERVICES_TRUE@am__objects_21 = src/or/ntmain.$(OBJEXT)
 am__objects_22 = src/or/addressmap.$(OBJEXT) src/or/bridges.$(OBJEXT) \
 	src/or/channel.$(OBJEXT) src/or/channelpadding.$(OBJEXT) \
@@ -659,8 +660,8 @@ am__objects_22 = src/or/addressmap.$(OBJEXT) src/or/bridges.$(OBJEXT) \
 	src/or/scheduler.$(OBJEXT) src/or/scheduler_kist.$(OBJEXT) \
 	src/or/scheduler_vanilla.$(OBJEXT) src/or/statefile.$(OBJEXT) \
 	src/or/status.$(OBJEXT) src/or/torcert.$(OBJEXT) \
-	src/or/onion_ntor.$(OBJEXT) src/or/iot_ticket.$(OBJEXT) \
-	$(am__objects_21)
+	src/or/onion_ntor.$(OBJEXT) src/or/iot_delegation.$(OBJEXT) \
+	src/or/iot_entry.$(OBJEXT) $(am__objects_21)
 am_src_or_libtor_a_OBJECTS = $(am__objects_22)
 src_or_libtor_a_OBJECTS = $(am_src_or_libtor_a_OBJECTS)
 src_test_fuzz_liboss_fuzz_consensus_a_AR = $(AR) $(ARFLAGS)
@@ -1561,8 +1562,9 @@ am__depfiles_remade = src/common/$(DEPDIR)/address.Po \
 	src/or/$(DEPDIR)/hs_config.Po \
 	src/or/$(DEPDIR)/hs_descriptor.Po src/or/$(DEPDIR)/hs_ident.Po \
 	src/or/$(DEPDIR)/hs_intropoint.Po src/or/$(DEPDIR)/hs_ntor.Po \
-	src/or/$(DEPDIR)/hs_service.Po src/or/$(DEPDIR)/iot_ticket.Po \
-	src/or/$(DEPDIR)/keypin.Po \
+	src/or/$(DEPDIR)/hs_service.Po \
+	src/or/$(DEPDIR)/iot_delegation.Po \
+	src/or/$(DEPDIR)/iot_entry.Po src/or/$(DEPDIR)/keypin.Po \
 	src/or/$(DEPDIR)/libtor_testing_a-addressmap.Po \
 	src/or/$(DEPDIR)/libtor_testing_a-bridges.Po \
 	src/or/$(DEPDIR)/libtor_testing_a-channel.Po \
@@ -1610,7 +1612,8 @@ am__depfiles_remade = src/common/$(DEPDIR)/address.Po \
 	src/or/$(DEPDIR)/libtor_testing_a-hs_intropoint.Po \
 	src/or/$(DEPDIR)/libtor_testing_a-hs_ntor.Po \
 	src/or/$(DEPDIR)/libtor_testing_a-hs_service.Po \
-	src/or/$(DEPDIR)/libtor_testing_a-iot_ticket.Po \
+	src/or/$(DEPDIR)/libtor_testing_a-iot_delegation.Po \
+	src/or/$(DEPDIR)/libtor_testing_a-iot_entry.Po \
 	src/or/$(DEPDIR)/libtor_testing_a-keypin.Po \
 	src/or/$(DEPDIR)/libtor_testing_a-main.Po \
 	src/or/$(DEPDIR)/libtor_testing_a-microdesc.Po \
@@ -2142,13 +2145,13 @@ am__noinst_HEADERS_DIST = src/ext/ht.h src/ext/byteorder.h \
 	src/or/rephist.h src/or/replaycache.h src/or/router.h \
 	src/or/routerkeys.h src/or/routerlist.h src/or/routerset.h \
 	src/or/routerparse.h src/or/scheduler.h src/or/statefile.h \
-	src/or/status.h src/or/torcert.h src/or/iot_ticket.h \
-	micro-revision.i src/test/fakechans.h \
-	src/test/hs_test_helpers.h src/test/log_test_helpers.h \
-	src/test/rend_test_helpers.h src/test/test.h \
-	src/test/test_helpers.h src/test/test_dir_common.h \
-	src/test/test_connection.h src/test/test_descriptors.inc \
-	src/test/example_extrainfo.inc \
+	src/or/status.h src/or/torcert.h src/or/iot.h \
+	src/or/iot_delegation.h src/or/iot_entry.h micro-revision.i \
+	src/test/fakechans.h src/test/hs_test_helpers.h \
+	src/test/log_test_helpers.h src/test/rend_test_helpers.h \
+	src/test/test.h src/test/test_helpers.h \
+	src/test/test_dir_common.h src/test/test_connection.h \
+	src/test/test_descriptors.inc src/test/example_extrainfo.inc \
 	src/test/failing_routerdescs.inc src/test/ed25519_vectors.inc \
 	src/test/test_hs_descriptor.inc src/test/vote_descriptors.inc \
 	src/test/fuzz/fuzzing.h src/trace/trace.h src/trace/events.h \
@@ -3029,7 +3032,8 @@ LIBTOR_A_SOURCES = \
 	src/or/status.c					\
 	src/or/torcert.c				\
 	src/or/onion_ntor.c				\
-        src/or/iot_ticket.c				\
+    src/or/iot_delegation.c				\
+    src/or/iot_entry.c				\
 	$(tor_platform_source)
 
 src_or_libtor_a_SOURCES = $(LIBTOR_A_SOURCES)
@@ -3156,7 +3160,9 @@ ORHEADERS = \
 	src/or/statefile.h				\
 	src/or/status.h					\
 	src/or/torcert.h				\
-	src/or/iot_ticket.h
+	src/or/iot.h					\
+	src/or/iot_delegation.h				\
+	src/or/iot_entry.h
 
 
 # When the day comes that Tor requires Automake >= 1.12 change
@@ -4611,7 +4617,9 @@ src/or/libtor_testing_a-torcert.$(OBJEXT): src/or/$(am__dirstamp) \
 	src/or/$(DEPDIR)/$(am__dirstamp)
 src/or/libtor_testing_a-onion_ntor.$(OBJEXT): src/or/$(am__dirstamp) \
 	src/or/$(DEPDIR)/$(am__dirstamp)
-src/or/libtor_testing_a-iot_ticket.$(OBJEXT): src/or/$(am__dirstamp) \
+src/or/libtor_testing_a-iot_delegation.$(OBJEXT):  \
+	src/or/$(am__dirstamp) src/or/$(DEPDIR)/$(am__dirstamp)
+src/or/libtor_testing_a-iot_entry.$(OBJEXT): src/or/$(am__dirstamp) \
 	src/or/$(DEPDIR)/$(am__dirstamp)
 src/or/libtor_testing_a-ntmain.$(OBJEXT): src/or/$(am__dirstamp) \
 	src/or/$(DEPDIR)/$(am__dirstamp)
@@ -4796,7 +4804,9 @@ src/or/torcert.$(OBJEXT): src/or/$(am__dirstamp) \
 	src/or/$(DEPDIR)/$(am__dirstamp)
 src/or/onion_ntor.$(OBJEXT): src/or/$(am__dirstamp) \
 	src/or/$(DEPDIR)/$(am__dirstamp)
-src/or/iot_ticket.$(OBJEXT): src/or/$(am__dirstamp) \
+src/or/iot_delegation.$(OBJEXT): src/or/$(am__dirstamp) \
+	src/or/$(DEPDIR)/$(am__dirstamp)
+src/or/iot_entry.$(OBJEXT): src/or/$(am__dirstamp) \
 	src/or/$(DEPDIR)/$(am__dirstamp)
 src/or/ntmain.$(OBJEXT): src/or/$(am__dirstamp) \
 	src/or/$(DEPDIR)/$(am__dirstamp)
@@ -5824,7 +5834,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/hs_intropoint.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/hs_ntor.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/hs_service.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/iot_ticket.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/iot_delegation.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/iot_entry.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/keypin.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/libtor_testing_a-addressmap.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/libtor_testing_a-bridges.Po@am__quote@ # am--include-marker
@@ -5873,7 +5884,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/libtor_testing_a-hs_intropoint.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/libtor_testing_a-hs_ntor.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/libtor_testing_a-hs_service.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/libtor_testing_a-iot_ticket.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/libtor_testing_a-iot_delegation.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/libtor_testing_a-iot_entry.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/libtor_testing_a-keypin.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/libtor_testing_a-main.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@src/or/$(DEPDIR)/libtor_testing_a-microdesc.Po@am__quote@ # am--include-marker
@@ -8712,19 +8724,33 @@ src/or/libtor_testing_a-onion_ntor.obj: src/or/onion_ntor.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -c -o src/or/libtor_testing_a-onion_ntor.obj `if test -f 'src/or/onion_ntor.c'; then $(CYGPATH_W) 'src/or/onion_ntor.c'; else $(CYGPATH_W) '$(srcdir)/src/or/onion_ntor.c'; fi`
 
-src/or/libtor_testing_a-iot_ticket.o: src/or/iot_ticket.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -MT src/or/libtor_testing_a-iot_ticket.o -MD -MP -MF src/or/$(DEPDIR)/libtor_testing_a-iot_ticket.Tpo -c -o src/or/libtor_testing_a-iot_ticket.o `test -f 'src/or/iot_ticket.c' || echo '$(srcdir)/'`src/or/iot_ticket.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) src/or/$(DEPDIR)/libtor_testing_a-iot_ticket.Tpo src/or/$(DEPDIR)/libtor_testing_a-iot_ticket.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='src/or/iot_ticket.c' object='src/or/libtor_testing_a-iot_ticket.o' libtool=no @AMDEPBACKSLASH@
+src/or/libtor_testing_a-iot_delegation.o: src/or/iot_delegation.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -MT src/or/libtor_testing_a-iot_delegation.o -MD -MP -MF src/or/$(DEPDIR)/libtor_testing_a-iot_delegation.Tpo -c -o src/or/libtor_testing_a-iot_delegation.o `test -f 'src/or/iot_delegation.c' || echo '$(srcdir)/'`src/or/iot_delegation.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) src/or/$(DEPDIR)/libtor_testing_a-iot_delegation.Tpo src/or/$(DEPDIR)/libtor_testing_a-iot_delegation.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='src/or/iot_delegation.c' object='src/or/libtor_testing_a-iot_delegation.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -c -o src/or/libtor_testing_a-iot_ticket.o `test -f 'src/or/iot_ticket.c' || echo '$(srcdir)/'`src/or/iot_ticket.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -c -o src/or/libtor_testing_a-iot_delegation.o `test -f 'src/or/iot_delegation.c' || echo '$(srcdir)/'`src/or/iot_delegation.c
 
-src/or/libtor_testing_a-iot_ticket.obj: src/or/iot_ticket.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -MT src/or/libtor_testing_a-iot_ticket.obj -MD -MP -MF src/or/$(DEPDIR)/libtor_testing_a-iot_ticket.Tpo -c -o src/or/libtor_testing_a-iot_ticket.obj `if test -f 'src/or/iot_ticket.c'; then $(CYGPATH_W) 'src/or/iot_ticket.c'; else $(CYGPATH_W) '$(srcdir)/src/or/iot_ticket.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) src/or/$(DEPDIR)/libtor_testing_a-iot_ticket.Tpo src/or/$(DEPDIR)/libtor_testing_a-iot_ticket.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='src/or/iot_ticket.c' object='src/or/libtor_testing_a-iot_ticket.obj' libtool=no @AMDEPBACKSLASH@
+src/or/libtor_testing_a-iot_delegation.obj: src/or/iot_delegation.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -MT src/or/libtor_testing_a-iot_delegation.obj -MD -MP -MF src/or/$(DEPDIR)/libtor_testing_a-iot_delegation.Tpo -c -o src/or/libtor_testing_a-iot_delegation.obj `if test -f 'src/or/iot_delegation.c'; then $(CYGPATH_W) 'src/or/iot_delegation.c'; else $(CYGPATH_W) '$(srcdir)/src/or/iot_delegation.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) src/or/$(DEPDIR)/libtor_testing_a-iot_delegation.Tpo src/or/$(DEPDIR)/libtor_testing_a-iot_delegation.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='src/or/iot_delegation.c' object='src/or/libtor_testing_a-iot_delegation.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -c -o src/or/libtor_testing_a-iot_ticket.obj `if test -f 'src/or/iot_ticket.c'; then $(CYGPATH_W) 'src/or/iot_ticket.c'; else $(CYGPATH_W) '$(srcdir)/src/or/iot_ticket.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -c -o src/or/libtor_testing_a-iot_delegation.obj `if test -f 'src/or/iot_delegation.c'; then $(CYGPATH_W) 'src/or/iot_delegation.c'; else $(CYGPATH_W) '$(srcdir)/src/or/iot_delegation.c'; fi`
+
+src/or/libtor_testing_a-iot_entry.o: src/or/iot_entry.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -MT src/or/libtor_testing_a-iot_entry.o -MD -MP -MF src/or/$(DEPDIR)/libtor_testing_a-iot_entry.Tpo -c -o src/or/libtor_testing_a-iot_entry.o `test -f 'src/or/iot_entry.c' || echo '$(srcdir)/'`src/or/iot_entry.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) src/or/$(DEPDIR)/libtor_testing_a-iot_entry.Tpo src/or/$(DEPDIR)/libtor_testing_a-iot_entry.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='src/or/iot_entry.c' object='src/or/libtor_testing_a-iot_entry.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -c -o src/or/libtor_testing_a-iot_entry.o `test -f 'src/or/iot_entry.c' || echo '$(srcdir)/'`src/or/iot_entry.c
+
+src/or/libtor_testing_a-iot_entry.obj: src/or/iot_entry.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -MT src/or/libtor_testing_a-iot_entry.obj -MD -MP -MF src/or/$(DEPDIR)/libtor_testing_a-iot_entry.Tpo -c -o src/or/libtor_testing_a-iot_entry.obj `if test -f 'src/or/iot_entry.c'; then $(CYGPATH_W) 'src/or/iot_entry.c'; else $(CYGPATH_W) '$(srcdir)/src/or/iot_entry.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) src/or/$(DEPDIR)/libtor_testing_a-iot_entry.Tpo src/or/$(DEPDIR)/libtor_testing_a-iot_entry.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='src/or/iot_entry.c' object='src/or/libtor_testing_a-iot_entry.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -c -o src/or/libtor_testing_a-iot_entry.obj `if test -f 'src/or/iot_entry.c'; then $(CYGPATH_W) 'src/or/iot_entry.c'; else $(CYGPATH_W) '$(srcdir)/src/or/iot_entry.c'; fi`
 
 src/or/libtor_testing_a-ntmain.o: src/or/ntmain.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(src_or_libtor_testing_a_CPPFLAGS) $(CPPFLAGS) $(src_or_libtor_testing_a_CFLAGS) $(CFLAGS) -MT src/or/libtor_testing_a-ntmain.o -MD -MP -MF src/or/$(DEPDIR)/libtor_testing_a-ntmain.Tpo -c -o src/or/libtor_testing_a-ntmain.o `test -f 'src/or/ntmain.c' || echo '$(srcdir)/'`src/or/ntmain.c
@@ -12350,7 +12376,8 @@ distclean: distclean-am
 	-rm -f src/or/$(DEPDIR)/hs_intropoint.Po
 	-rm -f src/or/$(DEPDIR)/hs_ntor.Po
 	-rm -f src/or/$(DEPDIR)/hs_service.Po
-	-rm -f src/or/$(DEPDIR)/iot_ticket.Po
+	-rm -f src/or/$(DEPDIR)/iot_delegation.Po
+	-rm -f src/or/$(DEPDIR)/iot_entry.Po
 	-rm -f src/or/$(DEPDIR)/keypin.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-addressmap.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-bridges.Po
@@ -12399,7 +12426,8 @@ distclean: distclean-am
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-hs_intropoint.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-hs_ntor.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-hs_service.Po
-	-rm -f src/or/$(DEPDIR)/libtor_testing_a-iot_ticket.Po
+	-rm -f src/or/$(DEPDIR)/libtor_testing_a-iot_delegation.Po
+	-rm -f src/or/$(DEPDIR)/libtor_testing_a-iot_entry.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-keypin.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-main.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-microdesc.Po
@@ -12915,7 +12943,8 @@ maintainer-clean: maintainer-clean-am
 	-rm -f src/or/$(DEPDIR)/hs_intropoint.Po
 	-rm -f src/or/$(DEPDIR)/hs_ntor.Po
 	-rm -f src/or/$(DEPDIR)/hs_service.Po
-	-rm -f src/or/$(DEPDIR)/iot_ticket.Po
+	-rm -f src/or/$(DEPDIR)/iot_delegation.Po
+	-rm -f src/or/$(DEPDIR)/iot_entry.Po
 	-rm -f src/or/$(DEPDIR)/keypin.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-addressmap.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-bridges.Po
@@ -12964,7 +12993,8 @@ maintainer-clean: maintainer-clean-am
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-hs_intropoint.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-hs_ntor.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-hs_service.Po
-	-rm -f src/or/$(DEPDIR)/libtor_testing_a-iot_ticket.Po
+	-rm -f src/or/$(DEPDIR)/libtor_testing_a-iot_delegation.Po
+	-rm -f src/or/$(DEPDIR)/libtor_testing_a-iot_entry.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-keypin.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-main.Po
 	-rm -f src/or/$(DEPDIR)/libtor_testing_a-microdesc.Po

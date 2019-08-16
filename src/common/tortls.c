@@ -148,7 +148,7 @@ static int check_cert_lifetime_internal(int severity, const X509 *cert,
 STATIC tor_tls_context_t *server_tls_context = NULL;
 STATIC tor_tls_context_t *client_tls_context = NULL;
 
-//IOT:
+//Tor4IoT: DTLS context
 STATIC tor_tls_context_t *server_dtls_context = NULL;
 /**@}*/
 
@@ -159,142 +159,136 @@ static int tls_library_is_initialized = 0;
 #define TOR_TLS_SYSCALL_    (MIN_TOR_TLS_ERROR_VAL_ - 2)
 #define TOR_TLS_ZERORETURN_ (MIN_TOR_TLS_ERROR_VAL_ - 1)
 
+#define C_SECRET_LENGTH 16
 
-/*
- * Partly taken from:
- * - https://bitbucket.org/tiebingzhang/tls-psk-server-client-example
- */
-
-
-//IOT:
-
-#define PSK
-#define COOKIE_SECRET_LENGTH 16
-
-STATIC unsigned char cookie_secret[COOKIE_SECRET_LENGTH];
-STATIC int cookie_initialized=0;
+static unsigned char c_secret[C_SECRET_LENGTH];
+static int c_initialized=0;
 
 
 static const char *psk_identity = "Client_identity";
 static const char *psk_key = "73656372657450534b";
 
-static int tor_dtls_generate_cookie (SSL *ssl, unsigned char *cookie, unsigned int *cookie_len)
+//Tor4IoT: Generate random cookie for DTLS handshake
+static int tor_dtls_generate_cookie (SSL *ssl, unsigned char *c, unsigned int *c_len)
 {
-  unsigned char *buffer, result[EVP_MAX_MD_SIZE];
-  unsigned int length = 0, resultlength;
+  unsigned char *buf;
+  unsigned char r[EVP_MAX_MD_SIZE];
+  unsigned int len = 0;
+  unsigned int r_len = 0;
 
   union {
     struct sockaddr_storage ss;
     struct sockaddr_in6 s6;
     struct sockaddr_in s4;
-  } peer;
+  } client;
 
-  /* Initialize a random secret */
-  if (!cookie_initialized) {
-    if (!RAND_bytes(cookie_secret, COOKIE_SECRET_LENGTH))
+  if (!c_initialized) {
+    if (!RAND_bytes(c_secret, C_SECRET_LENGTH))
       {
-	log_warn(LD_NET, "error setting random cookie secret");
-	return 0;
+        log_warn(LD_NET, "error setting random cookie secret");
+        return 0;
       }
-    cookie_initialized = 1;
+    c_initialized = 1;
   }
 
+  (void) BIO_dgram_get_peer(SSL_get_rbio(ssl), &client);
 
-  /* Read peer information */
-  (void) BIO_dgram_get_peer(SSL_get_rbio(ssl), &peer);
+  len = 0;
+  len += sizeof(struct in6_addr);
+  len += sizeof(in_port_t);
 
-  /* Create buffer with peer's address and port */
-  length = 0;
-  length += sizeof(struct in6_addr);
-  length += sizeof(in_port_t);
+  buf = (unsigned char*) tor_malloc(len);
 
-  buffer = (unsigned char*) tor_malloc(length);
-
-  memcpy(buffer,
-	 &peer.s6.sin6_port,
+  memcpy(buf,
+	 &client.s6.sin6_port,
 	 sizeof(in_port_t));
 
-  memcpy(buffer + sizeof(in_port_t),
-	 &peer.s6.sin6_addr,
+  memcpy(buf + sizeof(in_port_t),
+	 &client.s6.sin6_addr,
 	 sizeof(struct in6_addr));
 
-  /* Calculate HMAC of buffer using the secret */
-  HMAC(EVP_sha1(), (const void*) cookie_secret, COOKIE_SECRET_LENGTH,
-       (const unsigned char*) buffer, length, result, &resultlength);
+  /* Calculate HMAC */
+  HMAC(EVP_sha1(), (const void*) c_secret, C_SECRET_LENGTH,
+       (const unsigned char*) buf, len, r, &r_len);
 
-  tor_free(buffer);
+  tor_free(buf);
 
-  memcpy(cookie, result, resultlength);
-  *cookie_len = resultlength;
+  memcpy(c, r, r_len);
+  *c_len = r_len;
 
   return 1;
 }
 
-static int tor_dtls_verify_cookie (SSL *ssl, const unsigned char *cookie, unsigned int cookie_len)
+//Tor4IoT: Verify DTLS cookie during handshake
+static int tor_dtls_verify_cookie (SSL *ssl, const unsigned char *c, unsigned int c_len)
 {
-  unsigned char *buffer, result[EVP_MAX_MD_SIZE];
-  unsigned int length = 0, resultlength;
+  unsigned char *buf;
+  unsigned char r[EVP_MAX_MD_SIZE];
+
+  unsigned int len = 0;
+  unsigned int r_len;
+
   union {
     struct sockaddr_storage ss;
     struct sockaddr_in6 s6;
     struct sockaddr_in s4;
-  } peer;
+  } client;
 
-  /* If secret isn't initialized yet, the cookie can't be valid */
-  if (!cookie_initialized)
+  if (!c_initialized)
     return 0;
 
-  /* Read peer information */
-  (void) BIO_dgram_get_peer(SSL_get_rbio(ssl), &peer);
+  (void) BIO_dgram_get_peer(SSL_get_rbio(ssl), &client);
 
-  /* Create buffer with peer's address and port */
-  length = 0;
+  len = 0;
 
-  length += sizeof(struct in6_addr);
-  length += sizeof(in_port_t);
+  len += sizeof(struct in6_addr);
+  len += sizeof(in_port_t);
 
-  buffer = (unsigned char*) tor_malloc(length);
+  buf = (unsigned char*) tor_malloc(len);
 
-  memcpy(buffer,
-	 &peer.s6.sin6_port,
+  memcpy(buf,
+	 &client.s6.sin6_port,
 	 sizeof(in_port_t));
 
-  memcpy(buffer + sizeof(in_port_t),
-	 &peer.s6.sin6_addr,
+  memcpy(buf + sizeof(in_port_t),
+	 &client.s6.sin6_addr,
 	 sizeof(struct in6_addr));
 
-  /* Calculate HMAC of buffer using the secret */
-  HMAC(EVP_sha1(), (const void*) cookie_secret, COOKIE_SECRET_LENGTH,
-       (const unsigned char*) buffer, length, result, &resultlength);
+  HMAC(EVP_sha1(), (const void*) c_secret, C_SECRET_LENGTH,
+       (const unsigned char*) buf, len, r, &r_len);
 
-  tor_free(buffer);
+  tor_free(buf);
 
-  if (cookie_len == resultlength && memcmp(result, cookie, resultlength) == 0)
+  if (c_len == r_len && memcmp(r, c, r_len) == 0)
     return 1;
 
   return 0;
 }
 
-static inline int cval(char c)
+// Tor4IoT: Convert ASCII char to value
+static int convert_ascii(char c)
 {
-	if (c>='a') return c-'a'+0x0a;
-	if (c>='A') return c-'A'+0x0a;
+	if (c>='a')
+    return c-'a'+0x0a;
+	if (c>='A')
+    return c-'A'+0x0a;
 	return c-'0';
 }
 
-/* return value: number of bytes in out, <=0 if error */
-static int hex2bin(const char *str, unsigned char *out)
+// Tor4IoT: Convert hex string to binary
+static int hex2bin(const char *in, unsigned char *out)
 {
-	int i;
-	for(i = 0; str[i] && str[i+1]; i+=2){
-		if (!isxdigit(str[i])&& !isxdigit(str[i+1]))
+  int i;
+	for(i = 0; in[i] && in[i+1]; i+=2){
+		if ((!isxdigit(in[i]) && !isxdigit(in[i+1])))
 			return -1;
-		out[i/2] = (cval(str[i])<<4) + cval(str[i+1]);
+		out[i/2] = (convert_ascii(in[i])<<4) + convert_ascii(in[i+1]);
 	}
 	return i/2;
 }
 
-static unsigned int psk_server_cb(SSL * ssl, const char *identity,
+// Tor4IoT: Callback providing the psk to OpenSSL
+static unsigned int tor_dtls_psk_callback(SSL * ssl, const char *identity,
 	      unsigned char *psk, unsigned int max_psk_len)
 {
 	int ret;
@@ -324,8 +318,6 @@ static unsigned int psk_server_cb(SSL * ssl, const char *identity,
 	}
 	return ret;
 }
-
-// END IOT
 
 
 /** Write a description of the current state of <b>tls</b> into the
@@ -587,7 +579,7 @@ tor_tls_free_all(void)
     client_tls_context = NULL;
     tor_tls_context_decref(ctx);
   }
-  //IOT
+
   if (server_dtls_context) {
     tor_tls_context_t *ctx = server_dtls_context;
     server_dtls_context = NULL;
@@ -1253,20 +1245,20 @@ tor_tls_context_init(unsigned flags,
  * it generates new certificates; all new connections will use
  * the new SSL context.
  */
-//IOT:
+
 STATIC int
 tor_tls_context_init_one(tor_tls_context_t **ppcontext,
                          crypto_pk_t *identity,
                          unsigned int key_lifetime,
                          unsigned int flags,
                          int is_client,
-			 int is_dtls)
+                  			 int is_dtls)
 {
   tor_tls_context_t *new_ctx = tor_tls_context_new(identity,
                                                    key_lifetime,
                                                    flags,
                                                    is_client,
-						   is_dtls);
+						                                       is_dtls);
   tor_tls_context_t *old_ctx = *ppcontext;
 
   if (new_ctx != NULL) {
@@ -1377,16 +1369,9 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
     /* Client has to authenticate */
     //SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, dtls_verify_callback);
 
-#ifdef ECDH
-    SSL_CTX_set_read_ahead(result->ctx, 1);
-    SSL_CTX_set_verify_depth(result->ctx, 2);
-#endif
     SSL_CTX_set_cookie_generate_cb(result->ctx, &tor_dtls_generate_cookie);
     SSL_CTX_set_cookie_verify_cb(result->ctx, &tor_dtls_verify_cookie);
-
-#ifdef PSK
-    SSL_CTX_set_psk_server_callback(result->ctx, &psk_server_cb);
-#endif
+    SSL_CTX_set_psk_server_callback(result->ctx, &tor_dtls_psk_callback);
 
     SSL_CTX_set_mode(result->ctx, SSL_MODE_AUTO_RETRY);
   }
@@ -1578,7 +1563,7 @@ STATIC uint16_t v2_cipher_list[] = {
   0xc003, /* TLS1_TXT_ECDH_ECDSA_WITH_DES_192_CBC3_SHA */
   0xfeff, /* SSL3_TXT_RSA_FIPS_WITH_3DES_EDE_CBC_SHA */
   0x000a, /* SSL3_TXT_RSA_DES_192_CBC3_SHA */
-  //IOT
+  // Tor4IoT: Add ciphers supported by TinyDTLS
   0xc0ae,
   0xc0a8,
   0
@@ -1720,7 +1705,7 @@ tor_tls_classify_client_ciphers(const SSL *ssl,
         continue;
       if (!id || id != *v2_cipher) {
         //res = CIPHERS_UNRESTRICTED;
-	res = CIPHERS_V2;
+	      res = CIPHERS_V2;
         goto dump_ciphers;
       }
       ++v2_cipher;
@@ -1812,11 +1797,8 @@ tor_tls_server_info_callback(const SSL *ssl, int type, int val)
     return;
   }
 
-  log_debug(LD_GENERAL, "V2 ciphers?");
-
   /* Now check the cipher list. */
   if (tor_tls_client_is_using_v2_ciphers(ssl)) {
-    log_debug(LD_GENERAL, "V2!");
     if (tls->wasV2Handshake)
       return; /* We already turned this stuff off for the first handshake;
                * This is a renegotiation. */
@@ -1863,11 +1845,8 @@ tor_tls_session_secret_cb(SSL *ssl, void *secret, int *secret_len,
   (void) cipher;
   (void) arg;
 
-  log_debug(LD_GENERAL, "Checking ciphers...");
-
   if (tor_tls_classify_client_ciphers(ssl, peer_ciphers) ==
        CIPHERS_UNRESTRICTED) {
-    log_debug(LD_GENERAL, "Recognized unrestricted cipherlist.");
     SSL_set_cipher_list(ssl, UNRESTRICTED_SERVER_CIPHER_LIST);
   }
 
@@ -1884,7 +1863,6 @@ tor_tls_setup_session_secret_cb(tor_tls_t *tls)
 /** Create a new TLS object from a file descriptor, and a flag to
  * determine whether it is functioning as a server.
  */
-//IOT:
 tor_tls_t *
 tor_tls_new(int sock, int isServer, int is_dtls)
 {
@@ -2105,9 +2083,7 @@ tor_tls_read,(tor_tls_t *tls, char *cp, size_t len))
   tor_assert(tls->ssl);
   tor_assert(tls->state == TOR_TLS_ST_OPEN);
   tor_assert(len<INT_MAX);
-  log_debug(LD_NET, "SSL_read");
   r = SSL_read(tls->ssl, cp, (int)len);
-  log_debug(LD_NET, "Returned from SSL_read");
   if (r > 0) {
     if (tls->got_renegotiate) {
       /* Renegotiation happened! */
@@ -2212,8 +2188,6 @@ tor_tls_handshake(tor_tls_t *tls)
     log_debug(LD_HANDSHAKE, "About to call SSL_accept on %p (%s)", tls,
               SSL_state_string_long(tls->ssl));
     r = SSL_accept(tls->ssl);
-
-    log_debug(LD_HANDSHAKE, "Return value of SSL_accept() was %d", r);
   } else {
     log_debug(LD_HANDSHAKE, "About to call SSL_connect on %p (%s)", tls,
               SSL_state_string_long(tls->ssl));
@@ -2916,3 +2890,4 @@ evaluate_ecgroup_for_tls(const char *ecgroup)
 
   return ret;
 }
+

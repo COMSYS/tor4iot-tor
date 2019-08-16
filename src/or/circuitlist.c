@@ -397,8 +397,7 @@ circuit_set_p_circid_chan(or_circuit_t *or_circ, circid_t id,
 
   if (chan) {
     log_info(LD_GENERAL, "p_chan_cells.n: %d, next_active_on_p_chan: 0x%016lx", or_circ->p_chan_cells.n,
-             (uint64_t)or_circ->next_active_on_p_chan);
-    //XXX:
+             (unsigned long)or_circ->next_active_on_p_chan);
     tor_assert(bool_eq(or_circ->p_chan_cells.n,
                        or_circ->next_active_on_p_chan));
 
@@ -655,7 +654,6 @@ circuit_purpose_to_controller_string(uint8_t purpose)
     case CIRCUIT_PURPOSE_S_REND_JOINED:
       return "HS_SERVICE_REND";
 
-    //IOT
     case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
       return "HS_SERVICE_REND_IOT";
 
@@ -729,7 +727,7 @@ circuit_purpose_to_controller_hs_state_string(uint8_t purpose)
       return "HSSR_CONNECTING";
     case CIRCUIT_PURPOSE_S_REND_JOINED:
       return "HSSR_JOINED";
-    //IOT
+
     case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
       return "HSSR_CONNECTING_IOT";
     }
@@ -818,7 +816,6 @@ init_circuit_base(circuit_t *circ)
 {
   tor_gettimeofday(&circ->timestamp_created);
 
-  //IOT:
   circ->already_split = 0;
   circ->iot_buffer = smartlist_new();
 
@@ -1694,7 +1691,7 @@ circuit_find_to_cannibalize(uint8_t purpose, extend_info_t *info,
   int internal = (flags & CIRCLAUNCH_IS_INTERNAL) != 0;
   const or_options_t *options = get_options();
 
-  //IOT: For our delegation service we do not cannibalize!
+  //Tor4IoT: For our delegation service we do not cannibalize!
   if (purpose==CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
       return NULL;
   }
@@ -1894,6 +1891,7 @@ circuit_mark_for_close_, (circuit_t *circ, int reason, int line,
   tor_assert(line);
   tor_assert(file);
 
+#ifdef TOR4IOT_MEASUREMENT
   if (CIRCUIT_IS_ORIGIN(circ)) {
 	  if (circ->purpose == CIRCUIT_PURPOSE_C_REND_JOINED ||
         circ->purpose == CIRCUIT_PURPOSE_S_REND_JOINED ||
@@ -1923,6 +1921,7 @@ circuit_mark_for_close_, (circuit_t *circ, int reason, int line,
 		  iot_entry_print_measurements(circ);
 	  }
   }
+#endif
 
   if (circ->marked_for_close) {
     log_warn(LD_BUG,

@@ -2526,12 +2526,14 @@ getinfo_helper_downloads(control_connection_t *control_conn,
   }
 }
 
+#ifdef TOR4IOT_MEASUREMENT
 static void
 add_mes(smartlist_t* list, const char *label, struct timespec *time) {
 	if (time->tv_sec != 0 || time->tv_nsec != 0) {
 		smartlist_add_asprintf(list, "%s:%lus%luns", label, time->tv_sec, time->tv_nsec);
 	}
 }
+#endif
 
 /** Allocate and return a description of <b>circ</b>'s current status,
  * including its path (if any). */
@@ -2616,6 +2618,7 @@ circuit_describe_status_for_controller(origin_circuit_t *circ)
     tor_free(socks_password_escaped);
   }
 
+#ifdef TOR4IOT_MEASUREMENT
   add_mes(descparts, "CPATHSTART", &circ->iot_mes_cpathstart);
   add_mes(descparts, "CPATHEND", &circ->iot_mes_cpathend);
   add_mes(descparts, "CIRCSTART", &circ->iot_mes_circstart);
@@ -2642,6 +2645,7 @@ circuit_describe_status_for_controller(origin_circuit_t *circ)
   }
 
   add_mes(descparts, "CIRCEND", &circ->iot_mes_circend);
+#endif
 
   rv = smartlist_join_strings(descparts, " ", 0, NULL);
 

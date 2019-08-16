@@ -181,7 +181,6 @@ conn_type_to_string(int type)
   switch (type) {
     case CONN_TYPE_OR_LISTENER: return "OR listener";
     case CONN_TYPE_OR: return "OR";
-    //IOT
     case CONN_TYPE_OR_UDP: return "ORUDP";
     case CONN_TYPE_OR_UDP_LISTENER: return "ORUDP listener";
     case CONN_TYPE_EXIT: return "Exit";
@@ -1271,10 +1270,10 @@ connection_listener_new(const struct sockaddr *listensockaddr,
       int zero=0;
       if (setsockopt(s,IPPROTO_IPV6, IPV6_V6ONLY,
 		     (void*)&zero, (socklen_t)sizeof(zero)) < 0) {
-	int e = tor_socket_errno(s);
-	log_warn(LD_NET, "Error setting IPV6_V6ONLY flag: %s",
-	         tor_socket_strerror(e));
-	/* Keep going; probably not harmful. */
+            int e = tor_socket_errno(s);
+            log_warn(LD_NET, "Error setting IPV6_V6ONLY flag: %s",
+                    tor_socket_strerror(e));
+            /* Keep going; probably not harmful. */
       }
     }
 
@@ -1566,7 +1565,6 @@ connection_handle_listener_read(connection_t *conn, int new_type)
   socklen_t remotelen = (socklen_t)sizeof(addrbuf);
   const or_options_t *options = get_options();
 
-  //IOT:
   if (new_type == CONN_TYPE_OR_UDP) {
       log_info(LD_NET, "Incoming UDP connection on fd %d. Starting DTLS handshake.", conn->s);
 
@@ -1609,8 +1607,8 @@ connection_handle_listener_read(connection_t *conn, int new_type)
 
       err = bind(conn->s, &server_addr, sizeof(struct sockaddr_in6));
       if (err) {
-  	log_err(LD_OR, "UDP bind of fd %d failed with error %d.", conn->s, errno);
-  	tor_assert(0);
+        log_err(LD_OR, "UDP bind of fd %d failed with error %d.", conn->s, errno);
+        tor_assert(0);
       }
 
       inc_open_socket_ctr();
@@ -1627,7 +1625,6 @@ connection_handle_listener_read(connection_t *conn, int new_type)
   memset(&addrbuf, 0, sizeof(addrbuf));
 
   news = tor_accept_socket_nonblocking(conn->s,remote,&remotelen);
-
   if (!SOCKET_OK(news)) { /* accept() error */
     int e = tor_socket_errno(conn->s);
     if (ERRNO_IS_ACCEPT_EAGAIN(e)) {
@@ -3676,10 +3673,6 @@ connection_buf_read_from_socket(connection_t *conn, ssize_t *max_to_read,
       /* continue handshaking even if global token bucket is empty */
       return connection_tls_continue_handshake(or_conn);
     }
-//    else if (conn->type == CONN_TYPE_OR_UDP && buf_datalen(conn->inbuf) == 0 && tor_tls_get_pending_bytes(or_conn->tls) == 0) {
-//	log_debug(LD_NET, "Triggered but no pending bytes. Connection reuse detected!");
-//	return -1;
-//    }
 
     log_debug(LD_NET,
               "%d: starting, inbuf_datalen %ld (%d pending in tls object)."
@@ -3690,7 +3683,6 @@ connection_buf_read_from_socket(connection_t *conn, ssize_t *max_to_read,
     initial_size = buf_datalen(conn->inbuf);
     /* else open, or closing */
     result = buf_read_from_tls(conn->inbuf, or_conn->tls, at_most);
-    log_debug(LD_NET, "read");
     if (TOR_TLS_IS_ERROR(result) || result == TOR_TLS_CLOSE)
       or_conn->tls_error = result;
     else
@@ -3712,11 +3704,9 @@ connection_buf_read_from_socket(connection_t *conn, ssize_t *max_to_read,
                  conn->address);
         return result;
       case TOR_TLS_WANTWRITE:
-	log_debug(LD_NET, "Wantwrite");
         connection_start_writing(conn);
         return 0;
       case TOR_TLS_WANTREAD:
-	log_debug(LD_NET, "Wantread");
         if (conn->in_connection_handle_write) {
           /* We've been invoked from connection_handle_write, because we're
            * waiting for a TLS renegotiation, the renegotiation started, and
@@ -3734,9 +3724,6 @@ connection_buf_read_from_socket(connection_t *conn, ssize_t *max_to_read,
       default:
         break;
     }
-
-    log_debug(LD_NET, "handled.");
-
     pending = tor_tls_get_pending_bytes(or_conn->tls);
     if (pending) {
       /* If we have any pending bytes, we read them now.  This *can*
@@ -5190,7 +5177,7 @@ assert_connection_ok(connection_t *conn, time_t now)
       tor_assert(conn->state == LISTENER_STATE_READY);
       break;
     case CONN_TYPE_OR:
-    case CONN_TYPE_OR_UDP: //IOT
+    case CONN_TYPE_OR_UDP:
       tor_assert(conn->state >= OR_CONN_STATE_MIN_);
       tor_assert(conn->state <= OR_CONN_STATE_MAX_);
       break;

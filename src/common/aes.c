@@ -149,7 +149,6 @@ evaluate_ctr_for_aes(void)
 {
   return 0;
 }
-
 #else /* !(defined(USE_EVP_AES_CTR)) */
 
 /*======================================================================*/
@@ -408,7 +407,8 @@ aes_set_iv(aes_cnt_cipher_t *cipher, const uint8_t *iv)
   cipher->pos = 0;
   memcpy(cipher->ctr_buf.buf, iv, 16);
 }
-//IOT:
+
+//Tor4IoT: Copy IV from aes struct
 static void
 aes_get_iv(aes_cnt_cipher_t *cipher, uint8_t *iv) {
   memcpy(iv, cipher->counter0, 4);

@@ -20,7 +20,7 @@ aes_cnt_cipher_t* aes_new_cipher(const uint8_t *key, const uint8_t *iv,
 void aes_cipher_free(aes_cnt_cipher_t *cipher);
 void aes_crypt_inplace(aes_cnt_cipher_t *cipher, char *data, size_t len);
 
-//IOT:
+//Tor4IoT: Copy AES cipher struct
 aes_cnt_cipher_t* aes_cipher_copy(aes_cnt_cipher_t *in);
 
 int evaluate_evp_for_aes(int force_value);

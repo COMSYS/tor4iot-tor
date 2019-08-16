@@ -36,7 +36,6 @@
 #include "hs_intropoint.h"
 #include "hs_service.h"
 
-//IOT
 #include "iot_delegation.h"
 #include "iot.h"
 
@@ -3193,11 +3192,7 @@ hs_service_circuit_has_opened(origin_circuit_t *circ)
       rend_service_rendezvous_has_opened(circ);
     }
     break;
-//IOT
   case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
-
-//    iot_inform_split(circ);
-
     if (circ->hs_ident) {
       service_rendezvous_circ_has_opened(circ);
     } else {
@@ -3205,7 +3200,6 @@ hs_service_circuit_has_opened(origin_circuit_t *circ)
     }
 
     iot_ticket_send(circ, IOT_TICKET_TYPE_HS);
-
     break;
   default:
     tor_assert(0);

@@ -583,11 +583,13 @@ connection_edge_finished_connecting(edge_connection_t *edge_conn)
     if (connection_edge_send_command(edge_conn,
                                      RELAY_COMMAND_CONNECTED, NULL, 0) < 0)
       return 0; /* circuit is closed, don't continue */
-    
+
+#ifdef TOR4IOT_MEASUREMENT
     log_debug(LD_GENERAL, "Sending measurement cell from HS to guard.");
     relay_send_command_from_edge(0, edge_conn->on_circuit,
                                  RELAY_COMMAND_MEASURE_HS,
                                  NULL, 0, TO_ORIGIN_CIRCUIT(edge_conn->on_circuit)->cpath);
+#endif
   } else {
     uint8_t connected_payload[MAX_CONNECTED_CELL_PAYLOAD_LEN];
     int connected_payload_len =
@@ -1800,7 +1802,9 @@ connection_ap_handshake_rewrite_and_attach(entry_connection_t *conn,
        implies no. */
   }
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &conn->iot_mes_start);
+#endif
 
   // IoT
   if (addresstype == IOT_HOSTNAME) {
@@ -3483,9 +3487,11 @@ connection_exit_begin_conn(cell_t *cell, circuit_t *circ)
     port = bcell.port;
 
     if (or_circ && or_circ->p_chan) {
+#ifdef TOR4IOT_MEASUREMENT
       clock_gettime(CLOCK_MONOTONIC, &or_circ->iot_mes_relay_begin_recv);
       memcpy(&or_circ->iot_mes_relay_begin_frombuf, &cell->received, sizeof(struct timespec));
       or_circ->mes = 1;
+#endif
       const int client_chan = channel_is_client(or_circ->p_chan);
       if ((client_chan ||
            (!connection_or_digest_is_known_relay(
@@ -3566,8 +3572,10 @@ connection_exit_begin_conn(cell_t *cell, circuit_t *circ)
     tor_free(address);
     /* We handle this circuit and stream in this function for all supported
      * hidden service version. */
+#ifdef TOR4IOT_MEASUREMENT
     clock_gettime(CLOCK_MONOTONIC, &origin_circ->iot_mes_hs_begin);
     memcpy(&origin_circ->iot_mes_hs_begin_from_buf, &cell->received, sizeof(struct timespec));
+#endif
     return handle_hs_exit_conn(circ, n_stream);
   }
   tor_strlower(address);
@@ -3776,7 +3784,6 @@ connection_exit_connect(edge_connection_t *edge_conn)
     connection_edge_send_command(edge_conn,
                                  RELAY_COMMAND_CONNECTED,
                                  NULL, 0);
-    // IOT: Send a measurement hs cell to our guard as well
   } else { /* normal stream */
     uint8_t connected_payload[MAX_CONNECTED_CELL_PAYLOAD_LEN];
     int connected_payload_len =
@@ -4221,3 +4228,4 @@ connection_edge_free_all(void)
   smartlist_free(pending_entry_connections);
   pending_entry_connections = NULL;
 }
+

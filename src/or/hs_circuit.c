@@ -375,8 +375,10 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
   tor_assert(ip);
   tor_assert(data);
 
+#ifdef TOR4IOT_MEASUREMENT
   struct timespec temp;
   clock_gettime(CLOCK_MONOTONIC, &temp);
+#endif
 
   circ_needs_uptime = hs_service_requires_uptime_circ(service->config.ports);
 
@@ -398,11 +400,10 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
     goto end;
   }
 
-  //IOT: Set split point information
   if(service->config.is_delegation) {
     if (iot_set_circ_info(service, &info->iot_circ_info) < 0) {
         log_fn(LOG_PROTOCOL_WARN, LD_REND,
-        "Did not find the split point.");
+          "Did not find the split point.");
         goto end;
     }
   }
@@ -417,7 +418,6 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
       circ_flags |= CIRCLAUNCH_ONEHOP_TUNNEL;
     }
 
-    //IOT: This is where we set our purpose
     if (service->config.is_delegation) {
       circ = circuit_launch_by_extend_info(CIRCUIT_PURPOSE_S_CONNECT_REND_IOT, info,
                                          circ_flags);
@@ -427,7 +427,9 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
     }
     if (circ != NULL) {
       /* Stop retrying, we have a circuit! */
+#ifdef TOR4IOT_MEASUREMENT
       memcpy(&circ->iot_mes_hs_introduce2_received, &temp, sizeof(struct timespec));
+#endif
       break;
     }
   }
@@ -451,7 +453,9 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
    * to connect to the rendezvous point. */
   circ->build_state->expiry_time = now + MAX_REND_TIMEOUT;
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_hs_ntor1_start);
+#endif
 
   /* Create circuit identifier and key material. */
   {
@@ -481,7 +485,9 @@ launch_rendezvous_point_circuit(const hs_service_t *service,
     tor_assert(circ->hs_ident);
   }
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_hs_ntor1_end);
+#endif
 
  end:
   extend_info_free(info);
@@ -1090,6 +1096,7 @@ hs_circuit_setup_e2e_rend_circ_legacy_client(origin_circuit_t *circ,
   return 0;
 }
 
+#ifdef TOR4IOT_MEASUREMENT
 static void
 rend_add_ip_cpath_measurement(origin_circuit_t *rend_circ, crypt_path_t *cpath) {
   struct iot_measurement_ip_cpath *new = tor_malloc(sizeof(struct iot_measurement_ip_cpath));
@@ -1119,6 +1126,7 @@ rend_add_ip_cpath_measurement(origin_circuit_t *rend_circ, crypt_path_t *cpath) 
     new->next = new;
   }
 }
+#endif
 
 /* Given the introduction circuit intro_circ, the rendezvous circuit
  * rend_circ, a descriptor intro point object ip and the service's
@@ -1144,7 +1152,9 @@ hs_circ_send_introduce1(origin_circuit_t *intro_circ,
   tor_assert(ip);
   tor_assert(subcredential);
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &rend_circ->iot_mes_hs_introduce1_build);
+#endif
 
   /* This takes various objects in order to populate the introduce1 data
    * object which is used to build the content of the cell. */
@@ -1186,6 +1196,7 @@ hs_circ_send_introduce1(origin_circuit_t *intro_circ,
     goto done;
   }
 
+#ifdef TOR4IOT_MEASUREMENT
   memcpy(&rend_circ->iot_mes_ipcircstart, &intro_circ->iot_mes_circstart, sizeof(struct timespec));
   memcpy(&rend_circ->iot_mes_ipcircend, &intro_circ->iot_mes_circend, sizeof(struct timespec));
   memcpy(&rend_circ->iot_mes_ipcpathstart, &intro_circ->iot_mes_cpathstart, sizeof(struct timespec));
@@ -1200,6 +1211,7 @@ hs_circ_send_introduce1(origin_circuit_t *intro_circ,
   memcpy(&rend_circ->iot_mes_hs_introduce1_start, &intro_circ->iot_mes_hs_introduce1_start, sizeof(struct timespec));
   memcpy(&rend_circ->iot_mes_hs_introduce1_ready, &intro_circ->iot_mes_hs_introduce1_ready, sizeof(struct timespec));
   memcpy(&rend_circ->iot_mes_hs_introduce1_to_buf, &intro_circ->iot_mes_hs_introduce1_to_buf, sizeof(struct timespec));
+#endif
 
   /* Success. */
   ret = 0;
@@ -1289,3 +1301,4 @@ hs_circ_cleanup(circuit_t *circ)
     hs_circuitmap_remove_circuit(circ);
   }
 }
+

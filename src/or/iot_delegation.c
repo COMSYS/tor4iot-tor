@@ -34,12 +34,10 @@
 #include "iot_delegation.h"
 #include "iot.h"
 
-const char iot_id[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
+static const char iot_id[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456";
 
-const uint8_t iot_key[] =
-{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-const uint8_t iot_mac_key[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
-		14, 15 };
+static const uint8_t iot_key[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+static const uint8_t iot_mac_key[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
 #define SPLITPOINT_BEFORE_HS(circ) circ->cpath->prev->prev->prev->prev
 #define SPLITPOINT(circ) SPLITPOINT_BEFORE_HS(circ)->prev
@@ -86,7 +84,9 @@ void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 
 	tor_assert(circ);
 
+#ifdef TOR4IOT_MEASUREMENT
 	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_handoverticketstart);
+#endif
 
 	log_info(LD_REND, "Sending ticket.");
 
@@ -143,14 +143,17 @@ void iot_ticket_send(origin_circuit_t *circ, uint8_t type) {
 
 	log_info(LD_GENERAL, "Sending ticket to %s",
 			split_point->extend_info->nickname);
-
+#ifdef TOR4IOT_MEASUREMENT
 	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_handoverticketend);
+#endif
 
 	//Send it!
 	relay_send_command_from_edge(0, TO_CIRCUIT(circ), RELAY_COMMAND_TICKET,
 			(const char* ) msg, sizeof(iot_relay_ticket_t), split_point);
 
+#ifdef TOR4IOT_MEASUREMENT
 	memcpy(&circ->iot_mes_handoverticket_to_buf, &TO_CIRCUIT(circ)->temp2, sizeof(struct timespec));
+#endif
 
 	tor_free(msg);
 }
@@ -217,7 +220,9 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 			circ->base_.purpose == CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER);
 	log_info(LD_REND, "Sending a FAST_TICKET cell");
 
+#ifdef TOR4IOT_MEASUREMENT
 	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_ticketstart);
+#endif
 
 	// Create FAST TICKET
 	msg = tor_malloc(sizeof(iot_relay_fast_ticket_t));
@@ -266,7 +271,9 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 
 	log_debug(LD_GENERAL, "Sending fast ticket");
 
+#ifdef TOR4IOT_MEASUREMENT
 	clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_ticketend);
+#endif
 
 	if (relay_send_command_from_edge(0, TO_CIRCUIT(circ),
 			RELAY_COMMAND_FAST_TICKET,
@@ -277,7 +284,9 @@ iot_fast_ticket_send(origin_circuit_t *circ) {
 		log_warn(LD_GENERAL, "Couldn't send FAST_TICKET cell");
 	}
 
+#ifdef TOR4IOT_MEASUREMENT
 	memcpy(&circ->iot_mes_ticket_to_buf, &TO_CIRCUIT(circ)->temp2, sizeof(struct timespec));
+#endif
 
 	pathbias_count_use_attempt(circ);
 	finalize_rend_circuit(circ, cpath, is_service_side);
@@ -294,6 +303,7 @@ iot_client_entry_circuit_has_opened(origin_circuit_t *circ) {
 	return 0;
 }
 
+#ifdef TOR4IOT_MEASUREMENT
 static void
 print_mes(const char *label, struct timespec *time) {
 	if (time->tv_sec != 0 || time->tv_nsec != 0) {
@@ -409,3 +419,4 @@ iot_delegation_print_measurements(circuit_t *circ) {
 
 	log_notice(LD_GENERAL, "CHOSENRELAYS:%s", circuit_list_path(o_circ, 0));
 }
+#endif

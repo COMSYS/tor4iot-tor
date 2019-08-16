@@ -24,19 +24,19 @@
 EXEC=tor
 #
 # the path to your binary, including options if necessary
-TORBIN="/home/markus/Repositories/Studium/tor4iot/tor-source/install/bin/$EXEC"
+TORBIN="/Users/dahlmanns/Repositories/research/tor4iot/tor4iot-tor/install/bin/$EXEC"
 #
 # the path to the configuration file
-TORCONF="/home/markus/Repositories/Studium/tor4iot/tor-source/install/etc/tor/torrc"
+TORCONF="/Users/dahlmanns/Repositories/research/tor4iot/tor4iot-tor/install/etc/tor/torrc"
 #
 # the path to your PID file
-PIDFILE="/home/markus/Repositories/Studium/tor4iot/tor-source/install/var/run/tor/tor.pid"
+PIDFILE="/Users/dahlmanns/Repositories/research/tor4iot/tor4iot-tor/install/var/run/tor/tor.pid"
 #
 # The path to the log file
-LOGFILE="/home/markus/Repositories/Studium/tor4iot/tor-source/install/var/log/tor/tor.log"
+LOGFILE="/Users/dahlmanns/Repositories/research/tor4iot/tor4iot-tor/install/var/log/tor/tor.log"
 #
 # The path to the datadirectory
-TORDATA="/home/markus/Repositories/Studium/tor4iot/tor-source/install/var/lib/tor"
+TORDATA="/Users/dahlmanns/Repositories/research/tor4iot/tor4iot-tor/install/var/lib/tor"
 #
 TORARGS="--pidfile $PIDFILE --log \"notice file $LOGFILE\" --runasdaemon 1"
 TORARGS="$TORARGS --datadirectory $TORDATA"

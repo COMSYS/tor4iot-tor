@@ -514,7 +514,9 @@ circuit_establish_circuit(uint8_t purpose, extend_info_t *exit_ei, int flags)
       circ->build_state->iot_circ_info = exit_ei->iot_circ_info;
   }
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_cpathstart);
+#endif
 
   if (onion_pick_cpath_exit(circ, exit_ei, is_hs_v3_rp_circuit) < 0 ||
       onion_populate_cpath(circ) < 0) {
@@ -522,7 +524,9 @@ circuit_establish_circuit(uint8_t purpose, extend_info_t *exit_ei, int flags)
     return NULL;
   }
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_cpathend);
+#endif
 
   control_event_circuit_status(circ, CIRC_EVENT_LAUNCHED, 0);
 
@@ -975,7 +979,9 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
 
   log_debug(LD_CIRC,"First skin; sending create cell.");
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_circstart);
+#endif
 
   if (circ->build_state->onehop_tunnel) {
     control_event_bootstrap(BOOTSTRAP_STATUS_ONEHOP_CREATE, 0);
@@ -993,7 +999,6 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
 
   node = node_get_by_id(circ->base_.n_chan->identity_digest);
   fast = should_use_create_fast_for_circuit(circ);
-
   if (!fast) {
     /* We know the right onion key: we should send a create cell. */
     circuit_pick_create_handshake(&cc.cell_type, &cc.handshake_type,
@@ -1004,17 +1009,21 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
     cc.handshake_type = ONION_HANDSHAKE_TYPE_FAST;
   }
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &circ->cpath->iot_mes_ntor1start);
+#endif
 
   len = onion_skin_create(cc.handshake_type,
                           circ->cpath->extend_info,
                           &circ->cpath->handshake_state,
                           cc.onionskin);
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &circ->cpath->iot_mes_ntor1end);
 
   memcpy(&circ->cpath->iot_mes_x255191start, &circ->cpath->handshake_state.mes.c25519_before1, sizeof(struct timespec));
   memcpy(&circ->cpath->iot_mes_x255191end, &circ->cpath->handshake_state.mes.c25519_after1, sizeof(struct timespec));
+#endif
 
   if (len < 0) {
     log_warn(LD_CIRC,"onion_skin_create (first hop) failed.");
@@ -1067,7 +1076,9 @@ circuit_build_no_more_hops(origin_circuit_t *circ)
     return - END_CIRC_REASON_INTERNAL;
   }
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_circend);
+#endif
 
   /* XXXX #21422 -- the rest of this branch needs careful thought!
    * Some of the things here need to happen when a circuit becomes
@@ -1180,17 +1191,21 @@ circuit_send_intermediate_onion_skin(origin_circuit_t *circ,
    * in the extend2 cell if we're configured to use it, though. */
   ed25519_pubkey_copy(&ec.ed_pubkey, &hop->extend_info->ed_identity);
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor1start);
+#endif
 
   len = onion_skin_create(ec.create_cell.handshake_type,
                           hop->extend_info,
                           &hop->handshake_state,
                           ec.create_cell.onionskin);
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor1end);
 
   memcpy(&hop->iot_mes_x255191start, &hop->handshake_state.mes.c25519_before1, sizeof(struct timespec));
   memcpy(&hop->iot_mes_x255191end, &hop->handshake_state.mes.c25519_after1, sizeof(struct timespec));
+#endif
 
   if (len < 0) {
     log_warn(LD_CIRC,"onion_skin_create failed.");
@@ -1471,7 +1486,6 @@ circuit_init_cpath_crypto(crypt_path_t *cpath,
 
   cpath->f_crypto = crypto_cipher_new_with_bits(key_data+(2*digest_len),
                                                 cipher_key_bits);
-
   if (!cpath->f_crypto) {
     log_warn(LD_BUG,"Forward cipher initialization failed.");
     return -1;
@@ -1480,7 +1494,6 @@ circuit_init_cpath_crypto(crypt_path_t *cpath,
   cpath->b_crypto = crypto_cipher_new_with_bits(
                                         key_data+(2*digest_len)+cipher_key_len,
                                         cipher_key_bits);
-  //IOT:
   if (cipher_key_len == CIPHER_KEY_LEN) {
     memcpy(cpath->f_aesctrkey, key_data+(2*digest_len), cipher_key_len);
     memcpy(cpath->b_aesctrkey, key_data+(2*digest_len) + cipher_key_len, cipher_key_len);
@@ -1539,7 +1552,9 @@ circuit_finish_handshake(origin_circuit_t *circ,
   }
   tor_assert(hop->state == CPATH_STATE_AWAITING_KEYS);
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor2start);
+#endif
 
   {
     const char *msg = NULL;
@@ -1555,12 +1570,14 @@ circuit_finish_handshake(origin_circuit_t *circ,
     }
   }
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor2end);
 
   memcpy(&hop->iot_mes_x255192start, &hop->handshake_state.mes.c25519_before1, sizeof(struct timespec));
   memcpy(&hop->iot_mes_x255192end, &hop->handshake_state.mes.c25519_after1, sizeof(struct timespec));
   memcpy(&hop->iot_mes_x255193start, &hop->handshake_state.mes.c25519_before2, sizeof(struct timespec));
   memcpy(&hop->iot_mes_x255193end, &hop->handshake_state.mes.c25519_after2, sizeof(struct timespec));
+#endif
 
   onion_handshake_state_release(&hop->handshake_state);
 
@@ -1675,7 +1692,9 @@ onionskin_answer(or_circuit_t *circ,
   log_debug(LD_CIRC,"Finished sending '%s' cell.",
             used_create_fast ? "created_fast" : "created");
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_circdone);
+#endif
 
   /* Ignore the local bit when ExtendAllowPrivateAddresses is set:
    * it violates the assumption that private addresses are local.
@@ -1764,7 +1783,6 @@ route_len_for_purpose(uint8_t purpose, extend_info_t *exit_ei)
     routelen++;
     break;
 
-  //IOT
   case CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER:
     known_purpose = 1;
     routelen = (2*routelen) - 1;
@@ -2299,7 +2317,7 @@ warn_if_last_router_excluded(origin_circuit_t *circ,
     case CIRCUIT_PURPOSE_S_CONNECT_REND:
     case CIRCUIT_PURPOSE_S_REND_JOINED:
     case CIRCUIT_PURPOSE_TESTING:
-    case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT: //IOT
+    case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
     case CIRCUIT_PURPOSE_ENTRY_IOT:
     case CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER:
       return;
@@ -2979,3 +2997,4 @@ circuit_upgrade_circuits_from_guard_wait(void)
 
   smartlist_free(to_upgrade);
 }
+

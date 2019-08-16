@@ -390,7 +390,6 @@ connection_or_change_state(or_connection_t *conn, uint8_t state)
                                               old_state, state);
 }
 
-//IOT:
 void
 connection_or_set_state_joining(or_connection_t *conn)
 {
@@ -683,7 +682,6 @@ connection_or_finished_flushing(or_connection_t *conn)
     case OR_CONN_STATE_OPEN:
     case OR_CONN_STATE_OR_HANDSHAKING_V2:
     case OR_CONN_STATE_OR_HANDSHAKING_V3:
-      //IOT:
     case OR_CONN_STATE_OR_INFO:
     case OR_CONN_STATE_OR_JOINING:
       break;
@@ -1366,7 +1364,6 @@ connection_or_close_for_error,(or_connection_t *orconn, int flush))
   }
 }
 
-
 /** Begin the tls handshake with <b>conn</b>. <b>receiving</b> is 0 if
  * we initiated the connection, else it's 1.
  *
@@ -1499,7 +1496,6 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
   if (connection_tls_continue_handshake(conn) < 0)
     return -1;
 
-
   return 0;
 }
 
@@ -1613,7 +1609,7 @@ connection_or_nonopen_was_started_here(or_connection_t *conn)
 {
   tor_assert(conn->base_.type == CONN_TYPE_OR ||
              conn->base_.type == CONN_TYPE_EXT_OR ||
-	     conn->base_.type == CONN_TYPE_OR_UDP);
+	           conn->base_.type == CONN_TYPE_OR_UDP);
   if (!conn->tls)
     return 1; /* it's still in proxy states or something */
   if (conn->handshake_state)
@@ -2158,7 +2154,9 @@ connection_or_write_cell_to_buf(cell_t *cell, or_connection_t *conn)
   if (conn->base_.state == OR_CONN_STATE_OR_HANDSHAKING_V3)
     or_handshake_state_record_cell(conn, conn->handshake_state, cell, 0);
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &cell->sent);
+#endif
 }
 
 /** Pack a variable-length <b>cell</b> into wire-format, and write it onto
@@ -2187,7 +2185,9 @@ connection_or_write_var_cell_to_buf,(var_cell_t *cell,
   if (conn->base_.state == OR_CONN_STATE_OR_HANDSHAKING_V3)
     or_handshake_state_record_var_cell(conn, conn->handshake_state, cell, 0);
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &cell->sent);
+#endif
 
   /* Touch the channel's active timestamp if there is one */
   if (conn->chan)
@@ -2257,9 +2257,12 @@ connection_or_process_cells_from_inbuf(or_connection_t *conn)
       const int wide_circ_ids = conn->wide_circ_ids;
       char buf[CELL_MAX_NETWORK_SIZE+2];
       cell_t cell;
-      size_t cell_network_size = get_cell_network_size(conn->wide_circ_ids) + (TO_CONN(conn)->type == CONN_TYPE_OR_UDP ? sizeof(cell.cell_num) : 0);
+      size_t cell_network_size = get_cell_network_size(conn->wide_circ_ids) +
+        (TO_CONN(conn)->type == CONN_TYPE_OR_UDP ? sizeof(cell.cell_num) : 0);
 
+#ifdef TOR4IOT_MEASUREMENT
       clock_gettime(CLOCK_MONOTONIC, &cell.received);
+#endif
 
       if (connection_get_inbuf_len(TO_CONN(conn))
           < cell_network_size) /* whole response available? */
@@ -2275,11 +2278,10 @@ connection_or_process_cells_from_inbuf(or_connection_t *conn)
       /* retrieve cell info from buf (create the host-order struct from the
        * network-order string) */
 
-
       if(TO_CONN(conn)->type == CONN_TYPE_OR_UDP){
-	cell_unpack(&cell, buf, wide_circ_ids, 1);
+	      cell_unpack(&cell, buf, wide_circ_ids, 1);
       } else {
-	cell_unpack(&cell, buf, wide_circ_ids, 0);
+	      cell_unpack(&cell, buf, wide_circ_ids, 0);
       }
 
       channel_tls_handle_cell(&cell, conn);

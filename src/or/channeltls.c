@@ -220,11 +220,13 @@ channel_tls_connect(const tor_addr_t *addr, uint16_t port,
             "Got orconn %p for channel with global id " U64_FORMAT,
             tlschan->conn, U64_PRINTF_ARG(chan->global_identifier));
 
+#ifdef TOR4IOT_MEASUREMENT
   struct timespec time;
   clock_gettime(CLOCK_MONOTONIC, &time);
   char buf[NODE_DESC_BUF_LEN];
   format_node_description(buf,id_digest, 0, NULL, addr, 0);
   log_notice(LD_GENERAL, "TLSHANDSHAKE:%lus%luns:%s", time.tv_sec, time.tv_nsec, buf);
+#endif
 
   goto done;
 
@@ -855,9 +857,8 @@ channel_tls_write_packed_cell_method(channel_t *chan,
   size_t cell_network_size = get_cell_network_size(chan->wide_circ_ids);
   int written = 0;
 
-  if (chan->cell_num) {
+  if (chan->cell_num)
     cell_network_size += 2;
-  }
 
   tor_assert(tlschan);
   tor_assert(packed_cell);
@@ -1122,8 +1123,7 @@ channel_tls_handle_cell(cell_t *cell, or_connection_t *conn)
     } else {
     	TLS_CHAN_TO_BASE(chan)->cell_num_in++;
     	//Send Ack cell
-    	log_debug(LD_PROTOCOL, "Sending ACK cell.");
-    	var_cell_t *ackcell;
+     	var_cell_t *ackcell;
     	ackcell = var_cell_new(0);
     	ackcell->cell_num = TLS_CHAN_TO_BASE(chan)->cell_num_in;
     	ackcell->command = CELL_ACK;
@@ -1281,7 +1281,6 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
 		} else {
 		  TLS_CHAN_TO_BASE(chan)->cell_num_in++;
 		  //Send Ack cell
-		  log_debug(LD_PROTOCOL, "Sending ACK cell.");
 		  var_cell_t *ackcell;
 		  ackcell = var_cell_new(0);
 		  ackcell->cell_num = TLS_CHAN_TO_BASE(chan)->cell_num_in;
@@ -1347,7 +1346,7 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
                                            var_cell, 1);
       break; /* Everything is allowed */
     case OR_CONN_STATE_OPEN:
-      if ((TO_CONN(conn)->type == CONN_TYPE_OR_UDP)) {
+      if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
     	  iot_join(conn, var_cell);
       }
       if (conn->link_proto < 3) {
@@ -1364,7 +1363,6 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
         return;
       }
       break;
-    //IoT:
     case OR_CONN_STATE_OR_INFO:
       iot_info(conn, var_cell);
       break;

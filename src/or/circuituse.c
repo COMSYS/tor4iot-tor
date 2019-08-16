@@ -1669,7 +1669,6 @@ circuit_has_opened(origin_circuit_t *circ)
       /* at the service, connecting to rend point */
       hs_service_circuit_has_opened(circ);
       break;
-    //IOT
     case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
       /* at the service, connecting to rend point */
       hs_service_circuit_has_opened(circ);
@@ -1913,7 +1912,7 @@ circuit_launch_by_extend_info(uint8_t purpose,
     /* XXX if we're planning to add a hop, perhaps we want to look for
      * internal circs rather than exit circs? -RD */
     circ = circuit_find_to_cannibalize(purpose, extend_info, flags);
-    circ = NULL; // XXX: DISABLE CANNIBALIZATION
+    circ = NULL; // Tor4IoT: DISABLE CANNIBALIZATION
     if (circ) {
       uint8_t old_purpose = circ->base_.purpose;
       struct timeval old_timestamp_began = circ->base_.timestamp_began;

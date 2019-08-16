@@ -744,6 +744,7 @@ STATIC int tor_ersatz_socketpair(int family, int type, int protocol,
 
 ssize_t tor_getpass(const char *prompt, char *output, size_t buflen);
 
+//Tor4IoT: Increase open socket counter
 void inc_open_socket_ctr(void);
 
 /* This needs some of the declarations above so we include it here. */

@@ -32,7 +32,7 @@ elif [ -f /etc/init.d/functions ]; then
    . /etc/init.d/functions
 fi
 
-TORCTL=/home/markus/Repositories/Studium/tor4iot/tor-source/install/bin/torctl
+TORCTL=/Users/dahlmanns/Repositories/research/tor4iot/tor4iot-tor/install/bin/torctl
 
 # torctl will use these environment variables
 TORUSER=_tor

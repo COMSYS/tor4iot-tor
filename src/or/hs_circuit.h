@@ -62,6 +62,7 @@ int hs_circuit_setup_e2e_rend_circ(origin_circuit_t *circ,
 int hs_circuit_setup_e2e_rend_circ_legacy_client(origin_circuit_t *circ,
                                           const uint8_t *rend_cell_body);
 
+// Tor4IoT: We need to make it unstatic
 void finalize_rend_circuit(origin_circuit_t *circ, crypt_path_t *hop,
                            int is_service_side);
 
@@ -76,3 +77,4 @@ create_rp_circuit_identifier(const hs_service_t *service,
 #endif
 
 #endif /* !defined(TOR_HS_CIRCUIT_H) */
+

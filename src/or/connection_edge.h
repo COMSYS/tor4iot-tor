@@ -194,3 +194,4 @@ STATIC int connection_ap_process_http_connect(entry_connection_t *conn);
 #endif /* defined(CONNECTION_EDGE_PRIVATE) */
 
 #endif /* !defined(TOR_CONNECTION_EDGE_H) */
+

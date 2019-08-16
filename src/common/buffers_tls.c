@@ -62,18 +62,12 @@ buf_read_from_tls(buf_t *buf, tor_tls_t *tls, size_t at_most)
   int r = 0;
   size_t total_read = 0;
 
-  log_debug(LD_NET, "before check");
-
   check_no_tls_errors();
-
-  log_debug(LD_NET, "after check");
 
   if (BUG(buf->datalen >= INT_MAX))
     return -1;
   if (BUG(buf->datalen >= INT_MAX - at_most))
     return -1;
-
-  log_debug(LD_NET, "before while");
 
   while (at_most > total_read) {
     size_t readlen = at_most - total_read;
@@ -89,9 +83,7 @@ buf_read_from_tls(buf_t *buf, tor_tls_t *tls, size_t at_most)
         readlen = cap;
     }
 
-    log_debug(LD_NET, "read now");
     r = read_to_chunk_tls(buf, chunk, tls, readlen);
-    log_debug(LD_NET, "r=%d", r);
     if (r < 0)
       return r; /* Error */
     tor_assert(total_read+r < INT_MAX);

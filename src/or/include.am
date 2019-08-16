@@ -106,8 +106,8 @@ LIBTOR_A_SOURCES = \
 	src/or/status.c					\
 	src/or/torcert.c				\
 	src/or/onion_ntor.c				\
-        src/or/iot_delegation.c				\
-        src/or/iot_entry.c				\
+    src/or/iot_delegation.c				\
+    src/or/iot_entry.c				\
 	$(tor_platform_source)
 
 src_or_libtor_a_SOURCES = $(LIBTOR_A_SOURCES)

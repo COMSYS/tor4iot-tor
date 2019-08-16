@@ -498,12 +498,11 @@ onion_skin_create(int type,
   case ONION_HANDSHAKE_TYPE_NTOR:
     if (!extend_info_supports_ntor(node))
       return -1;
-
     if (onion_skin_ntor_create((const uint8_t*)node->identity_digest,
                                &node->curve25519_onion_key,
                                &state_out->u.ntor,
                                onion_skin_out,
-							   &state_out->mes) < 0)
+		              					   &state_out->mes) < 0)
       return -1;
 
     r = NTOR_ONIONSKIN_LEN;
@@ -561,7 +560,6 @@ onion_skin_server_handshake(int type,
     memcpy(rend_nonce_out, reply_out+DIGEST_LEN, DIGEST_LEN);
     break;
   case ONION_HANDSHAKE_TYPE_NTOR:
-    log_debug(LD_GENERAL, "ntor onion handshake with onionskin length %zd", onionskin_len);
     if (onionskin_len < NTOR_ONIONSKIN_LEN)
       return -1;
     {
@@ -654,11 +652,10 @@ onion_skin_client_handshake(int type,
       if (onion_skin_ntor_client_handshake(handshake_state->u.ntor,
                                         reply,
                                         keys_tmp, keys_tmp_len, msg_out,
-					&handshake_state->mes) < 0) {
+				                              	&handshake_state->mes) < 0) {
         tor_free(keys_tmp);
         return -1;
       }
-
       memcpy(keys_out, keys_tmp, keys_out_len);
       memcpy(rend_authenticator_out, keys_tmp + keys_out_len, DIGEST_LEN);
       memwipe(keys_tmp, 0, keys_tmp_len);
@@ -704,10 +701,8 @@ check_create_cell(const create_cell_t *cell, int unknown_ok)
       return -1;
     break;
   case ONION_HANDSHAKE_TYPE_NTOR:
-    if (cell->handshake_len != NTOR_ONIONSKIN_LEN) {
-      log_info(LD_GENERAL, "Handshake len was not ok.");
+    if (cell->handshake_len != NTOR_ONIONSKIN_LEN)
       return -1;
-    }
     break;
   default:
     if (! unknown_ok)
@@ -751,14 +746,10 @@ parse_create2_payload(create_cell_t *cell_out, const uint8_t *p, size_t p_len)
   handshake_type = ntohs(get_uint16(p));
   handshake_len = ntohs(get_uint16(p+2));
 
-  if (handshake_len > CELL_PAYLOAD_SIZE - 4 || handshake_len > p_len - 4) {
-      log_info(LD_GENERAL, "Handshake Len was not ok.");
+  if (handshake_len > CELL_PAYLOAD_SIZE - 4 || handshake_len > p_len - 4)
       return -1;
-  }
-  if (handshake_type == ONION_HANDSHAKE_TYPE_FAST) {
-      log_info(LD_GENERAL, "Handshake type was not ok.");
+  if (handshake_type == ONION_HANDSHAKE_TYPE_FAST)
       return -1;
-  }
 
   create_cell_init(cell_out, CELL_CREATE2, handshake_type, handshake_len,
                    p+4);
@@ -1028,21 +1019,17 @@ extend_cell_parse(extend_cell_t *cell_out, const uint8_t command,
     break;
   case RELAY_COMMAND_EXTEND2:
     {
-      log_debug(LD_GENERAL, "EXTEND2 cell detected.");
       extend2_cell_body_t *cell = NULL;
       if (extend2_cell_body_parse(&cell, payload, payload_length) < 0 ||
           cell == NULL) {
-	log_debug(LD_GENERAL, "body parse failed!");
         if (cell)
           extend2_cell_body_free(cell);
         return -1;
       }
       int r = extend_cell_from_extend2_cell_body(cell_out, cell);
       extend2_cell_body_free(cell);
-      if (r < 0) {
-	log_debug(LD_GENERAL, "from extend2 cell body failed");
+      if (r < 0)
         return r;
-      }
     }
     break;
   default:

@@ -20,8 +20,6 @@ typedef struct hs_service_t hs_service_t;
 typedef struct iot_crypto_aes_t {
   uint8_t aes_key[16];
   uint16_t crypted_bytes;
-
-  //TODO: num needed?
 } iot_crypto_aes_t;
 
 /**

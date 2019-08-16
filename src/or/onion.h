@@ -52,7 +52,6 @@ int onion_skin_client_handshake(int type,
                       uint8_t *rend_authenticator_out,
                       const char **msg_out);
 
-
 /** A parsed CREATE, CREATE_FAST, or CREATE2 cell. */
 typedef struct create_cell_t {
   /** The cell command. One of CREATE{,_FAST,2} */

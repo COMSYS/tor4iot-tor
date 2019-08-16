@@ -33,17 +33,19 @@
 #include "iot_entry.h"
 #include "iot.h"
 
-uint32_t iot_circ_id = 17;
+static uint32_t iot_circ_id = 17;
 
-STATIC smartlist_t *splitted_circuits = NULL;
-STATIC smartlist_t *connected_iot_dev = NULL;
+static smartlist_t *splitted_circuits = NULL;
+static smartlist_t *connected_iot_dev = NULL;
 
+#ifdef TOR4IOT_MEASUREMENT
 static void
 print_mes(const char *label, const struct timespec *time) {
 	if (time->tv_sec != 0 || time->tv_nsec != 0) {
 	  log_notice(LD_GENERAL, "%s:%lus%luns", label, time->tv_sec, time->tv_nsec);
 	}
 }
+#endif
 
 static or_connection_t *iot_find_iot_device(const uint8_t *target_id) {
 	if (connected_iot_dev) {
@@ -110,7 +112,9 @@ void iot_process_relay_pre_ticket(circuit_t *circ, size_t length,
 
 void iot_process_relay_ticket(circuit_t *circ, size_t length,
 		const uint8_t *payload) {
+#ifdef TOR4IOT_MEASUREMENT
 	clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_handoverticketreceived);
+#endif
 
 	iot_relay_ticket_t *msg = (iot_relay_ticket_t*) payload;
 
@@ -130,8 +134,16 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
 	log_info(LD_GENERAL, "Added circuit for joining with cookie 0x%08x",
 			circ->join_cookie);
 
+	struct timespec *tickettobuf;
+	
+#ifdef TOR4IOT_MEASUREMENT
+	tickettobuf = &TO_OR_CIRCUIT(circ)->iot_mes_handovertickettobuf;
+#else
+	tickettobuf = NULL;
+#endif
+
 	iot_relay_to_device(msg->iot_id, sizeof(iot_ticket_t),
-			(uint8_t*) (&msg->ticket), CELL_IOT_TICKET, &TO_OR_CIRCUIT(circ)->iot_mes_handovertickettobuf);
+			(uint8_t*) (&msg->ticket), CELL_IOT_TICKET, tickettobuf);
 
 	cell_t cell;
 
@@ -139,15 +151,19 @@ void iot_process_relay_ticket(circuit_t *circ, size_t length,
 	cell.command = CELL_DESTROY;
 	cell.circ_id = TO_OR_CIRCUIT(circ)->p_circ_id;
 
+#ifdef TOR4IOT_MEASUREMENT
 	clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_handoverticketrelayed);
+#endif
 
 	append_cell_to_circuit_queue(circ, TO_OR_CIRCUIT(circ)->p_chan, &cell,
 			CELL_DIRECTION_IN, 0);
 }
 
 void iot_info(or_connection_t *conn, const var_cell_t *cell) {
+#ifdef TOR4IOT_MEASUREMENT
 	struct timespec info_received;
 	clock_gettime(CLOCK_MONOTONIC, &info_received);
+#endif
 
 	log_info(LD_GENERAL,
 			"Got a INFO cell for circ_id %u on channel " U64_FORMAT " (%p)",
@@ -155,7 +171,7 @@ void iot_info(or_connection_t *conn, const var_cell_t *cell) {
 			U64_PRINTF_ARG(TLS_CHAN_TO_BASE(conn->chan)->global_identifier),
 			TLS_CHAN_TO_BASE(conn->chan));
 
-	//TODO: Here we can resend the buffer on reconnect if counter differ.
+	// Here we could resend the buffer on reconnect if counter differ.
 
 	if (connected_iot_dev) {
 		or_connection_t *oldconn = NULL;
@@ -189,12 +205,15 @@ void iot_info(or_connection_t *conn, const var_cell_t *cell) {
 
 	connection_or_set_state_joining(conn);
 
+#ifdef TOR4IOT_MEASUREMENT
 	struct timespec info_registered;
+
 	clock_gettime(CLOCK_MONOTONIC, &info_registered);
 
 	print_mes("INFO_FROM_BUF", &cell->received);
 	print_mes("INFO_RECEIVED", &info_received);
 	print_mes("INFO_REGISTERED", &info_registered);
+#endif
 }
 
 void iot_remove_connected_iot(or_connection_t *conn) {
@@ -213,8 +232,10 @@ void iot_remove_connected_iot(or_connection_t *conn) {
 void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 	circuit_t *circ = NULL;
 
+#ifdef TOR4IOT_MEASUREMENT
 	struct timespec req_monotonic;
 	clock_gettime(CLOCK_MONOTONIC, &req_monotonic);
+#endif
 
 	log_info(LD_GENERAL,
 			"Got a JOIN cell for circ_id %u on channel " U64_FORMAT " (%p)",
@@ -241,8 +262,10 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 	}
 
 	if (circ) {
+#ifdef TOR4IOT_MEASUREMENT
 		memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_joinreq, &req_monotonic, sizeof(struct timespec));
 		memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_joinfrombuf, &cell->received, sizeof(struct timespec));
+#endif
 
 		log_info(LD_GENERAL, "Join circuits by cookie 0x%08x",
 				((uint32_t* )cell->payload)[0]);
@@ -270,9 +293,10 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 			break;
 		}
 
+#ifdef TOR4IOT_MEASUREMENT
 		clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_joindone);
-
 		TO_OR_CIRCUIT(circ)->mes = 1;
+#endif
 	} else {
 		log_info(LD_GENERAL,
 				"Tried to join circuit, but cookies didnt match. 0x%08x ?",
@@ -282,7 +306,9 @@ void iot_join(or_connection_t *conn, const var_cell_t *cell) {
 
 void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
 		const uint8_t *payload) {
+#ifdef TOR4IOT_MEASUREMENT
 	clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_ticketreceived);
+#endif
 
 	iot_relay_fast_ticket_t *msg = (iot_relay_fast_ticket_t*) payload;
 
@@ -321,13 +347,19 @@ void iot_process_relay_fast_ticket(circuit_t *circ, size_t length,
     iot_circ_id++;
 
     connection_or_write_var_cell_to_buf(cell, conn);
+
+#ifdef TOR4IOT_MEASUREMENT
     memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_tickettobuf, &cell->sent, sizeof(struct timespec));
+#endif
 
     var_cell_free(cell);
 
+#ifdef TOR4IOT_MEASUREMENT
     clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_ticketrelayed);
+#endif
 }
 
+#ifdef TOR4IOT_MEASUREMENT
 void
 iot_entry_print_measurements(circuit_t *circ) {
 	or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
@@ -372,4 +404,5 @@ iot_entry_print_measurements(circuit_t *circ) {
 	print_mes("R_CONNECTED_DONE", &or_circ->iot_mes_relay_connected_done);
 	print_mes("R_CONNECTED_TO_BUF", &or_circ->iot_mes_relay_connected_tobuf);
 }
+#endif
 

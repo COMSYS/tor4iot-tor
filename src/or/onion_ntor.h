@@ -24,7 +24,7 @@ int onion_skin_ntor_create(const uint8_t *router_id,
                            const curve25519_public_key_t *router_key,
                            ntor_handshake_state_t **handshake_state_out,
                            uint8_t *onion_skin_out,
-			   c25519_measurement_t *mes);
+			                     c25519_measurement_t *mes);
 
 int onion_skin_ntor_server_handshake(const uint8_t *onion_skin,
                                  const di_digest256_map_t *private_keys,
@@ -40,7 +40,7 @@ int onion_skin_ntor_client_handshake(
                              uint8_t *key_out,
                              size_t key_out_len,
                              const char **msg_out,
-			     c25519_measurement_t *mes);
+			                       c25519_measurement_t *mes);
 
 #ifdef ONION_NTOR_PRIVATE
 
@@ -58,10 +58,12 @@ struct ntor_handshake_state_t {
   curve25519_public_key_t pubkey_X;
   /** @} */
 
+#ifdef TOR4IOT_MEASUREMENT
   struct timespec c25519_before1;
   struct timespec c25519_after1;
   struct timespec c25519_before2;
   struct timespec c25519_after2;
+#endif
 };
 #endif /* defined(ONION_NTOR_PRIVATE) */
 

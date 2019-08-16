@@ -781,7 +781,9 @@ rend_process_relay_cell(circuit_t *circ, const crypt_path_t *layer_hint,
       break;
     case RELAY_COMMAND_INTRODUCE2:
       if (origin_circ) {
+#ifdef TOR4IOT_MEASUREMENT
     	memcpy(&origin_circ->iot_mes_hs_introduce2_from_buf, &circ->temp1, sizeof(struct timespec));
+#endif
         r = hs_service_receive_introduce2(origin_circ,payload,length);
       }
       break;
@@ -795,7 +797,9 @@ rend_process_relay_cell(circuit_t *circ, const crypt_path_t *layer_hint,
       break;
     case RELAY_COMMAND_RENDEZVOUS2:
       if (origin_circ) {
+#ifdef TOR4IOT_MEASUREMENT
     	memcpy(&origin_circ->iot_mes_hs_rend2_from_buf, &circ->temp1, sizeof(struct timespec));
+#endif
         r = hs_client_receive_rendezvous2(origin_circ,payload,length);
       }
       break;

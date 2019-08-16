@@ -71,7 +71,9 @@ fetch_var_cell_from_buf(buf_t *buf, var_cell_t **out, int linkproto)
 
   result = var_cell_new(length);
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &result->received);
+#endif
 
   result->command = command;
   if (wide_circ_ids)

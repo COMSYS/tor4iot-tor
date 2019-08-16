@@ -343,7 +343,9 @@ command_process_create_cell(cell_t *cell, channel_t *chan)
     return;
   }
 
+#ifdef TOR4IOT_MEASUREMENT
   clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_circreceived);
+#endif
 
   if (connection_or_digest_is_known_relay(chan->identity_digest)) {
     rep_hist_note_circuit_handshake_requested(create_cell->handshake_type);
@@ -468,14 +470,17 @@ command_process_created_cell(cell_t *cell, channel_t *chan)
   }
 }
 
+// Tor4IoT: Process IoT Relayed Cell
 static void
 command_process_iotrelayed_cell(cell_t *cell, channel_t *chan) {
 	circuit_t *circ;
 
 	circ = circuit_get_by_circid_channel(cell->circ_id, chan);
 
+#ifdef TOR4IOT_MEASUREMENT
 	clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_relayticketrelayed);
 	memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_relayticketrelayedfrombuf, &cell->received, sizeof(struct timespec));
+#endif
 
 	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED1. Relaying as *_TICKET_RELAYED2.");
 	if (relay_send_command_from_edge(0, circ,
@@ -487,8 +492,10 @@ command_process_iotrelayed_cell(cell_t *cell, channel_t *chan) {
 		/* Stop right now, the circuit has been closed. */
 		return;
 	}
+#ifdef TOR4IOT_MEASUREMENT
 	memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_relayticketrelayedtobuf, &circ->temp2, sizeof(struct timespec));
 	TO_OR_CIRCUIT(circ)->mes = 1;
+#endif
 }
 
 /** Process a 'relay' or 'relay_early' <b>cell</b> that just arrived from

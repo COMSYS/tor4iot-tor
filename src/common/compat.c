@@ -1338,10 +1338,8 @@ tor_accept_socket_with_extensions(tor_socket_t sockfd, struct sockaddr *addr,
 #endif /* defined(HAVE_ACCEPT4) && defined(SOCK_CLOEXEC) ... */
 
   s = accept(sockfd, addr, len);
-  if (!SOCKET_OK(s)) {
-    log_warn(LD_NET, "accept() failed");
+  if (!SOCKET_OK(s))
     return s;
-  }
 
 #if defined(FD_CLOEXEC)
   if (cloexec) {

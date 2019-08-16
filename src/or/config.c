@@ -453,11 +453,8 @@ static config_var_t option_vars_[] = {
   V(OutboundBindAddress,         LINELIST,   NULL),
   V(OutboundBindAddressOR,       LINELIST,   NULL),
   V(OutboundBindAddressExit,     LINELIST,   NULL),
-
-  //IOT
   OBSOLETE("ORUDPListenAddress"),
   VPORT(ORUDPPort),
-
   OBSOLETE("PathBiasDisableRate"),
   V(PathBiasCircThreshold,       INT,      "-1"),
   V(PathBiasNoticeRate,          DOUBLE,   "-1"),
@@ -7286,7 +7283,6 @@ parse_ports(or_options_t *options, int validate_only,
       *msg = tor_strdup("Invalid ORPort configuration");
       goto err;
     }
-    //IOT
     if (parse_port_config(ports,
                           options->ORUDPPort_lines,
                           "OR_UDP", CONN_TYPE_OR_UDP_LISTENER,
@@ -7329,11 +7325,8 @@ parse_ports(or_options_t *options, int validate_only,
      an integer. */
   options->ORPort_set =
     !! count_real_listeners(ports, CONN_TYPE_OR_LISTENER, 0);
-
-  //IOT
   options->ORUDPPort_set =
       !! count_real_listeners(ports, CONN_TYPE_OR_UDP_LISTENER, 0);
-
   options->SocksPort_set =
     !! count_real_listeners(ports, CONN_TYPE_AP_LISTENER, 1);
   options->TransPort_set =

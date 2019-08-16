@@ -184,7 +184,7 @@ typedef struct hs_service_config_t {
   /* Is this service ephemeral? */
   unsigned int is_ephemeral : 1;
 
-  //IOT: This is an IoT HS
+  // Tor4IoT: Marker for IoT HS
   unsigned int is_delegation : 1;
 } hs_service_config_t;
 
@@ -236,7 +236,6 @@ typedef struct hs_service_t {
   hs_service_descriptor_t *desc_next;
 
   /* XXX: Credential (client auth.) #20700. */
-
 
 } hs_service_t;
 
