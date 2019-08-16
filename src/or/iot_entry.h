@@ -1,10 +1,3 @@
-/*
- * iot_entry.h
- *
- *  Created on: 23.01.2019
- *      Author: markus
- */
-
 #ifndef SRC_OR_IOT_ENTRY_H_
 #define SRC_OR_IOT_ENTRY_H_
 

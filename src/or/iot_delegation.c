@@ -1,10 +1,3 @@
-/*
- * iot_delegation.c
- *
- *  Created on: 23.01.2019
- *      Author: markus
- */
-
 #include "or.h"
 
 #include "aes.h"

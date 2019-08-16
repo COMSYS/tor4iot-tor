@@ -1,10 +1,3 @@
-/*
- * iot_ticket.h
- *
- *  Created on: 07.05.2018
- *      Author: markus
- */
-
 #ifndef SRC_OR_IOT_H_
 #define SRC_OR_IOT_H_
 
