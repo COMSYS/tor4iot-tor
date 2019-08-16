@@ -212,10 +212,6 @@ uptime-*.json
 /src/test/fuzz/lf-fuzz-*
 
 # /src/tools/
-<<<<<<< HEAD
-=======
-/src/tools/libtorrunner.a
->>>>>>> Gitignores...
 /src/tools/tor-checkkey
 /src/tools/tor-resolve
 /src/tools/tor-cov-resolve
