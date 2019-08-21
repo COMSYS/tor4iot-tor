@@ -61,6 +61,8 @@
 #include "channelpadding_negotiation.h"
 #include "channelpadding.h"
 
+#include "iot_entry.h"
+
 /** How many CELL_PADDING cells have we received, ever? */
 uint64_t stats_n_padding_cells_processed = 0;
 /** How many CELL_VERSIONS cells have we received, ever? */
@@ -218,6 +220,14 @@ channel_tls_connect(const tor_addr_t *addr, uint16_t port,
             "Got orconn %p for channel with global id " U64_FORMAT,
             tlschan->conn, U64_PRINTF_ARG(chan->global_identifier));
 
+#ifdef TOR4IOT_MEASUREMENT
+  struct timespec time;
+  clock_gettime(CLOCK_MONOTONIC, &time);
+  char buf[NODE_DESC_BUF_LEN];
+  format_node_description(buf,id_digest, 0, NULL, addr, 0);
+  log_notice(LD_GENERAL, "TLSHANDSHAKE:%lus%luns:%s", time.tv_sec, time.tv_nsec, buf);
+#endif
+
   goto done;
 
  err:
@@ -332,16 +342,20 @@ channel_tls_handle_incoming(or_connection_t *orconn)
   tlschan->conn = orconn;
   orconn->chan = tlschan;
 
-  if (is_local_addr(&(TO_CONN(orconn)->addr))) {
-    log_debug(LD_CHANNEL,
-              "Marking new incoming channel " U64_FORMAT " at %p as local",
-              U64_PRINTF_ARG(chan->global_identifier), chan);
-    channel_mark_local(chan);
+  if(TO_CONN(orconn)->type == CONN_TYPE_OR_UDP) {
+      channel_mark_remote(chan);
   } else {
-    log_debug(LD_CHANNEL,
-              "Marking new incoming channel " U64_FORMAT " at %p as remote",
-              U64_PRINTF_ARG(chan->global_identifier), chan);
-    channel_mark_remote(chan);
+    if (is_local_addr(&(TO_CONN(orconn)->addr))) {
+      log_debug(LD_CHANNEL,
+		"Marking new incoming channel " U64_FORMAT " at %p as local",
+		U64_PRINTF_ARG(chan->global_identifier), chan);
+      channel_mark_local(chan);
+    } else {
+      log_debug(LD_CHANNEL,
+		"Marking new incoming channel " U64_FORMAT " at %p as remote",
+		U64_PRINTF_ARG(chan->global_identifier), chan);
+      channel_mark_remote(chan);
+    }
   }
 
   channel_mark_incoming(chan);
@@ -843,6 +857,9 @@ channel_tls_write_packed_cell_method(channel_t *chan,
   size_t cell_network_size = get_cell_network_size(chan->wide_circ_ids);
   int written = 0;
 
+  if (chan->cell_num)
+    cell_network_size += 2;
+
   tor_assert(tlschan);
   tor_assert(packed_cell);
 
@@ -988,7 +1005,7 @@ channel_tls_handle_state_change_on_orconn(channel_tls_t *chan,
              CHANNEL_IS_CLOSING(base_chan));
 
   /* Did we just go to state open? */
-  if (state == OR_CONN_STATE_OPEN) {
+  if (state == OR_CONN_STATE_OPEN || state == OR_CONN_STATE_OR_INFO) {
     /*
      * We can go to CHANNEL_STATE_OPEN from CHANNEL_STATE_OPENING or
      * CHANNEL_STATE_MAINT on this.
@@ -1087,10 +1104,33 @@ channel_tls_handle_cell(cell_t *cell, or_connection_t *conn)
    return;
   }
 
-  handshaking = (TO_CONN(conn)->state != OR_CONN_STATE_OPEN);
+  handshaking = (TO_CONN(conn)->state != OR_CONN_STATE_OPEN) && (TO_CONN(conn)->state != OR_CONN_STATE_OR_INFO);
 
   if (conn->base_.marked_for_close)
     return;
+
+  if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+    if (cell->cell_num != TLS_CHAN_TO_BASE(chan)->cell_num_in) {
+      log_warn(LD_PROTOCOL, "Received a cell with unexpected num %d (%d) in "
+               "orconn state \"%s\" [%d], channel state \"%s\" [%d]; "
+               "closing the connection.",
+               (int)(cell->cell_num),
+	       (int)(TLS_CHAN_TO_BASE(chan)->cell_num_in),
+               conn_state_to_string(CONN_TYPE_OR, TO_CONN(conn)->state),
+               TO_CONN(conn)->state,
+               channel_state_to_string(TLS_CHAN_TO_BASE(chan)->state),
+               (int)(TLS_CHAN_TO_BASE(chan)->state));
+    } else {
+    	TLS_CHAN_TO_BASE(chan)->cell_num_in++;
+    	//Send Ack cell
+     	var_cell_t *ackcell;
+    	ackcell = var_cell_new(0);
+    	ackcell->cell_num = TLS_CHAN_TO_BASE(chan)->cell_num_in;
+    	ackcell->command = CELL_ACK;
+    	connection_or_write_var_cell_to_buf(ackcell, conn);
+    	var_cell_free(ackcell);
+    }
+  }
 
   /* Reject all but VERSIONS and NETINFO when handshaking. */
   /* (VERSIONS should actually be impossible; it's variable-length.) */
@@ -1145,6 +1185,7 @@ channel_tls_handle_cell(cell_t *cell, or_connection_t *conn)
     case CELL_DESTROY:
     case CELL_CREATE2:
     case CELL_CREATED2:
+    case CELL_IOT_FAST_TICKET_RELAYED:
       /*
        * These are all transport independent and we pass them up through the
        * channel_t mechanism.  They are ultimately handled in command.c.
@@ -1217,8 +1258,38 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
     return;
   }
 
-  if (TO_CONN(conn)->marked_for_close)
+  if (TO_CONN(conn)->marked_for_close) {
+    log_debug(LD_CHANNEL, "Got a var_cell_t on an OR connection which is marked_for_close.");
     return;
+  }
+
+  if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+	if (var_cell->command == CELL_ACK) {
+	  log_info(LD_CHANNEL, "Got an ACK cell");
+	  return;
+	} else {
+		if (var_cell->cell_num != TLS_CHAN_TO_BASE(chan)->cell_num_in) {
+		  log_warn(LD_PROTOCOL, "Received a var cell with unexpected num %d (%d) in "
+				   "orconn state \"%s\" [%d], channel state \"%s\" [%d]; "
+				   "closing the connection.",
+				   (int)(var_cell->cell_num),
+			   (int)(TLS_CHAN_TO_BASE(chan)->cell_num_in),
+				   conn_state_to_string(CONN_TYPE_OR, TO_CONN(conn)->state),
+				   TO_CONN(conn)->state,
+				   channel_state_to_string(TLS_CHAN_TO_BASE(chan)->state),
+				   (int)(TLS_CHAN_TO_BASE(chan)->state));
+		} else {
+		  TLS_CHAN_TO_BASE(chan)->cell_num_in++;
+		  //Send Ack cell
+		  var_cell_t *ackcell;
+		  ackcell = var_cell_new(0);
+		  ackcell->cell_num = TLS_CHAN_TO_BASE(chan)->cell_num_in;
+		  ackcell->command = CELL_ACK;
+		  connection_or_write_var_cell_to_buf(ackcell, conn);
+		  var_cell_free(ackcell);
+		}
+	}
+  }
 
   switch (TO_CONN(conn)->state) {
     case OR_CONN_STATE_OR_HANDSHAKING_V2:
@@ -1275,6 +1346,9 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
                                            var_cell, 1);
       break; /* Everything is allowed */
     case OR_CONN_STATE_OPEN:
+      if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+    	  iot_join(conn, var_cell);
+      }
       if (conn->link_proto < 3) {
         log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,
                "Received a variable-length cell with command %d in orconn "
@@ -1288,6 +1362,12 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
                (int)(conn->link_proto));
         return;
       }
+      break;
+    case OR_CONN_STATE_OR_INFO:
+      iot_info(conn, var_cell);
+      break;
+    case OR_CONN_STATE_OR_JOINING:
+      iot_join(conn, var_cell);
       break;
     default:
       log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,
@@ -1332,6 +1412,9 @@ channel_tls_handle_var_cell(var_cell_t *var_cell, or_connection_t *conn)
     case CELL_AUTHORIZE:
       ++stats_n_authorize_cells_processed;
       /* Ignored so far. */
+      break;
+    case CELL_JOIN:
+      //done before
       break;
     default:
       log_fn(LOG_INFO, LD_PROTOCOL,

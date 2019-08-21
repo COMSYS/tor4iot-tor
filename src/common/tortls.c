@@ -55,6 +55,7 @@ ENABLE_GCC_WARNING(redundant-decls)
 #include "torlog.h"
 #include "container.h"
 #include <string.h>
+#include <ctype.h>
 
 #define X509_get_notBefore_const(cert) \
   ((const ASN1_TIME*) X509_get_notBefore((X509 *)cert))
@@ -146,6 +147,9 @@ static int check_cert_lifetime_internal(int severity, const X509 *cert,
  * @{ */
 STATIC tor_tls_context_t *server_tls_context = NULL;
 STATIC tor_tls_context_t *client_tls_context = NULL;
+
+//Tor4IoT: DTLS context
+STATIC tor_tls_context_t *server_dtls_context = NULL;
 /**@}*/
 
 /** True iff tor_tls_init() has been called. */
@@ -154,6 +158,167 @@ static int tls_library_is_initialized = 0;
 /* Module-internal error codes. */
 #define TOR_TLS_SYSCALL_    (MIN_TOR_TLS_ERROR_VAL_ - 2)
 #define TOR_TLS_ZERORETURN_ (MIN_TOR_TLS_ERROR_VAL_ - 1)
+
+#define C_SECRET_LENGTH 16
+
+static unsigned char c_secret[C_SECRET_LENGTH];
+static int c_initialized=0;
+
+
+static const char *psk_identity = "Client_identity";
+static const char *psk_key = "73656372657450534b";
+
+//Tor4IoT: Generate random cookie for DTLS handshake
+static int tor_dtls_generate_cookie (SSL *ssl, unsigned char *c, unsigned int *c_len)
+{
+  unsigned char *buf;
+  unsigned char r[EVP_MAX_MD_SIZE];
+  unsigned int len = 0;
+  unsigned int r_len = 0;
+
+  union {
+    struct sockaddr_storage ss;
+    struct sockaddr_in6 s6;
+    struct sockaddr_in s4;
+  } client;
+
+  if (!c_initialized) {
+    if (!RAND_bytes(c_secret, C_SECRET_LENGTH))
+      {
+        log_warn(LD_NET, "error setting random cookie secret");
+        return 0;
+      }
+    c_initialized = 1;
+  }
+
+  (void) BIO_dgram_get_peer(SSL_get_rbio(ssl), &client);
+
+  len = 0;
+  len += sizeof(struct in6_addr);
+  len += sizeof(in_port_t);
+
+  buf = (unsigned char*) tor_malloc(len);
+
+  memcpy(buf,
+	 &client.s6.sin6_port,
+	 sizeof(in_port_t));
+
+  memcpy(buf + sizeof(in_port_t),
+	 &client.s6.sin6_addr,
+	 sizeof(struct in6_addr));
+
+  /* Calculate HMAC */
+  HMAC(EVP_sha1(), (const void*) c_secret, C_SECRET_LENGTH,
+       (const unsigned char*) buf, len, r, &r_len);
+
+  tor_free(buf);
+
+  memcpy(c, r, r_len);
+  *c_len = r_len;
+
+  return 1;
+}
+
+//Tor4IoT: Verify DTLS cookie during handshake
+static int tor_dtls_verify_cookie (SSL *ssl, const unsigned char *c, unsigned int c_len)
+{
+  unsigned char *buf;
+  unsigned char r[EVP_MAX_MD_SIZE];
+
+  unsigned int len = 0;
+  unsigned int r_len;
+
+  union {
+    struct sockaddr_storage ss;
+    struct sockaddr_in6 s6;
+    struct sockaddr_in s4;
+  } client;
+
+  if (!c_initialized)
+    return 0;
+
+  (void) BIO_dgram_get_peer(SSL_get_rbio(ssl), &client);
+
+  len = 0;
+
+  len += sizeof(struct in6_addr);
+  len += sizeof(in_port_t);
+
+  buf = (unsigned char*) tor_malloc(len);
+
+  memcpy(buf,
+	 &client.s6.sin6_port,
+	 sizeof(in_port_t));
+
+  memcpy(buf + sizeof(in_port_t),
+	 &client.s6.sin6_addr,
+	 sizeof(struct in6_addr));
+
+  HMAC(EVP_sha1(), (const void*) c_secret, C_SECRET_LENGTH,
+       (const unsigned char*) buf, len, r, &r_len);
+
+  tor_free(buf);
+
+  if (c_len == r_len && memcmp(r, c, r_len) == 0)
+    return 1;
+
+  return 0;
+}
+
+// Tor4IoT: Convert ASCII char to value
+static int convert_ascii(char c)
+{
+	if (c>='a')
+    return c-'a'+0x0a;
+	if (c>='A')
+    return c-'A'+0x0a;
+	return c-'0';
+}
+
+// Tor4IoT: Convert hex string to binary
+static int hex2bin(const char *in, unsigned char *out)
+{
+  int i;
+	for(i = 0; in[i] && in[i+1]; i+=2){
+		if ((!isxdigit(in[i]) && !isxdigit(in[i+1])))
+			return -1;
+		out[i/2] = (convert_ascii(in[i])<<4) + convert_ascii(in[i+1]);
+	}
+	return i/2;
+}
+
+// Tor4IoT: Callback providing the psk to OpenSSL
+static unsigned int tor_dtls_psk_callback(SSL * ssl, const char *identity,
+	      unsigned char *psk, unsigned int max_psk_len)
+{
+	int ret;
+
+	(void)(ssl);
+
+	if (!identity) {
+		log_info(LD_GENERAL, "Error: client did not send PSK identity\n");
+		return 0;
+	}
+
+	if (strcmp(identity, psk_identity) != 0) {
+		log_info(LD_GENERAL, "PSK error: (got '%s' expected '%s')\n",
+				identity, psk_identity);
+		return 0;
+	}
+	if (strlen(psk_key)>=(max_psk_len*2)){
+		log_info(LD_GENERAL, "Error, psk_key too long\n");
+		return 0;
+	}
+
+	/* convert the PSK key to binary */
+	ret = hex2bin(psk_key,psk);
+	if (ret<=0) {
+		log_info(LD_GENERAL, "Could not convert PSK key '%s' to binary key\n", psk_key);
+		return 0;
+	}
+	return ret;
+}
+
 
 /** Write a description of the current state of <b>tls</b> into the
  * <b>sz</b>-byte buffer at <b>buf</b>. */
@@ -412,6 +577,12 @@ tor_tls_free_all(void)
   if (client_tls_context) {
     tor_tls_context_t *ctx = client_tls_context;
     client_tls_context = NULL;
+    tor_tls_context_decref(ctx);
+  }
+
+  if (server_dtls_context) {
+    tor_tls_context_t *ctx = server_dtls_context;
+    server_dtls_context = NULL;
     tor_tls_context_decref(ctx);
   }
 }
@@ -1015,7 +1186,7 @@ tor_tls_context_init(unsigned flags,
 
     rv1 = tor_tls_context_init_one(&server_tls_context,
                                    server_identity,
-                                   key_lifetime, flags, 0);
+                                   key_lifetime, flags, 0, 0);
 
     if (rv1 >= 0) {
       new_ctx = server_tls_context;
@@ -1027,13 +1198,27 @@ tor_tls_context_init(unsigned flags,
         tor_tls_context_decref(old_ctx);
       }
     }
+
+    old_ctx = server_dtls_context;
+    rv2 = tor_tls_context_init_one(&server_dtls_context,
+                                   server_identity,
+                                   key_lifetime, flags, 0, 1);
+
+    if (rv2 >= 0) {
+      new_ctx = server_dtls_context;
+      tor_tls_context_incref(new_ctx);
+
+      if (old_ctx != NULL) {
+        tor_tls_context_decref(old_ctx);
+      }
+    }
   } else {
     if (server_identity != NULL) {
       rv1 = tor_tls_context_init_one(&server_tls_context,
                                      server_identity,
                                      key_lifetime,
                                      flags,
-                                     0);
+                                     0, 0);
     } else {
       tor_tls_context_t *old_ctx = server_tls_context;
       server_tls_context = NULL;
@@ -1047,7 +1232,7 @@ tor_tls_context_init(unsigned flags,
                                    client_identity,
                                    key_lifetime,
                                    flags,
-                                   1);
+                                   1, 0);
   }
 
   tls_log_errors(NULL, LOG_WARN, LD_CRYPTO, "constructing a TLS context");
@@ -1060,17 +1245,20 @@ tor_tls_context_init(unsigned flags,
  * it generates new certificates; all new connections will use
  * the new SSL context.
  */
+
 STATIC int
 tor_tls_context_init_one(tor_tls_context_t **ppcontext,
                          crypto_pk_t *identity,
                          unsigned int key_lifetime,
                          unsigned int flags,
-                         int is_client)
+                         int is_client,
+                  			 int is_dtls)
 {
   tor_tls_context_t *new_ctx = tor_tls_context_new(identity,
                                                    key_lifetime,
                                                    flags,
-                                                   is_client);
+                                                   is_client,
+						                                       is_dtls);
   tor_tls_context_t *old_ctx = *ppcontext;
 
   if (new_ctx != NULL) {
@@ -1098,7 +1286,7 @@ tor_tls_context_init_one(tor_tls_context_t **ppcontext,
  */
 STATIC tor_tls_context_t *
 tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
-                    unsigned flags, int is_client)
+                    unsigned flags, int is_client, int is_dtls)
 {
   crypto_pk_t *rsa = NULL, *rsa_auth = NULL;
   EVP_PKEY *pkey = NULL;
@@ -1153,29 +1341,47 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
     result->auth_key = crypto_pk_dup_key(rsa_auth);
   }
 
+  if (!is_dtls) {
 #if 0
-  /* Tell OpenSSL to only use TLS1.  This may have subtly different results
-   * from SSLv23_method() with SSLv2 and SSLv3 disabled, so we need to do some
-   * investigation before we consider adjusting it. It should be compatible
-   * with existing Tors. */
-  if (!(result->ctx = SSL_CTX_new(TLSv1_method())))
-    goto error;
+    /* Tell OpenSSL to only use TLS1.  This may have subtly different results
+     * from SSLv23_method() with SSLv2 and SSLv3 disabled, so we need to do some
+     * investigation before we consider adjusting it. It should be compatible
+     * with existing Tors. */
+    if (!(result->ctx = SSL_CTX_new(TLSv1_method())))
+      goto error;
 #endif /* 0 */
 
-  /* Tell OpenSSL to use TLS 1.0 or later but not SSL2 or SSL3. */
+    /* Tell OpenSSL to use TLS 1.0 or later but not SSL2 or SSL3. */
 #ifdef HAVE_TLS_METHOD
   if (!(result->ctx = SSL_CTX_new(TLS_method())))
     goto error;
 #else
-  if (!(result->ctx = SSL_CTX_new(SSLv23_method())))
-    goto error;
+    if (!(result->ctx = SSL_CTX_new(SSLv23_method())))
+      goto error;
 #endif /* defined(HAVE_TLS_METHOD) */
+  } else {
+    if (!(result->ctx = SSL_CTX_new(DTLS_server_method())))
+      goto error;
+
+    SSL_CTX_set_cipher_list(result->ctx, "PSK-AES128-CCM8"); //ALL:NULL:eNULL:aNULL");
+    SSL_CTX_set_session_cache_mode(result->ctx, SSL_SESS_CACHE_OFF);
+
+    /* Client has to authenticate */
+    //SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, dtls_verify_callback);
+
+    SSL_CTX_set_cookie_generate_cb(result->ctx, &tor_dtls_generate_cookie);
+    SSL_CTX_set_cookie_verify_cb(result->ctx, &tor_dtls_verify_cookie);
+    SSL_CTX_set_psk_server_callback(result->ctx, &tor_dtls_psk_callback);
+
+    SSL_CTX_set_mode(result->ctx, SSL_MODE_AUTO_RETRY);
+  }
+
   SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv2);
   SSL_CTX_set_options(result->ctx, SSL_OP_NO_SSLv3);
 
   /* Prefer the server's ordering of ciphers: the client's ordering has
   * historically been chosen for fingerprinting resistance. */
-  SSL_CTX_set_options(result->ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
+  //SSL_CTX_set_options(result->ctx, SSL_OP_CIPHER_SERVER_PREFERENCE);
 
   /* Disable TLS tickets if they're supported.  We never want to use them;
    * using them can make our perfect forward secrecy a little worse, *and*
@@ -1193,8 +1399,10 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
   }
 #endif
 
+if (!is_dtls) {
   SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_DH_USE);
   SSL_CTX_set_options(result->ctx, SSL_OP_SINGLE_ECDH_USE);
+}
 
 #ifdef SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION
   SSL_CTX_set_options(result->ctx,
@@ -1224,7 +1432,7 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
 #ifdef SSL_MODE_RELEASE_BUFFERS
   SSL_CTX_set_mode(result->ctx, SSL_MODE_RELEASE_BUFFERS);
 #endif
-  if (! is_client) {
+  if (! is_client && !is_dtls) {
     if (cert && !SSL_CTX_use_certificate(result->ctx,cert))
       goto error;
     X509_free(cert); /* We just added a reference to cert. */
@@ -1238,7 +1446,7 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
     }
   }
   SSL_CTX_set_session_cache_mode(result->ctx, SSL_SESS_CACHE_OFF);
-  if (!is_client) {
+  if (!is_client && !is_dtls) {
     tor_assert(rsa);
     if (!(pkey = crypto_pk_get_evp_pkey_(rsa,1)))
       goto error;
@@ -1255,7 +1463,7 @@ tor_tls_context_new(crypto_pk_t *identity, unsigned int key_lifetime,
     SSL_CTX_set_tmp_dh(result->ctx, crypto_dh_get_dh_(dh));
     crypto_dh_free(dh);
   }
-  if (! is_client) {
+  if (! is_client && !is_dtls) {
     int nid;
     EC_KEY *ec_key;
     if (flags & TOR_TLS_CTX_USE_ECDHE_P224)
@@ -1355,6 +1563,9 @@ STATIC uint16_t v2_cipher_list[] = {
   0xc003, /* TLS1_TXT_ECDH_ECDSA_WITH_DES_192_CBC3_SHA */
   0xfeff, /* SSL3_TXT_RSA_FIPS_WITH_3DES_EDE_CBC_SHA */
   0x000a, /* SSL3_TXT_RSA_DES_192_CBC3_SHA */
+  // Tor4IoT: Add ciphers supported by TinyDTLS
+  0xc0ae,
+  0xc0a8,
   0
 };
 /** Have we removed the unrecognized ciphers from v2_cipher_list yet? */
@@ -1493,13 +1704,15 @@ tor_tls_classify_client_ciphers(const SSL *ssl,
       if (id == 0x00ff) /* extended renegotiation indicator. */
         continue;
       if (!id || id != *v2_cipher) {
-        res = CIPHERS_UNRESTRICTED;
+        //res = CIPHERS_UNRESTRICTED;
+	      res = CIPHERS_V2;
         goto dump_ciphers;
       }
       ++v2_cipher;
     }
     if (*v2_cipher != 0) {
-      res = CIPHERS_UNRESTRICTED;
+      //res = CIPHERS_UNRESTRICTED;
+      res = CIPHERS_V2;
       goto dump_ciphers;
     }
     res = CIPHERS_V2;
@@ -1651,11 +1864,11 @@ tor_tls_setup_session_secret_cb(tor_tls_t *tls)
  * determine whether it is functioning as a server.
  */
 tor_tls_t *
-tor_tls_new(int sock, int isServer)
+tor_tls_new(int sock, int isServer, int is_dtls)
 {
   BIO *bio = NULL;
   tor_tls_t *result = tor_malloc_zero(sizeof(tor_tls_t));
-  tor_tls_context_t *context = isServer ? server_tls_context :
+  tor_tls_context_t *context = isServer ? (is_dtls ? server_dtls_context : server_tls_context) :
     client_tls_context;
   result->magic = TOR_TLS_MAGIC;
 
@@ -1676,18 +1889,31 @@ tor_tls_new(int sock, int isServer)
   }
 #endif /* defined(SSL_set_tlsext_host_name) */
 
-  if (!SSL_set_cipher_list(result->ssl,
-                     isServer ? SERVER_CIPHER_LIST : CLIENT_CIPHER_LIST)) {
-    tls_log_errors(NULL, LOG_WARN, LD_NET, "setting ciphers");
+  if (!is_dtls) {
+    if (!SSL_set_cipher_list(result->ssl,
+		       isServer ? SERVER_CIPHER_LIST : CLIENT_CIPHER_LIST)) {
+      tls_log_errors(NULL, LOG_WARN, LD_NET, "setting ciphers");
 #ifdef SSL_set_tlsext_host_name
-    SSL_set_tlsext_host_name(result->ssl, NULL);
+      SSL_set_tlsext_host_name(result->ssl, NULL);
 #endif
-    SSL_free(result->ssl);
-    tor_free(result);
-    goto err;
+      SSL_free(result->ssl);
+      tor_free(result);
+      goto err;
+    }
   }
   result->socket = sock;
-  bio = BIO_new_socket(sock, BIO_NOCLOSE);
+
+  if (is_dtls) {
+    struct timeval timeout;
+
+    bio = BIO_new_dgram(sock, BIO_NOCLOSE);
+
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 0;
+    BIO_ctrl(bio, BIO_CTRL_DGRAM_SET_RECV_TIMEOUT, 0, &timeout);
+  } else {
+    bio = BIO_new_socket(sock, BIO_NOCLOSE);
+  }
   if (! bio) {
     tls_log_errors(NULL, LOG_WARN, LD_NET, "opening BIO");
 #ifdef SSL_set_tlsext_host_name
@@ -1706,6 +1932,11 @@ tor_tls_new(int sock, int isServer)
     }
   }
   SSL_set_bio(result->ssl, bio, bio);
+
+  if (is_dtls) {
+    SSL_set_options(result->ssl, SSL_OP_COOKIE_EXCHANGE);
+  }
+
   tor_tls_context_incref(context);
   result->context = context;
   result->state = TOR_TLS_ST_HANDSHAKE;
@@ -1915,6 +2146,26 @@ tor_tls_write(tor_tls_t *tls, const char *cp, size_t n)
     tls->wantwrite_n = n;
   }
   return err;
+}
+
+int
+tor_dtls_listen (tor_tls_t *tls, BIO_ADDR *client) {
+  int result = DTLSv1_listen(tls->ssl, client);
+
+  if (result <= 0) {
+      tor_tls_get_error(tls,result,0, "pre_handshaking", LOG_INFO, LD_HANDSHAKE);
+  }
+
+  return result;
+}
+
+BIO *
+tor_dtls_get_rbio (tor_tls_t *tls) {
+  BIO *result;
+
+  result = SSL_get_rbio(tls->ssl);
+
+  return result;
 }
 
 /** Perform initial handshake on <b>tls</b>.  When finished, returns

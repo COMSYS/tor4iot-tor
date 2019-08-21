@@ -46,7 +46,7 @@ int onion_skin_server_handshake(int type,
                       uint8_t *keys_out, size_t key_out_len,
                       uint8_t *rend_nonce_out);
 int onion_skin_client_handshake(int type,
-                      const onion_handshake_state_t *handshake_state,
+                      onion_handshake_state_t *handshake_state,
                       const uint8_t *reply, size_t reply_len,
                       uint8_t *keys_out, size_t key_out_len,
                       uint8_t *rend_authenticator_out,

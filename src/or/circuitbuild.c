@@ -509,11 +509,24 @@ circuit_establish_circuit(uint8_t purpose, extend_info_t *exit_ei, int flags)
 
   circ = origin_circuit_init(purpose, flags);
 
+  if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT ||
+		  purpose == CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER) {
+      circ->build_state->iot_circ_info = exit_ei->iot_circ_info;
+  }
+
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_cpathstart);
+#endif
+
   if (onion_pick_cpath_exit(circ, exit_ei, is_hs_v3_rp_circuit) < 0 ||
       onion_populate_cpath(circ) < 0) {
     circuit_mark_for_close(TO_CIRCUIT(circ), END_CIRC_REASON_NOPATH);
     return NULL;
   }
+
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_cpathend);
+#endif
 
   control_event_circuit_status(circ, CIRC_EVENT_LAUNCHED, 0);
 
@@ -966,6 +979,10 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
 
   log_debug(LD_CIRC,"First skin; sending create cell.");
 
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_circstart);
+#endif
+
   if (circ->build_state->onehop_tunnel) {
     control_event_bootstrap(BOOTSTRAP_STATUS_ONEHOP_CREATE, 0);
   } else {
@@ -992,10 +1009,22 @@ circuit_send_first_onion_skin(origin_circuit_t *circ)
     cc.handshake_type = ONION_HANDSHAKE_TYPE_FAST;
   }
 
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &circ->cpath->iot_mes_ntor1start);
+#endif
+
   len = onion_skin_create(cc.handshake_type,
                           circ->cpath->extend_info,
                           &circ->cpath->handshake_state,
                           cc.onionskin);
+
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &circ->cpath->iot_mes_ntor1end);
+
+  memcpy(&circ->cpath->iot_mes_x255191start, &circ->cpath->handshake_state.mes.c25519_before1, sizeof(struct timespec));
+  memcpy(&circ->cpath->iot_mes_x255191end, &circ->cpath->handshake_state.mes.c25519_after1, sizeof(struct timespec));
+#endif
+
   if (len < 0) {
     log_warn(LD_CIRC,"onion_skin_create (first hop) failed.");
     return - END_CIRC_REASON_INTERNAL;
@@ -1046,6 +1075,10 @@ circuit_build_no_more_hops(origin_circuit_t *circ)
     tor_assert_nonfatal(r == GUARD_USABLE_NEVER);
     return - END_CIRC_REASON_INTERNAL;
   }
+
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_circend);
+#endif
 
   /* XXXX #21422 -- the rest of this branch needs careful thought!
    * Some of the things here need to happen when a circuit becomes
@@ -1158,10 +1191,22 @@ circuit_send_intermediate_onion_skin(origin_circuit_t *circ,
    * in the extend2 cell if we're configured to use it, though. */
   ed25519_pubkey_copy(&ec.ed_pubkey, &hop->extend_info->ed_identity);
 
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor1start);
+#endif
+
   len = onion_skin_create(ec.create_cell.handshake_type,
                           hop->extend_info,
                           &hop->handshake_state,
                           ec.create_cell.onionskin);
+
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor1end);
+
+  memcpy(&hop->iot_mes_x255191start, &hop->handshake_state.mes.c25519_before1, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255191end, &hop->handshake_state.mes.c25519_after1, sizeof(struct timespec));
+#endif
+
   if (len < 0) {
     log_warn(LD_CIRC,"onion_skin_create failed.");
     return - END_CIRC_REASON_INTERNAL;
@@ -1411,6 +1456,13 @@ circuit_init_cpath_crypto(crypt_path_t *cpath,
     return -1;
   }
 
+  memset(cpath->f_aesctrkey, 0, 16);
+  memset(cpath->b_aesctrkey, 0, 16);
+  memset(cpath->hs_ntor_key, 0, 128);
+
+  cpath->f_crypted_bytes = 0;
+  cpath->b_crypted_bytes = 0;
+
   /* If we are using this cpath for next gen onion services use SHA3-256,
      otherwise use good ol' SHA1 */
   if (is_hs_v3) {
@@ -1442,6 +1494,14 @@ circuit_init_cpath_crypto(crypt_path_t *cpath,
   cpath->b_crypto = crypto_cipher_new_with_bits(
                                         key_data+(2*digest_len)+cipher_key_len,
                                         cipher_key_bits);
+  if (cipher_key_len == CIPHER_KEY_LEN) {
+    memcpy(cpath->f_aesctrkey, key_data+(2*digest_len), cipher_key_len);
+    memcpy(cpath->b_aesctrkey, key_data+(2*digest_len) + cipher_key_len, cipher_key_len);
+    memcpy(cpath->f_init_digest, key_data, digest_len);
+  } else if (key_data_len == HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN) {
+    memcpy(cpath->hs_ntor_key, key_data, HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN);
+  }
+
   if (!cpath->b_crypto) {
     log_warn(LD_BUG,"Backward cipher initialization failed.");
     return -1;
@@ -1492,6 +1552,10 @@ circuit_finish_handshake(origin_circuit_t *circ,
   }
   tor_assert(hop->state == CPATH_STATE_AWAITING_KEYS);
 
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor2start);
+#endif
+
   {
     const char *msg = NULL;
     if (onion_skin_client_handshake(hop->handshake_state.tag,
@@ -1505,6 +1569,15 @@ circuit_finish_handshake(origin_circuit_t *circ,
       return -END_CIRC_REASON_TORPROTOCOL;
     }
   }
+
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &hop->iot_mes_ntor2end);
+
+  memcpy(&hop->iot_mes_x255192start, &hop->handshake_state.mes.c25519_before1, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255192end, &hop->handshake_state.mes.c25519_after1, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255193start, &hop->handshake_state.mes.c25519_before2, sizeof(struct timespec));
+  memcpy(&hop->iot_mes_x255193end, &hop->handshake_state.mes.c25519_after2, sizeof(struct timespec));
+#endif
 
   onion_handshake_state_release(&hop->handshake_state);
 
@@ -1619,6 +1692,10 @@ onionskin_answer(or_circuit_t *circ,
   log_debug(LD_CIRC,"Finished sending '%s' cell.",
             used_create_fast ? "created_fast" : "created");
 
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_circdone);
+#endif
+
   /* Ignore the local bit when ExtendAllowPrivateAddresses is set:
    * it violates the assumption that private addresses are local.
    * Also, many test networks run on local addresses, and
@@ -1704,6 +1781,19 @@ route_len_for_purpose(uint8_t purpose, extend_info_t *exit_ei)
     /* hidden service connecting to rendezvous point */
     known_purpose = 1;
     routelen++;
+    break;
+
+  case CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER:
+    known_purpose = 1;
+    routelen = (2*routelen) - 1;
+    break;
+  case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
+    /* hidden service connecting to rendezvous point over split point*/
+    known_purpose = 1;
+    routelen = 2*routelen;
+    break;
+  case CIRCUIT_PURPOSE_ENTRY_IOT:
+    known_purpose = 1;
     break;
 
   default:
@@ -2227,6 +2317,9 @@ warn_if_last_router_excluded(origin_circuit_t *circ,
     case CIRCUIT_PURPOSE_S_CONNECT_REND:
     case CIRCUIT_PURPOSE_S_REND_JOINED:
     case CIRCUIT_PURPOSE_TESTING:
+    case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
+    case CIRCUIT_PURPOSE_ENTRY_IOT:
+    case CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER:
       return;
     case CIRCUIT_PURPOSE_C_ESTABLISH_REND:
     case CIRCUIT_PURPOSE_C_REND_READY:
@@ -2465,6 +2558,11 @@ choose_good_middle_server(uint8_t purpose,
     }
   }
 
+  if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT ||
+		  purpose == CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER) {
+      nodelist_add_node_and_family(excluded, state->iot_circ_info.split);
+  }
+
   if (state->need_uptime)
     flags |= CRN_NEED_UPTIME;
   if (state->need_capacity)
@@ -2517,6 +2615,11 @@ choose_good_entry_server(uint8_t purpose, cpath_build_state_t *state,
     nodelist_add_node_and_family(excluded, node);
   }
 
+  if (purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT ||
+		  purpose == CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER) {
+      nodelist_add_node_and_family(excluded, state->iot_circ_info.split);
+  }
+
   if (state) {
     if (state->need_uptime)
       flags |= CRN_NEED_UPTIME;
@@ -2556,6 +2659,7 @@ onion_extend_cpath(origin_circuit_t *circ)
   cpath_build_state_t *state = circ->build_state;
   int cur_len = circuit_get_cpath_len(circ);
   extend_info_t *info = NULL;
+  const node_t *r = NULL;
 
   if (cur_len >= state->desired_path_len) {
     log_debug(LD_CIRC, "Path is complete: %d steps long",
@@ -2569,7 +2673,7 @@ onion_extend_cpath(origin_circuit_t *circ)
   if (cur_len == state->desired_path_len - 1) { /* Picking last node */
     info = extend_info_dup(state->chosen_exit);
   } else if (cur_len == 0) { /* picking first node */
-    const node_t *r = choose_good_entry_server(purpose, state,
+    r = choose_good_entry_server(purpose, state,
                                                &circ->guard_state);
     if (r) {
       /* If we're a client, use the preferred address rather than the
@@ -2580,9 +2684,12 @@ onion_extend_cpath(origin_circuit_t *circ)
       /* Clients can fail to find an allowed address */
       tor_assert_nonfatal(info || client);
     }
+  } else if ((purpose == CIRCUIT_PURPOSE_S_CONNECT_REND_IOT ||
+		  purpose == CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER) &&
+		  cur_len == state->desired_path_len - 1 - state->iot_circ_info.after) {
+    info = extend_info_from_node(state->iot_circ_info.split, 0);
   } else {
-    const node_t *r =
-      choose_good_middle_server(purpose, state, circ->cpath, cur_len);
+    r = choose_good_middle_server(purpose, state, circ->cpath, cur_len);
     if (r) {
       info = extend_info_from_node(r, 0);
       tor_assert_nonfatal(info);

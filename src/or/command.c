@@ -71,6 +71,7 @@ static void command_handle_incoming_channel(channel_listener_t *listener,
 /* These are the main functions for processing cells */
 static void command_process_create_cell(cell_t *cell, channel_t *chan);
 static void command_process_created_cell(cell_t *cell, channel_t *chan);
+static void command_process_iotrelayed_cell(cell_t *cell, channel_t *chan);
 static void command_process_relay_cell(cell_t *cell, channel_t *chan);
 static void command_process_destroy_cell(cell_t *cell, channel_t *chan);
 
@@ -199,6 +200,9 @@ command_process_cell(channel_t *chan, cell_t *cell)
     case CELL_DESTROY:
       ++stats_n_destroy_cells_processed;
       PROCESS_CELL(destroy, cell, chan);
+      break;
+    case CELL_IOT_FAST_TICKET_RELAYED:
+      PROCESS_CELL(iotrelayed, cell, chan);
       break;
     default:
       log_fn(LOG_INFO, LD_PROTOCOL,
@@ -339,6 +343,10 @@ command_process_create_cell(cell_t *cell, channel_t *chan)
     return;
   }
 
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_circreceived);
+#endif
+
   if (connection_or_digest_is_known_relay(chan->identity_digest)) {
     rep_hist_note_circuit_handshake_requested(create_cell->handshake_type);
   }
@@ -462,6 +470,34 @@ command_process_created_cell(cell_t *cell, channel_t *chan)
   }
 }
 
+// Tor4IoT: Process IoT Relayed Cell
+static void
+command_process_iotrelayed_cell(cell_t *cell, channel_t *chan) {
+	circuit_t *circ;
+
+	circ = circuit_get_by_circid_channel(cell->circ_id, chan);
+
+#ifdef TOR4IOT_MEASUREMENT
+	clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_relayticketrelayed);
+	memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_relayticketrelayedfrombuf, &cell->received, sizeof(struct timespec));
+#endif
+
+	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED1. Relaying as *_TICKET_RELAYED2.");
+	if (relay_send_command_from_edge(0, circ,
+			(cell->command == CELL_IOT_TICKET_RELAYED ? RELAY_COMMAND_TICKET_RELAYED : RELAY_COMMAND_FAST_TICKET_RELAYED),
+			(const char *)(cell->payload),
+			HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN, NULL)) {
+		log_warn(LD_GENERAL,
+				"Unable to send cell to client");
+		/* Stop right now, the circuit has been closed. */
+		return;
+	}
+#ifdef TOR4IOT_MEASUREMENT
+	memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_relayticketrelayedtobuf, &circ->temp2, sizeof(struct timespec));
+	TO_OR_CIRCUIT(circ)->mes = 1;
+#endif
+}
+
 /** Process a 'relay' or 'relay_early' <b>cell</b> that just arrived from
  * <b>conn</b>. Make sure it came in with a recognized circ_id. Pass it on to
  * circuit_receive_relay_cell() for actual processing.
@@ -502,10 +538,16 @@ command_process_relay_cell(cell_t *cell, channel_t *chan)
   else
     direction = CELL_DIRECTION_IN;
 
+  if (circ->join_cookie && cell->circ_id != TO_OR_CIRCUIT(circ)->p_circ_id) {
+	  direction = CELL_DIRECTION_IN;
+  }
+
+  log_info(LD_OR, "Got a relay cell on circ %u sending %s.", cell->circ_id, (direction == CELL_DIRECTION_OUT) ? "forward" : "backward");
+
   /* If we have a relay_early cell, make sure that it's outbound, and we've
    * gotten no more than MAX_RELAY_EARLY_CELLS_PER_CIRCUIT of them. */
   if (cell->command == CELL_RELAY_EARLY) {
-    if (direction == CELL_DIRECTION_IN) {
+    if (direction == CELL_DIRECTION_IN && circ->purpose != CIRCUIT_PURPOSE_IOT) {
       /* Inbound early cells could once be encountered as a result of
        * bug 1038; but relays running versions before 0.2.1.19 are long
        * gone from the network, so any such cells now are surprising. */
@@ -573,7 +615,7 @@ command_process_destroy_cell(cell_t *cell, channel_t *chan)
   int reason;
 
   circ = circuit_get_by_circid_channel(cell->circ_id, chan);
-  if (!circ) {
+  if (!circ || circ->already_split) {
     log_info(LD_OR,"unknown circuit %u on connection from %s. Dropping.",
              (unsigned)cell->circ_id,
              channel_get_canonical_remote_descr(chan));

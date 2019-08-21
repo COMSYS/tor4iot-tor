@@ -157,6 +157,7 @@ static config_abbrev_t option_abbrevs_[] = {
   { "MaxConn", "ConnLimit", 0, 1},
   { "MaxMemInCellQueues", "MaxMemInQueues", 0, 0},
   { "ORBindAddress", "ORListenAddress", 0, 0},
+  { "ORUDPBindAddress", "ORUDPListenAddress", 0, 0},
   { "DirBindAddress", "DirListenAddress", 0, 0},
   { "SocksBindAddress", "SocksListenAddress", 0, 0},
   { "UseHelperNodes", "UseEntryGuards", 0, 0},
@@ -333,6 +334,7 @@ static config_var_t option_vars_[] = {
   V(TestingEnableTbEmptyEvent,   BOOL,     "0"),
   V(EnforceDistinctSubnets,      BOOL,     "1"),
   V(EntryNodes,                  ROUTERSET,   NULL),
+  V(IoTEntryNodes,               ROUTERSET,   NULL),
   V(EntryStatistics,             BOOL,     "0"),
   V(TestingEstimatedDescriptorPropagationTime, INTERVAL, "10 minutes"),
   V(ExcludeNodes,                ROUTERSET, NULL),
@@ -393,6 +395,7 @@ static config_var_t option_vars_[] = {
   VAR("HiddenServiceMaxStreamsCloseCircuit",LINELIST_S, RendConfigLines, NULL),
   VAR("HiddenServiceNumIntroductionPoints", LINELIST_S, RendConfigLines, NULL),
   VAR("HiddenServiceStatistics", BOOL, HiddenServiceStatistics_option, "1"),
+  VAR("HiddenServiceDelegation", LINELIST_S, RendConfigLines, NULL),
   V(HidServAuth,                 LINELIST, NULL),
   OBSOLETE("CloseHSClientCircuitsImmediatelyOnTimeout"),
   OBSOLETE("CloseHSServiceRendCircuitsImmediatelyOnTimeout"),
@@ -450,7 +453,8 @@ static config_var_t option_vars_[] = {
   V(OutboundBindAddress,         LINELIST,   NULL),
   V(OutboundBindAddressOR,       LINELIST,   NULL),
   V(OutboundBindAddressExit,     LINELIST,   NULL),
-
+  OBSOLETE("ORUDPListenAddress"),
+  VPORT(ORUDPPort),
   OBSOLETE("PathBiasDisableRate"),
   V(PathBiasCircThreshold,       INT,      "-1"),
   V(PathBiasNoticeRate,          DOUBLE,   "-1"),
@@ -3628,9 +3632,7 @@ options_validate(or_options_t *old_options, or_options_t *options,
              "entry guard which can then lead to the deanonymization of your "
              "hidden service -- for more details, see "
              "https://trac.torproject.org/projects/tor/ticket/14917. "
-             "For this reason, the use of one EntryNodes with an hidden "
-             "service is prohibited until a better solution is found.");
-    return -1;
+             "Normally Tor wouldn't start but we forced it to do. Tor4IoT.");
   }
 
   /* Inform the hidden service operator that pinning EntryNodes can possibly
@@ -7282,6 +7284,14 @@ parse_ports(or_options_t *options, int validate_only,
       goto err;
     }
     if (parse_port_config(ports,
+                          options->ORUDPPort_lines,
+                          "OR_UDP", CONN_TYPE_OR_UDP_LISTENER,
+                          "0.0.0.0", 0,
+                          CL_PORT_SERVER_OPTIONS) < 0) {
+      *msg = tor_strdup("Invalid ORUDPPort configuration");
+      goto err;
+    }
+    if (parse_port_config(ports,
                           options->ExtORPort_lines,
                           "ExtOR", CONN_TYPE_EXT_OR_LISTENER,
                           "127.0.0.1", 0,
@@ -7315,6 +7325,8 @@ parse_ports(or_options_t *options, int validate_only,
      an integer. */
   options->ORPort_set =
     !! count_real_listeners(ports, CONN_TYPE_OR_LISTENER, 0);
+  options->ORUDPPort_set =
+      !! count_real_listeners(ports, CONN_TYPE_OR_UDP_LISTENER, 0);
   options->SocksPort_set =
     !! count_real_listeners(ports, CONN_TYPE_AP_LISTENER, 1);
   options->TransPort_set =

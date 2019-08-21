@@ -390,6 +390,12 @@ connection_or_change_state(or_connection_t *conn, uint8_t state)
                                               old_state, state);
 }
 
+void
+connection_or_set_state_joining(or_connection_t *conn)
+{
+  connection_or_change_state(conn, OR_CONN_STATE_OR_JOINING);
+}
+
 /** Return the number of circuits using an or_connection_t; this used to
  * be an or_connection_t field, but it got moved to channel_t and we
  * shouldn't maintain two copies. */
@@ -414,7 +420,7 @@ connection_or_get_num_circuits, (or_connection_t *conn))
  * should set it or clear it as appropriate.
  */
 void
-cell_pack(packed_cell_t *dst, const cell_t *src, int wide_circ_ids)
+cell_pack(packed_cell_t *dst, const cell_t *src, int wide_circ_ids, int cell_num)
 {
   char *dest = dst->body;
   if (wide_circ_ids) {
@@ -428,14 +434,22 @@ cell_pack(packed_cell_t *dst, const cell_t *src, int wide_circ_ids)
     dest += 2;
   }
   set_uint8(dest, src->command);
-  memcpy(dest+1, src->payload, CELL_PAYLOAD_SIZE);
+  dest += 1;
+
+  if (cell_num) {
+      set_uint16(dest, htons(src->cell_num));
+      dest += 2;
+  }
+
+  memcpy(dest, src->payload, CELL_PAYLOAD_SIZE);
 }
+
 
 /** Unpack the network-order buffer <b>src</b> into a host-order
  * cell_t structure <b>dest</b>.
  */
 static void
-cell_unpack(cell_t *dest, const char *src, int wide_circ_ids)
+cell_unpack(cell_t *dest, const char *src, int wide_circ_ids, int cell_num)
 {
   if (wide_circ_ids) {
     dest->circ_id = ntohl(get_uint32(src));
@@ -445,13 +459,20 @@ cell_unpack(cell_t *dest, const char *src, int wide_circ_ids)
     src += 2;
   }
   dest->command = get_uint8(src);
-  memcpy(dest->payload, src+1, CELL_PAYLOAD_SIZE);
+  src += 1;
+
+  if (cell_num) {
+    dest->cell_num = ntohs(get_uint16(src));
+    src += 2;
+  }
+
+  memcpy(dest->payload, src, CELL_PAYLOAD_SIZE);
 }
 
 /** Write the header of <b>cell</b> into the first VAR_CELL_MAX_HEADER_SIZE
  * bytes of <b>hdr_out</b>. Returns number of bytes used. */
 int
-var_cell_pack_header(const var_cell_t *cell, char *hdr_out, int wide_circ_ids)
+var_cell_pack_header(const var_cell_t *cell, char *hdr_out, int wide_circ_ids, int cell_num)
 {
   int r;
   if (wide_circ_ids) {
@@ -464,7 +485,15 @@ var_cell_pack_header(const var_cell_t *cell, char *hdr_out, int wide_circ_ids)
     r = VAR_CELL_MAX_HEADER_SIZE - 2;
   }
   set_uint8(hdr_out, cell->command);
-  set_uint16(hdr_out+1, htons(cell->payload_len));
+  hdr_out += 1;
+
+  if (cell_num) {
+      set_uint16(hdr_out, htons(cell->cell_num));
+      hdr_out += 2;
+      r += 2;
+  }
+
+  set_uint16(hdr_out, htons(cell->payload_len));
   return r;
 }
 
@@ -478,6 +507,7 @@ var_cell_new(uint16_t payload_len)
   cell->payload_len = payload_len;
   cell->command = 0;
   cell->circ_id = 0;
+  cell->cell_num = 0;
   return cell;
 }
 
@@ -497,6 +527,7 @@ var_cell_copy(const var_cell_t *src)
     copy->payload_len = src->payload_len;
     copy->command = src->command;
     copy->circ_id = src->circ_id;
+    copy->cell_num = src->cell_num;
     memcpy(copy->payload, src->payload, copy->payload_len);
   }
 
@@ -560,6 +591,8 @@ connection_or_process_inbuf(or_connection_t *conn)
     case OR_CONN_STATE_OPEN:
     case OR_CONN_STATE_OR_HANDSHAKING_V2:
     case OR_CONN_STATE_OR_HANDSHAKING_V3:
+    case OR_CONN_STATE_OR_INFO:
+    case OR_CONN_STATE_OR_JOINING:
       return connection_or_process_cells_from_inbuf(conn);
     default:
       break; /* don't do anything */
@@ -649,6 +682,8 @@ connection_or_finished_flushing(or_connection_t *conn)
     case OR_CONN_STATE_OPEN:
     case OR_CONN_STATE_OR_HANDSHAKING_V2:
     case OR_CONN_STATE_OR_HANDSHAKING_V3:
+    case OR_CONN_STATE_OR_INFO:
+    case OR_CONN_STATE_OR_JOINING:
       break;
     default:
       log_err(LD_BUG,"Called in unexpected state %d.", conn->base_.state);
@@ -1359,13 +1394,100 @@ connection_tls_start_handshake,(or_connection_t *conn, int receiving))
 
   connection_or_change_state(conn, OR_CONN_STATE_TLS_HANDSHAKING);
   tor_assert(!conn->tls);
-  conn->tls = tor_tls_new(conn->base_.s, receiving);
+  conn->tls = tor_tls_new(TO_CONN(conn)->s, receiving, (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) ? 1 : 0);
   if (!conn->tls) {
     log_warn(LD_BUG,"tor_tls_new failed. Closing.");
     return -1;
   }
-  tor_tls_set_logged_address(conn->tls, // XXX client and relay?
-      escaped_safe_str(conn->base_.address));
+
+  if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+    struct sockaddr_in6 server_addr, client_addr;
+    char straddr_server[INET6_ADDRSTRLEN], straddr_client[INET6_ADDRSTRLEN];
+
+    log_info(LD_OR, "Trying to listen to DTLS.");
+
+    int err;
+
+    while (1) {
+		err = tor_dtls_listen(conn->tls, (BIO_ADDR*) &client_addr);
+		if (err > 0) {
+			break;
+		}
+		else if (err < 0) {
+			//FATAL ERROR
+			log_err(LD_OR, "Fatal Error in DTLSv1_listen. %d.", err);
+
+			tor_assert(0);
+
+			return 0;
+		} else {
+			log_info(LD_GENERAL, "Non-fatal error in DTLS_listen.. Retry..");
+		}
+    }
+
+    log_debug(LD_OR, "Got DTLS connection request. Handling.");
+
+    /* remember the remote address */
+    tor_addr_t addr;
+    uint16_t port;
+
+    tor_addr_from_sockaddr(&addr, (struct sockaddr *)&client_addr, &port);
+
+    tor_addr_copy(&TO_CONN(conn)->addr, &addr);
+    TO_CONN(conn)->address = tor_addr_to_str_dup(&addr);
+
+    server_addr.sin6_family = AF_INET6;
+    server_addr.sin6_port = htons(TO_CONN(conn)->port);
+    server_addr.sin6_addr = in6addr_any;
+
+    inet_ntop(AF_INET6, &server_addr.sin6_addr, straddr_server, sizeof(straddr_server));
+    log_info(LD_OR, "Try binding socket on IP %s and port %d.",
+    	       straddr_server, ntohs(server_addr.sin6_port));
+
+    /* Handle client connection */
+    TO_CONN(conn)->s = socket(AF_INET6, SOCK_DGRAM, 0);
+
+    int one = 1, zero = 0;
+    setsockopt(TO_CONN(conn)->s, SOL_SOCKET, SO_REUSEADDR, (const void*) &one, (socklen_t) sizeof(one));
+    setsockopt(TO_CONN(conn)->s, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&zero, sizeof(zero));
+
+    err = bind(TO_CONN(conn)->s, &server_addr, sizeof(struct sockaddr_in6));
+    if (err) {
+	log_err(LD_OR, "UDP bind of fd %d failed with error %d.", TO_CONN(conn)->s, errno);
+	tor_assert(0);
+    }
+
+    err = connect(TO_CONN(conn)->s, &client_addr, sizeof(struct sockaddr_in6));
+    if (err) {
+    	log_err(LD_OR, "UDP connect of fd %d failed with error %d.", TO_CONN(conn)->s, err);
+    	tor_assert(0);
+    }
+
+
+    inet_ntop(AF_INET6, &client_addr.sin6_addr, straddr_client, sizeof(straddr_client));
+    inet_ntop(AF_INET6, &server_addr.sin6_addr, straddr_server, sizeof(straddr_server));
+
+    log_debug(LD_OR, "Connected to client %s on port %d with fd %d. Our IP is %s. Our port is %d.",
+	       straddr_client, ntohs(client_addr.sin6_port),
+	       TO_CONN(conn)->s,
+	       straddr_server, ntohs(server_addr.sin6_port));
+
+    /* Set new fd and set BIO to connected */
+    BIO *cbio = tor_dtls_get_rbio(conn->tls);
+    BIO_set_fd(cbio, TO_CONN(conn)->s, BIO_NOCLOSE);
+    BIO_ctrl(cbio, BIO_CTRL_DGRAM_SET_CONNECTED, 0, &client_addr);
+
+    if (connection_add(TO_CONN(conn)) < 0) { /* no space, forget it */
+      connection_free(TO_CONN(conn));
+      return 0; /* no need to tear down the parent */
+    }
+
+    log_debug(LD_OR, "Starting DTLS handshake.");
+
+  } else {
+      tor_tls_set_logged_address(conn->tls, // XXX client and relay?
+				 escaped_safe_str(conn->base_.address));
+  }
 
   connection_start_reading(TO_CONN(conn));
   log_debug(LD_HANDSHAKE,"starting TLS handshake on fd "TOR_SOCKET_T_FORMAT,
@@ -1433,17 +1555,34 @@ connection_tls_continue_handshake(or_connection_t *conn)
           tor_assert(conn->base_.state == OR_CONN_STATE_TLS_HANDSHAKING);
           return connection_or_launch_v3_or_handshake(conn);
         } else {
-          /* v2/v3 handshake, but we are not a client. */
-          log_debug(LD_OR, "Done with initial SSL handshake (server-side). "
-                           "Expecting renegotiation or VERSIONS cell");
-          tor_tls_set_renegotiate_callback(conn->tls,
-                                           connection_or_tls_renegotiated_cb,
-                                           conn);
-          connection_or_change_state(conn,
-              OR_CONN_STATE_TLS_SERVER_RENEGOTIATING);
-          connection_stop_writing(TO_CONN(conn));
-          connection_start_reading(TO_CONN(conn));
-          return 0;
+          if (TO_CONN(conn)->type != CONN_TYPE_OR_UDP) {
+	    /* v2/v3 handshake, but we are not a client. */
+	    log_debug(LD_OR, "Done with initial SSL handshake (server-side). "
+	              "Expecting renegotiation or VERSIONS cell");
+	    tor_tls_set_renegotiate_callback(conn->tls,
+					     connection_or_tls_renegotiated_cb,
+					     conn);
+            connection_or_change_state(conn,
+				       OR_CONN_STATE_TLS_SERVER_RENEGOTIATING);
+	    connection_stop_writing(TO_CONN(conn));
+	    connection_start_reading(TO_CONN(conn));
+	    return 0;
+          } else {
+            //IOT:
+            TLS_CHAN_TO_BASE(conn->chan)->wide_circ_ids = 1;
+            TLS_CHAN_TO_BASE(conn->chan)->cell_num = 1;
+            log_debug(LD_OR, "Done with DTLS handshake. Expecting INFO cell now.");
+
+            conn->wide_circ_ids = 1;
+            conn->link_proto = MIN_LINK_PROTO_FOR_WIDE_CIRC_IDS; // Make sure we interpret with wide circ ids.
+
+            connection_or_change_state(conn, OR_CONN_STATE_OR_INFO);
+
+            connection_stop_writing(TO_CONN(conn));
+            connection_start_reading(TO_CONN(conn));
+
+            return 0;
+          }
         }
       }
       tor_assert(tor_tls_is_server(conn->tls));
@@ -1469,7 +1608,8 @@ int
 connection_or_nonopen_was_started_here(or_connection_t *conn)
 {
   tor_assert(conn->base_.type == CONN_TYPE_OR ||
-             conn->base_.type == CONN_TYPE_EXT_OR);
+             conn->base_.type == CONN_TYPE_EXT_OR ||
+	           conn->base_.type == CONN_TYPE_OR_UDP);
   if (!conn->tls)
     return 1; /* it's still in proxy states or something */
   if (conn->handshake_state)
@@ -1903,7 +2043,11 @@ or_handshake_state_record_cell(or_connection_t *conn,
   d = *dptr;
   /* Re-packing like this is a little inefficient, but we don't have to do
      this very often at all. */
-  cell_pack(&packed, cell, conn->wide_circ_ids);
+  if(TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+    cell_pack(&packed, cell, conn->wide_circ_ids, 1);
+  } else {
+    cell_pack(&packed, cell, conn->wide_circ_ids, 0);
+  }
   crypto_digest_add_bytes(d, packed.body, cell_network_size);
   memwipe(&packed, 0, sizeof(packed));
 }
@@ -1938,7 +2082,11 @@ or_handshake_state_record_var_cell(or_connection_t *conn,
 
   d = *dptr;
 
-  n = var_cell_pack_header(cell, buf, conn->wide_circ_ids);
+  if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+    n = var_cell_pack_header(cell, buf, conn->wide_circ_ids, 1);
+  } else {
+    n = var_cell_pack_header(cell, buf, conn->wide_circ_ids, 0);
+  }
   crypto_digest_add_bytes(d, buf, n);
   crypto_digest_add_bytes(d, (const char *)cell->payload, cell->payload_len);
 
@@ -1972,7 +2120,7 @@ connection_or_set_state_open(or_connection_t *conn)
  * connection_or_flush_from_first_active_circuit().
  */
 void
-connection_or_write_cell_to_buf(const cell_t *cell, or_connection_t *conn)
+connection_or_write_cell_to_buf(cell_t *cell, or_connection_t *conn)
 {
   packed_cell_t networkcell;
   size_t cell_network_size = get_cell_network_size(conn->wide_circ_ids);
@@ -1980,7 +2128,11 @@ connection_or_write_cell_to_buf(const cell_t *cell, or_connection_t *conn)
   tor_assert(cell);
   tor_assert(conn);
 
-  cell_pack(&networkcell, cell, conn->wide_circ_ids);
+  if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+    cell_pack(&networkcell, cell, conn->wide_circ_ids, 1);
+  } else {
+    cell_pack(&networkcell, cell, conn->wide_circ_ids, 0);
+  }
 
   rep_hist_padding_count_write(PADDING_TYPE_TOTAL);
   if (cell->command == CELL_PADDING)
@@ -2001,6 +2153,10 @@ connection_or_write_cell_to_buf(const cell_t *cell, or_connection_t *conn)
 
   if (conn->base_.state == OR_CONN_STATE_OR_HANDSHAKING_V3)
     or_handshake_state_record_cell(conn, conn->handshake_state, cell, 0);
+
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &cell->sent);
+#endif
 }
 
 /** Pack a variable-length <b>cell</b> into wire-format, and write it onto
@@ -2008,19 +2164,30 @@ connection_or_write_cell_to_buf(const cell_t *cell, or_connection_t *conn)
  * affect a circuit.
  */
 MOCK_IMPL(void,
-connection_or_write_var_cell_to_buf,(const var_cell_t *cell,
+connection_or_write_var_cell_to_buf,(var_cell_t *cell,
                                      or_connection_t *conn))
 {
   int n;
-  char hdr[VAR_CELL_MAX_HEADER_SIZE];
+  char hdr[VAR_CELL_MAX_HEADER_SIZE+2];
   tor_assert(cell);
   tor_assert(conn);
-  n = var_cell_pack_header(cell, hdr, conn->wide_circ_ids);
+
+  if (TO_CONN(conn)->type == CONN_TYPE_OR_UDP) {
+    n = var_cell_pack_header(cell, hdr, conn->wide_circ_ids, 1);
+  } else {
+    n = var_cell_pack_header(cell, hdr, conn->wide_circ_ids, 0);
+  }
+
+
   connection_buf_add(hdr, n, TO_CONN(conn));
   connection_buf_add((char*)cell->payload,
                           cell->payload_len, TO_CONN(conn));
   if (conn->base_.state == OR_CONN_STATE_OR_HANDSHAKING_V3)
     or_handshake_state_record_var_cell(conn, conn->handshake_state, cell, 0);
+
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &cell->sent);
+#endif
 
   /* Touch the channel's active timestamp if there is one */
   if (conn->chan)
@@ -2033,7 +2200,15 @@ static int
 connection_fetch_var_cell_from_buf(or_connection_t *or_conn, var_cell_t **out)
 {
   connection_t *conn = TO_CONN(or_conn);
-  return fetch_var_cell_from_buf(conn->inbuf, out, or_conn->link_proto);
+
+  if (conn->type == CONN_TYPE_OR_UDP) {
+    log_info(LD_GENERAL, "Handling udp var cell now");
+    int res = fetch_var_cell_udp_from_buf(conn->inbuf, out, or_conn->link_proto);
+    log_info(LD_GENERAL, "Returned %d", res);
+    return res;
+  } else {
+    return fetch_var_cell_from_buf(conn->inbuf, out, or_conn->link_proto);
+  }
 }
 
 /** Process cells from <b>conn</b>'s inbuf.
@@ -2080,9 +2255,15 @@ connection_or_process_cells_from_inbuf(or_connection_t *conn)
       var_cell_free(var_cell);
     } else {
       const int wide_circ_ids = conn->wide_circ_ids;
-      size_t cell_network_size = get_cell_network_size(conn->wide_circ_ids);
-      char buf[CELL_MAX_NETWORK_SIZE];
+      char buf[CELL_MAX_NETWORK_SIZE+2];
       cell_t cell;
+      size_t cell_network_size = get_cell_network_size(conn->wide_circ_ids) +
+        (TO_CONN(conn)->type == CONN_TYPE_OR_UDP ? sizeof(cell.cell_num) : 0);
+
+#ifdef TOR4IOT_MEASUREMENT
+      clock_gettime(CLOCK_MONOTONIC, &cell.received);
+#endif
+
       if (connection_get_inbuf_len(TO_CONN(conn))
           < cell_network_size) /* whole response available? */
         return 0; /* not yet */
@@ -2096,7 +2277,12 @@ connection_or_process_cells_from_inbuf(or_connection_t *conn)
 
       /* retrieve cell info from buf (create the host-order struct from the
        * network-order string) */
-      cell_unpack(&cell, buf, wide_circ_ids);
+
+      if(TO_CONN(conn)->type == CONN_TYPE_OR_UDP){
+	      cell_unpack(&cell, buf, wide_circ_ids, 1);
+      } else {
+	      cell_unpack(&cell, buf, wide_circ_ids, 0);
+      }
 
       channel_tls_handle_cell(&cell, conn);
     }

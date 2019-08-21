@@ -79,9 +79,9 @@ void or_handshake_state_record_var_cell(or_connection_t *conn,
                                         int incoming);
 
 int connection_or_set_state_open(or_connection_t *conn);
-void connection_or_write_cell_to_buf(const cell_t *cell,
+void connection_or_write_cell_to_buf(cell_t *cell,
                                      or_connection_t *conn);
-MOCK_DECL(void,connection_or_write_var_cell_to_buf,(const var_cell_t *cell,
+MOCK_DECL(void,connection_or_write_var_cell_to_buf,(var_cell_t *cell,
                                                    or_connection_t *conn));
 int connection_or_send_versions(or_connection_t *conn, int v3_plus);
 MOCK_DECL(int,connection_or_send_netinfo,(or_connection_t *conn));
@@ -100,12 +100,16 @@ MOCK_DECL(int,connection_or_send_authenticate_cell,
 
 int is_or_protocol_version_known(uint16_t version);
 
-void cell_pack(packed_cell_t *dest, const cell_t *src, int wide_circ_ids);
+void cell_pack(packed_cell_t *dest, const cell_t *src, int wide_circ_ids, int cell_num);
 int var_cell_pack_header(const var_cell_t *cell, char *hdr_out,
-                         int wide_circ_ids);
+                         int wide_circ_ids, int cell_num);
+
 var_cell_t *var_cell_new(uint16_t payload_len);
 var_cell_t *var_cell_copy(const var_cell_t *src);
 void var_cell_free(var_cell_t *cell);
+
+void
+connection_or_set_state_joining(or_connection_t *conn);
 
 /* DOCDOC */
 #define MIN_LINK_PROTO_FOR_WIDE_CIRC_IDS 4

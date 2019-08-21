@@ -233,7 +233,7 @@ connection_dir_count_by_purpose_resource_and_state(
 int any_other_active_or_conns(const or_connection_t *this_conn);
 
 /* || 0 is for -Wparentheses-equality (-Wall?) appeasement under clang */
-#define connection_speaks_cells(conn) (((conn)->type == CONN_TYPE_OR) || 0)
+#define connection_speaks_cells(conn) (((conn)->type == CONN_TYPE_OR) || ((conn)->type == CONN_TYPE_OR_UDP) || 0)
 int connection_is_listener(connection_t *conn);
 int connection_state_is_open(connection_t *conn);
 int connection_state_is_connecting(connection_t *conn);

@@ -103,6 +103,8 @@
 #include "sandbox.h"
 #include "transports.h"
 
+#include "iot_entry.h"
+
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif
@@ -164,7 +166,8 @@ static smartlist_t *outgoing_addrs = NULL;
     case CONN_TYPE_AP_TRANS_LISTENER: \
     case CONN_TYPE_AP_NATD_LISTENER: \
     case CONN_TYPE_AP_DNS_LISTENER: \
-    case CONN_TYPE_AP_HTTP_CONNECT_LISTENER
+    case CONN_TYPE_AP_HTTP_CONNECT_LISTENER: \
+    case CONN_TYPE_OR_UDP_LISTENER
 
 /**************************************************************/
 
@@ -178,6 +181,8 @@ conn_type_to_string(int type)
   switch (type) {
     case CONN_TYPE_OR_LISTENER: return "OR listener";
     case CONN_TYPE_OR: return "OR";
+    case CONN_TYPE_OR_UDP: return "ORUDP";
+    case CONN_TYPE_OR_UDP_LISTENER: return "ORUDP listener";
     case CONN_TYPE_EXIT: return "Exit";
     case CONN_TYPE_AP_LISTENER: return "Socks listener";
     case CONN_TYPE_AP_TRANS_LISTENER:
@@ -213,6 +218,7 @@ conn_state_to_string(int type, int state)
         return "ready";
       break;
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
       switch (state) {
         case OR_CONN_STATE_CONNECTING: return "connect()ing";
         case OR_CONN_STATE_PROXY_HANDSHAKING: return "handshaking (proxy)";
@@ -226,6 +232,10 @@ conn_state_to_string(int type, int state)
         case OR_CONN_STATE_OR_HANDSHAKING_V3:
           return "handshaking (Tor, v3 handshake)";
         case OR_CONN_STATE_OPEN: return "open";
+        case OR_CONN_STATE_OR_INFO:
+          return "info (Tor, IoT device)";
+        case OR_CONN_STATE_OR_JOINING:
+          return "joining (Tor, IoT device)";
       }
       break;
     case CONN_TYPE_EXT_OR:
@@ -258,6 +268,7 @@ conn_state_to_string(int type, int state)
         case AP_CONN_STATE_CONNECT_WAIT: return "waiting for connect response";
         case AP_CONN_STATE_RESOLVE_WAIT: return "waiting for resolve response";
         case AP_CONN_STATE_OPEN: return "open";
+        case AP_CONN_STATE_IOT_WAIT: return "waiting for circuit to iot entry";
       }
       break;
     case CONN_TYPE_DIR:
@@ -308,7 +319,7 @@ or_connection_new(int type, int socket_family)
 {
   or_connection_t *or_conn = tor_malloc_zero(sizeof(or_connection_t));
   time_t now = time(NULL);
-  tor_assert(type == CONN_TYPE_OR || type == CONN_TYPE_EXT_OR);
+  tor_assert(type == CONN_TYPE_OR || type == CONN_TYPE_EXT_OR || type == CONN_TYPE_OR_UDP);
   connection_init(now, TO_CONN(or_conn), type, socket_family);
 
   connection_or_set_canonical(or_conn, 0);
@@ -385,6 +396,7 @@ connection_new(int type, int socket_family)
 {
   switch (type) {
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
     case CONN_TYPE_EXT_OR:
       return TO_CONN(or_connection_new(type, socket_family));
 
@@ -428,6 +440,7 @@ connection_init(time_t now, connection_t *conn, int type, int socket_family)
 
   switch (type) {
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
     case CONN_TYPE_EXT_OR:
       conn->magic = OR_CONNECTION_MAGIC;
       break;
@@ -511,6 +524,7 @@ connection_free_(connection_t *conn)
 
   switch (conn->type) {
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
     case CONN_TYPE_EXT_OR:
       tor_assert(conn->magic == OR_CONNECTION_MAGIC);
       mem = TO_OR_CONN(conn);
@@ -659,12 +673,12 @@ connection_free_(connection_t *conn)
     conn->s = TOR_INVALID_SOCKET;
   }
 
-  if (conn->type == CONN_TYPE_OR &&
+  if ((conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_OR_UDP) &&
       !tor_digest_is_zero(TO_OR_CONN(conn)->identity_digest)) {
     log_warn(LD_BUG, "called on OR conn with non-zeroed identity_digest");
     connection_or_clear_identity(TO_OR_CONN(conn));
   }
-  if (conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_EXT_OR) {
+  if (conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_OR_UDP || conn->type == CONN_TYPE_EXT_OR) {
     connection_or_remove_from_ext_or_id_map(TO_OR_CONN(conn));
     tor_free(TO_OR_CONN(conn)->ext_or_conn_id);
     tor_free(TO_OR_CONN(conn)->ext_or_auth_correct_client_hash);
@@ -713,6 +727,11 @@ connection_free,(connection_t *conn))
     dos_close_client_conn(TO_OR_CONN(conn));
   }
 
+  if (conn->type == CONN_TYPE_OR_UDP) {
+    dos_close_client_conn(TO_OR_CONN(conn));
+    iot_remove_connected_iot(TO_OR_CONN(conn));
+  }
+
   connection_unregister_events(conn);
   connection_free_(conn);
 }
@@ -737,6 +756,12 @@ connection_about_to_close_connection(connection_t *conn)
   switch (conn->type) {
     case CONN_TYPE_DIR:
       connection_dir_about_to_close(TO_DIR_CONN(conn));
+      break;
+    case CONN_TYPE_OR_UDP:
+      // IOT: A UDP connection is not closed properly, stateless. Set closing state here.
+      TLS_CHAN_TO_BASE(TO_OR_CONN(conn)->chan)->state = CHANNEL_STATE_CLOSING;
+      TLS_CHAN_TO_BASE(TO_OR_CONN(conn)->chan)->reason_for_closing = CHANNEL_CLOSE_REQUESTED;
+      connection_or_about_to_close(TO_OR_CONN(conn));
       break;
     case CONN_TYPE_OR:
     case CONN_TYPE_EXT_OR:
@@ -802,7 +827,7 @@ connection_mark_for_close_(connection_t *conn, int line, const char *file)
   tor_assert(line < 1<<16); /* marked_for_close can only fit a uint16_t. */
   tor_assert(file);
 
-  if (conn->type == CONN_TYPE_OR) {
+  if (conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_OR_UDP) {
     /*
      * An or_connection should have been closed through one of the channel-
      * aware functions in connection_or.c.  We'll assume this is an error
@@ -845,7 +870,7 @@ connection_mark_for_close_internal_, (connection_t *conn,
     return;
   }
 
-  if (conn->type == CONN_TYPE_OR) {
+  if (conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_OR_UDP) {
     /*
      * Bad news if this happens without telling the controlling channel; do
      * this so we can find things that call this wrongly when the asserts hit.
@@ -1168,7 +1193,7 @@ connection_listener_new(const struct sockaddr *listensockaddr,
 
   if (listensockaddr->sa_family == AF_INET ||
       listensockaddr->sa_family == AF_INET6) {
-    int is_stream = (type != CONN_TYPE_AP_DNS_LISTENER);
+    int is_stream = (type != CONN_TYPE_AP_DNS_LISTENER && type != CONN_TYPE_OR_UDP_LISTENER);
     if (is_stream)
       start_reading = 1;
 
@@ -1240,6 +1265,17 @@ connection_listener_new(const struct sockaddr *listensockaddr,
       }
     }
 #endif /* defined(IPV6_V6ONLY) */
+
+    if (type == CONN_TYPE_OR_UDP_LISTENER) {
+      int zero=0;
+      if (setsockopt(s,IPPROTO_IPV6, IPV6_V6ONLY,
+		     (void*)&zero, (socklen_t)sizeof(zero)) < 0) {
+            int e = tor_socket_errno(s);
+            log_warn(LD_NET, "Error setting IPV6_V6ONLY flag: %s",
+                    tor_socket_strerror(e));
+            /* Keep going; probably not harmful. */
+      }
+    }
 
     if (bind(s,listensockaddr,socklen) < 0) {
       const char *helpfulhint = "";
@@ -1422,7 +1458,7 @@ connection_listener_new(const struct sockaddr *listensockaddr,
          conn_type_to_string(type), gotPort);
 
   conn->state = LISTENER_STATE_READY;
-  if (start_reading) {
+  if (start_reading || type == CONN_TYPE_OR_UDP_LISTENER) {
     connection_start_reading(conn);
   } else {
     tor_assert(type == CONN_TYPE_AP_DNS_LISTENER);
@@ -1528,6 +1564,62 @@ connection_handle_listener_read(connection_t *conn, int new_type)
   /* length of the remote address. Must be whatever accept() needs. */
   socklen_t remotelen = (socklen_t)sizeof(addrbuf);
   const or_options_t *options = get_options();
+
+  if (new_type == CONN_TYPE_OR_UDP) {
+      log_info(LD_NET, "Incoming UDP connection on fd %d. Starting DTLS handshake.", conn->s);
+
+      newconn = connection_new(new_type, conn->socket_family);
+
+      newconn->s = conn->s;
+      newconn->port = conn->port;
+      memcpy(&newconn->addr.addr.in6_addr, &conn->addr.addr.in6_addr, 16);
+
+      connection_tls_start_handshake(TO_OR_CONN(newconn), 1);
+
+      // Remove old socket from poll queue of libevent.
+      connection_remove(conn);
+
+      conn->conn_array_index = -1; /* also default to 'not used' */
+
+      // Now bind new socket to IP port for next DTLS connection attempt.
+      struct sockaddr_in6 server_addr;
+      char straddr_server[INET6_ADDRSTRLEN];
+      int err;
+
+      //server_addr.sin6_family = AF_INET6;
+      //server_addr.sin6_port = htons(conn->port);
+
+      tor_addr_to_sockaddr(&conn->addr,
+                           conn->port,
+                           (struct sockaddr*)&server_addr,
+                           sizeof(struct sockaddr_in6));
+
+      inet_ntop(AF_INET6, &server_addr.sin6_addr, straddr_server, sizeof(straddr_server));
+      log_debug(LD_OR, "Rebinding UDP listener socket on IP %s and port %d..",
+      	       straddr_server, ntohs(server_addr.sin6_port));
+
+      /* Handle client connection */
+      conn->s = socket(AF_INET6, SOCK_DGRAM, 0);
+
+      int one = 1, zero = 0;
+      setsockopt(conn->s, SOL_SOCKET, SO_REUSEADDR, (const void*) &one, (socklen_t) sizeof(one));
+      setsockopt(conn->s, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&zero, sizeof(zero));
+
+      err = bind(conn->s, &server_addr, sizeof(struct sockaddr_in6));
+      if (err) {
+        log_err(LD_OR, "UDP bind of fd %d failed with error %d.", conn->s, errno);
+        tor_assert(0);
+      }
+
+      inc_open_socket_ctr();
+
+      // Make new socket known to libevent.
+      connection_add(conn);
+      connection_start_reading(conn);
+      connection_check_oos(get_n_open_sockets(), 0);
+
+      return 0;
+  }
 
   tor_assert((size_t)remotelen >= sizeof(struct sockaddr_in));
   memset(&addrbuf, 0, sizeof(addrbuf));
@@ -1699,6 +1791,7 @@ connection_init_accepted_conn(connection_t *conn,
       /* Initiate Extended ORPort authentication. */
       return connection_ext_or_start_auth(TO_OR_CONN(conn));
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
       control_event_or_conn_status(TO_OR_CONN(conn), OR_CONN_EVENT_NEW, 0);
       rv = connection_tls_start_handshake(TO_OR_CONN(conn), 1);
       if (rv < 0) {
@@ -2893,12 +2986,20 @@ connection_bucket_read_limit(connection_t *conn, time_t now)
 
   if (!connection_is_rate_limited(conn)) {
     /* be willing to read on local conns even if our buckets are empty */
-    return conn_bucket>=0 ? conn_bucket : 1<<14;
+    log_debug(LD_GENERAL, "Is NOT rate limited. conn_bucket: %d", conn_bucket);
+    if (conn->type == CONN_TYPE_OR_UDP) {
+        return 1<<14;
+    } else {
+        return conn_bucket>=0 ? conn_bucket : 1<<14;
+    }
   }
 
   if (connection_counts_as_relayed_traffic(conn, now) &&
       global_relayed_read_bucket <= global_read_bucket)
     global_bucket = global_relayed_read_bucket;
+
+  log_debug(LD_GENERAL, "Is rate limited. base: %d; priority: %d, global_bucket: %d, conn_bucket %d", base, priority,
+                                       global_bucket, conn_bucket);
 
   return connection_bucket_round_robin(base, priority,
                                        global_bucket, conn_bucket);
@@ -3419,6 +3520,8 @@ connection_handle_read_impl(connection_t *conn)
   switch (conn->type) {
     case CONN_TYPE_OR_LISTENER:
       return connection_handle_listener_read(conn, CONN_TYPE_OR);
+    case CONN_TYPE_OR_UDP_LISTENER:
+      return connection_handle_listener_read(conn, CONN_TYPE_OR_UDP);
     case CONN_TYPE_EXT_OR_LISTENER:
       return connection_handle_listener_read(conn, CONN_TYPE_EXT_OR);
     case CONN_TYPE_AP_LISTENER:
@@ -3443,7 +3546,7 @@ connection_handle_read_impl(connection_t *conn)
   before = buf_datalen(conn->inbuf);
   if (connection_buf_read_from_socket(conn, &max_to_read, &socket_error) < 0) {
     /* There's a read error; kill the connection.*/
-    if (conn->type == CONN_TYPE_OR) {
+    if (conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_OR_UDP) {
       connection_or_notify_error(TO_OR_CONN(conn),
                                  socket_error != 0 ?
                                    errno_to_orconn_end_reason(socket_error) :
@@ -4344,6 +4447,7 @@ int
 connection_is_listener(connection_t *conn)
 {
   if (conn->type == CONN_TYPE_OR_LISTENER ||
+      conn->type == CONN_TYPE_OR_UDP_LISTENER ||
       conn->type == CONN_TYPE_EXT_OR_LISTENER ||
       conn->type == CONN_TYPE_AP_LISTENER ||
       conn->type == CONN_TYPE_AP_TRANS_LISTENER ||
@@ -4526,6 +4630,7 @@ connection_process_inbuf(connection_t *conn, int package_partial)
 
   switch (conn->type) {
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
       return connection_or_process_inbuf(TO_OR_CONN(conn));
     case CONN_TYPE_EXT_OR:
       return connection_ext_or_process_inbuf(TO_OR_CONN(conn));
@@ -4585,6 +4690,7 @@ connection_finished_flushing(connection_t *conn)
 
   switch (conn->type) {
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
       return connection_or_finished_flushing(TO_OR_CONN(conn));
     case CONN_TYPE_EXT_OR:
       return connection_ext_or_finished_flushing(TO_OR_CONN(conn));
@@ -4968,6 +5074,7 @@ assert_connection_ok(connection_t *conn, time_t now)
   switch (conn->type) {
     case CONN_TYPE_OR:
     case CONN_TYPE_EXT_OR:
+    case CONN_TYPE_OR_UDP:
       tor_assert(conn->magic == OR_CONNECTION_MAGIC);
       break;
     case CONN_TYPE_AP:
@@ -5021,7 +5128,7 @@ assert_connection_ok(connection_t *conn, time_t now)
   if (conn->outbuf)
     buf_assert_ok(conn->outbuf);
 
-  if (conn->type == CONN_TYPE_OR) {
+  if (conn->type == CONN_TYPE_OR || conn->type == CONN_TYPE_OR_UDP) {
     or_connection_t *or_conn = TO_OR_CONN(conn);
     if (conn->state == OR_CONN_STATE_OPEN) {
       /* tor_assert(conn->bandwidth > 0); */
@@ -5070,6 +5177,7 @@ assert_connection_ok(connection_t *conn, time_t now)
       tor_assert(conn->state == LISTENER_STATE_READY);
       break;
     case CONN_TYPE_OR:
+    case CONN_TYPE_OR_UDP:
       tor_assert(conn->state >= OR_CONN_STATE_MIN_);
       tor_assert(conn->state <= OR_CONN_STATE_MAX_);
       break;

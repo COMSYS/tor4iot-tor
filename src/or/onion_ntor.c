@@ -86,10 +86,15 @@ int
 onion_skin_ntor_create(const uint8_t *router_id,
                        const curve25519_public_key_t *router_key,
                        ntor_handshake_state_t **handshake_state_out,
-                       uint8_t *onion_skin_out)
+                       uint8_t *onion_skin_out,
+			          		   c25519_measurement_t *mes)
 {
   ntor_handshake_state_t *state;
   uint8_t *op;
+
+#ifndef TOR4IOT_MEASUREMENT
+  (void) mes;
+#endif
 
   state = tor_malloc_zero(sizeof(ntor_handshake_state_t));
 
@@ -104,7 +109,16 @@ onion_skin_ntor_create(const uint8_t *router_id,
     return -1;
     /* LCOV_EXCL_STOP */
   }
+
+#ifdef TOR4IOT_MEASUREMENT
+  if (mes != NULL)
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_before1));
+#endif
   curve25519_public_key_generate(&state->pubkey_X, &state->seckey_x);
+#ifdef TOR4IOT_MEASUREMENT
+  if (mes != NULL)
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_after1));
+#endif
 
   op = onion_skin_out;
   APPEND(op, router_id, DIGEST_LEN);
@@ -245,12 +259,18 @@ onion_skin_ntor_server_handshake(const uint8_t *onion_skin,
  */
 int
 onion_skin_ntor_client_handshake(
-                             const ntor_handshake_state_t *handshake_state,
+                             ntor_handshake_state_t *handshake_state,
                              const uint8_t *handshake_reply,
                              uint8_t *key_out,
                              size_t key_out_len,
-                             const char **msg_out)
+                             const char **msg_out,
+			                       c25519_measurement_t *mes)
 {
+
+#ifndef TOR4IOT_MEASUREMENT
+  (void) mes;
+#endif
+
   const tweakset_t *T = &proto1_tweaks;
   /* Sensitive stack-allocated material. Kept in an anonymous struct to make
    * it easy to wipe. */
@@ -274,11 +294,28 @@ onion_skin_ntor_client_handshake(
    * different than those under which we'd be checking X. */
 
   /* Compute secret_input */
+#ifdef TOR4IOT_MEASUREMENT
+  if (mes != NULL)
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_before1));
+#endif
   curve25519_handshake(si, &handshake_state->seckey_x, &s.pubkey_Y);
+#ifdef TOR4IOT_MEASUREMENT
+  if (mes != NULL)
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_after1));
+#endif
   bad = safe_mem_is_zero(si, CURVE25519_OUTPUT_LEN);
   si += CURVE25519_OUTPUT_LEN;
+#ifdef TOR4IOT_MEASUREMENT
+  if (mes != NULL)
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_before2));
+#endif
   curve25519_handshake(si, &handshake_state->seckey_x,
                        &handshake_state->pubkey_B);
+#ifdef TOR4IOT_MEASUREMENT
+  if (mes != NULL)
+    clock_gettime(CLOCK_MONOTONIC, &(mes->c25519_after2));
+#endif
+
   bad |= (safe_mem_is_zero(si, CURVE25519_OUTPUT_LEN) << 1);
   si += CURVE25519_OUTPUT_LEN;
   APPEND(si, handshake_state->router_id, DIGEST_LEN);

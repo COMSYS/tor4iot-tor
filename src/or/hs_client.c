@@ -1052,6 +1052,11 @@ handle_rendezvous2(origin_circuit_t *circ, const uint8_t *payload,
   tor_assert(circ);
   tor_assert(payload);
 
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_hs_rend2_received);
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_hsfinalizestart);
+#endif
+
   /* Make things easier. */
   ident = circ->hs_ident;
   tor_assert(ident);
@@ -1087,6 +1092,10 @@ handle_rendezvous2(origin_circuit_t *circ, const uint8_t *payload,
     goto err;
   }
   /* Success. Hidden service connection finalized! */
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &circ->iot_mes_hsfinalizeend);
+#endif
+
   ret = 0;
   goto end;
 
@@ -1303,6 +1312,10 @@ int
 hs_client_send_introduce1(origin_circuit_t *intro_circ,
                           origin_circuit_t *rend_circ)
 {
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &intro_circ->iot_mes_hs_introduce1_start);
+#endif
+
   return (intro_circ->hs_ident) ? send_introduce1(intro_circ, rend_circ) :
                                   rend_client_send_introduction(intro_circ,
                                                                 rend_circ);

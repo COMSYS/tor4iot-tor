@@ -83,6 +83,9 @@
 
 #include "ht.h"
 
+#include "iot_delegation.h"
+#include "iot_entry.h"
+
 /********* START VARIABLES **********/
 
 /** A global list of all circuits at this hop. */
@@ -393,6 +396,8 @@ circuit_set_p_circid_chan(or_circuit_t *or_circ, circid_t id,
   circuit_set_circid_chan_helper(circ, CELL_DIRECTION_IN, id, chan);
 
   if (chan) {
+    log_info(LD_GENERAL, "p_chan_cells.n: %d, next_active_on_p_chan: 0x%016lx", or_circ->p_chan_cells.n,
+             (unsigned long)or_circ->next_active_on_p_chan);
     tor_assert(bool_eq(or_circ->p_chan_cells.n,
                        or_circ->next_active_on_p_chan));
 
@@ -649,6 +654,9 @@ circuit_purpose_to_controller_string(uint8_t purpose)
     case CIRCUIT_PURPOSE_S_REND_JOINED:
       return "HS_SERVICE_REND";
 
+    case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
+      return "HS_SERVICE_REND_IOT";
+
     case CIRCUIT_PURPOSE_TESTING:
       return "TESTING";
     case CIRCUIT_PURPOSE_C_MEASURE_TIMEOUT:
@@ -719,6 +727,9 @@ circuit_purpose_to_controller_hs_state_string(uint8_t purpose)
       return "HSSR_CONNECTING";
     case CIRCUIT_PURPOSE_S_REND_JOINED:
       return "HSSR_JOINED";
+
+    case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
+      return "HSSR_CONNECTING_IOT";
     }
 }
 
@@ -765,6 +776,8 @@ circuit_purpose_to_string(uint8_t purpose)
       return "Hidden service: Connecting to rendezvous point";
     case CIRCUIT_PURPOSE_S_REND_JOINED:
       return "Hidden service: Active rendezvous point";
+    case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
+      return "Hidden service: Connecting to rendezvous point with IoT capability";
 
     case CIRCUIT_PURPOSE_TESTING:
       return "Testing circuit";
@@ -802,6 +815,9 @@ static void
 init_circuit_base(circuit_t *circ)
 {
   tor_gettimeofday(&circ->timestamp_created);
+
+  circ->already_split = 0;
+  circ->iot_buffer = smartlist_new();
 
   // Gets reset when we send CREATE_FAST.
   // circuit_expire_building() expects these to be equal
@@ -1675,6 +1691,11 @@ circuit_find_to_cannibalize(uint8_t purpose, extend_info_t *info,
   int internal = (flags & CIRCLAUNCH_IS_INTERNAL) != 0;
   const or_options_t *options = get_options();
 
+  //Tor4IoT: For our delegation service we do not cannibalize!
+  if (purpose==CIRCUIT_PURPOSE_S_CONNECT_REND_IOT) {
+      return NULL;
+  }
+
   /* Make sure we're not trying to create a onehop circ by
    * cannibalization. */
   tor_assert(!(flags & CIRCLAUNCH_ONEHOP_TUNNEL));
@@ -1870,6 +1891,38 @@ circuit_mark_for_close_, (circuit_t *circ, int reason, int line,
   tor_assert(line);
   tor_assert(file);
 
+#ifdef TOR4IOT_MEASUREMENT
+  if (CIRCUIT_IS_ORIGIN(circ)) {
+	  if (circ->purpose == CIRCUIT_PURPOSE_C_REND_JOINED ||
+        circ->purpose == CIRCUIT_PURPOSE_S_REND_JOINED ||
+        TO_ORIGIN_CIRCUIT(circ)->measure) {
+		  iot_delegation_print_measurements(circ);
+	  }
+
+    if (TO_ORIGIN_CIRCUIT(circ)->ip_cpath_list) {
+      struct iot_measurement_ip_cpath *ip_mes_temp_first = TO_ORIGIN_CIRCUIT(circ)->ip_cpath_list;
+      struct iot_measurement_ip_cpath *ip_mes_temp_second = TO_ORIGIN_CIRCUIT(circ)->ip_cpath_list->next;
+
+      ip_mes_temp_first->prev->next = NULL; //make sure we stop freeing
+
+      do {
+        tor_free(ip_mes_temp_first);
+        if (ip_mes_temp_second) {
+          ip_mes_temp_first = ip_mes_temp_second;
+          ip_mes_temp_second = ip_mes_temp_second->next;
+        }
+      } while (ip_mes_temp_first);
+    }
+  } else if (CIRCUIT_IS_ORCIRC(circ)) {
+	  or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
+	  if (circ->purpose == CIRCUIT_PURPOSE_IOT ||
+        circ->join_cookie != 0 ||
+        or_circ->mes) {
+		  iot_entry_print_measurements(circ);
+	  }
+  }
+#endif
+
   if (circ->marked_for_close) {
     log_warn(LD_BUG,
         "Duplicate call to circuit_mark_for_close at %s:%d"
@@ -1887,7 +1940,8 @@ circuit_mark_for_close_, (circuit_t *circ, int reason, int line,
   }
 
   if (CIRCUIT_IS_ORIGIN(circ)) {
-    if (pathbias_check_close(TO_ORIGIN_CIRCUIT(circ), reason) == -1) {
+    if ((pathbias_check_close(TO_ORIGIN_CIRCUIT(circ), reason) == -1) &&
+    		(!circ->handover)) {
       /* Don't close it yet, we need to test it first */
       return;
     }

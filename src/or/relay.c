@@ -78,6 +78,11 @@
 #include "scheduler.h"
 #include "rephist.h"
 
+#include "channeltls.h"
+#include "iot.h"
+#include "iot_entry.h"
+#include "iot_delegation.h"
+
 static edge_connection_t *relay_lookup_conn(circuit_t *circ, cell_t *cell,
                                             cell_direction_t cell_direction,
                                             crypt_path_t *layer_hint);
@@ -305,6 +310,16 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
 
   circuit_update_channel_usage(circ, cell);
 
+#ifdef TOR4IOT_MEASUREMENT
+  if (CIRCUIT_IS_ORCIRC(circ)) {
+	  or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
+		if (or_circ->process_cells_in < PROCESS_CELLS && or_circ->mes) {
+      memcpy(&or_circ->iot_mes_relay_cell_in[or_circ->process_cells_in], &cell->received, sizeof(struct timespec));
+      or_circ->process_cells_in++;
+	  }
+  }
+#endif
+
   if (recognized) {
     edge_connection_t *conn = NULL;
 
@@ -348,11 +363,11 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
 
   /* not recognized. pass it on. */
   if (cell_direction == CELL_DIRECTION_OUT) {
-    cell->circ_id = circ->n_circ_id; /* switch it */
-    chan = circ->n_chan;
+			cell->circ_id = circ->n_circ_id; /* switch it */
+			chan = circ->n_chan;
   } else if (! CIRCUIT_IS_ORIGIN(circ)) {
-    cell->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
-    chan = TO_OR_CIRCUIT(circ)->p_chan;
+      cell->circ_id = TO_OR_CIRCUIT(circ)->p_circ_id; /* switch it */
+      chan = TO_OR_CIRCUIT(circ)->p_chan;
   } else {
     log_fn(LOG_PROTOCOL_WARN, LD_OR,
            "Dropping unrecognized inbound cell on origin circuit.");
@@ -399,6 +414,17 @@ circuit_receive_relay_cell(cell_t *cell, circuit_t *circ,
                                   * the cells. */
 
   append_cell_to_circuit_queue(circ, chan, cell, cell_direction, 0);
+
+#ifdef TOR4IOT_MEASUREMENT
+  if (CIRCUIT_IS_ORCIRC(circ)) {
+	  or_circuit_t *or_circ = TO_OR_CIRCUIT(circ);
+	  if (or_circ->process_cells_out < PROCESS_CELLS && or_circ->mes) {
+		  memcpy(&or_circ->iot_mes_relay_cell_out[or_circ->process_cells_out], &circ->temp2, sizeof(struct timespec));
+		  or_circ->process_cells_out++;
+	  }
+  }
+#endif
+
   return 0;
 }
 
@@ -446,6 +472,7 @@ relay_crypt(circuit_t *circ, cell_t *cell, cell_direction_t cell_direction,
 
         /* decrypt one layer */
         relay_crypt_one_payload(thishop->b_crypto, cell->payload);
+        thishop->b_crypted_bytes += CELL_PAYLOAD_SIZE;
 
         relay_header_unpack(&rh, cell->payload);
         if (rh.recognized == 0) {
@@ -487,11 +514,11 @@ relay_crypt(circuit_t *circ, cell_t *cell, cell_direction_t cell_direction,
  *  - Encrypt it to the right layer
  *  - Append it to the appropriate cell_queue on <b>circ</b>.
  */
-static int
-circuit_package_relay_cell(cell_t *cell, circuit_t *circ,
+MOCK_IMPL(int,
+circuit_package_relay_cell_, (cell_t *cell, circuit_t *circ,
                            cell_direction_t cell_direction,
                            crypt_path_t *layer_hint, streamid_t on_stream,
-                           const char *filename, int lineno)
+                           const char *filename, int lineno))
 {
   channel_t *chan; /* where to send the cell */
 
@@ -532,6 +559,7 @@ circuit_package_relay_cell(cell_t *cell, circuit_t *circ,
       tor_assert(thishop);
       log_debug(LD_OR,"encrypting a layer of the relay cell.");
       relay_crypt_one_payload(thishop->f_crypto, cell->payload);
+      thishop->f_crypted_bytes += CELL_PAYLOAD_SIZE;
 
       thishop = thishop->prev;
     } while (thishop != TO_ORIGIN_CIRCUIT(circ)->cpath->prev);
@@ -580,8 +608,9 @@ relay_lookup_conn(circuit_t *circ, cell_t *cell,
     for (tmpconn = TO_ORIGIN_CIRCUIT(circ)->p_streams; tmpconn;
          tmpconn=tmpconn->next_stream) {
       if (rh.stream_id == tmpconn->stream_id &&
-          !tmpconn->base_.marked_for_close &&
-          tmpconn->cpath_layer == layer_hint) {
+          !tmpconn->base_.marked_for_close){ //&&   // XXX: We allow relays to send us stream msgs since we
+          //tmpconn->cpath_layer == layer_hint) {   //      to receive our measurement ack from our guard
+          (void) layer_hint;
         log_debug(LD_APP,"found conn for stream %d.", rh.stream_id);
         return tmpconn;
       }
@@ -772,12 +801,56 @@ relay_send_command_from_edge_,(streamid_t stream_id, circuit_t *circ,
     }
   }
 
-  if (circuit_package_relay_cell(&cell, circ, cell_direction, cpath_layer,
+#ifdef TOR4IOT_MEASUREMENT
+  switch(relay_command) {
+  case RELAY_COMMAND_BEGIN:
+    if (CIRCUIT_IS_ORIGIN(circ)) {
+	    clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_begin_ready);
+    }
+	  break;
+  case RELAY_COMMAND_INTRODUCE1:
+    if (CIRCUIT_IS_ORIGIN(circ)) {
+	    clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_introduce1_ready);
+    }
+	  break;
+  case RELAY_COMMAND_CONNECTED:
+    if (CIRCUIT_IS_ORCIRC(circ)) {
+      clock_gettime(CLOCK_MONOTONIC, &TO_OR_CIRCUIT(circ)->iot_mes_relay_connected_done);
+    } else if (CIRCUIT_IS_ORIGIN(circ)) {
+      clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected_ready);
+    }
+    break;
+  }
+#endif
+
+  if (circuit_package_relay_cell_(&cell, circ, cell_direction, cpath_layer,
                                  stream_id, filename, lineno) < 0) {
     log_warn(LD_BUG,"circuit_package_relay_cell failed. Closing.");
     circuit_mark_for_close(circ, END_CIRC_REASON_INTERNAL);
     return -1;
   }
+
+#ifdef TOR4IOT_MEASUREMENT
+  switch(relay_command) {
+  case RELAY_COMMAND_BEGIN:
+    if (CIRCUIT_IS_ORIGIN(circ)) {
+	    memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_begin_to_buf, &circ->temp2, sizeof(struct timespec));
+    }
+	  break;
+  case RELAY_COMMAND_INTRODUCE1:
+    if (CIRCUIT_IS_ORIGIN(circ)) {
+	    memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_introduce1_to_buf, &circ->temp2, sizeof(struct timespec));
+    }
+	  break;
+  case RELAY_COMMAND_CONNECTED:
+    if (CIRCUIT_IS_ORCIRC(circ)) {
+      memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_relay_connected_tobuf, &circ->temp2, sizeof(struct timespec));
+    } else if (CIRCUIT_IS_ORIGIN(circ)) {
+      memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected_to_buf, &circ->temp2, sizeof(struct timespec));
+    }
+  }
+#endif
+
   return 0;
 }
 
@@ -841,7 +914,7 @@ connection_edge_send_command(edge_connection_t *fromconn,
 
   return relay_send_command_from_edge(fromconn->stream_id, circ,
                                       relay_command, payload,
-                                      payload_len, cpath_layer);
+                                      payload_len, cpath_layer);                              
 }
 
 /** How many times will I retry a stream that fails due to DNS
@@ -1433,11 +1506,32 @@ connection_edge_process_relay_cell_not_open(
   }
 
   if (conn->base_.type == CONN_TYPE_AP &&
-      rh->command == RELAY_COMMAND_CONNECTED) {
+      (rh->command == RELAY_COMMAND_CONNECTED || rh->command == RELAY_COMMAND_MEASURE_ACK)) {
     tor_addr_t addr;
     int ttl;
     entry_connection_t *entry_conn = EDGE_TO_ENTRY_CONN(conn);
     tor_assert(CIRCUIT_IS_ORIGIN(circ));
+
+    if (rh->command == RELAY_COMMAND_CONNECTED) {
+#ifdef TOR4IOT_MEASUREMENT
+    	clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected);
+    	memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_hs_connected_from_buf, &cell->received, sizeof(struct timespec));
+#endif
+
+    	if (entry_conn->socks_request->command == SOCKS_COMMAND_CONNECT_MES) {
+        log_info(LD_GENERAL, "Got connected, sending measurement cell to guard.");
+    		relay_send_command_from_edge(rh->stream_id, circ, RELAY_COMMAND_MEASURE,
+    				(char*)cell->payload+RELAY_HEADER_SIZE, rh->length,
+					TO_ORIGIN_CIRCUIT(circ)->cpath);
+#ifdef TOR4IOT_MEASUREMENT
+          TO_ORIGIN_CIRCUIT(circ)->measure = 1;
+#endif
+    		return 0;
+    	}
+    } else {
+      log_info(LD_GENERAL, "Got measurement ACK, using as connected cell.");
+    }
+
     if (conn->base_.state != AP_CONN_STATE_CONNECT_WAIT) {
       log_fn(LOG_PROTOCOL_WARN, LD_APP,
              "Got 'connected' while not in state connect_wait. Dropping.");
@@ -1460,7 +1554,8 @@ connection_edge_process_relay_cell_not_open(
       const sa_family_t family = tor_addr_family(&addr);
       if (tor_addr_is_null(&addr) ||
           (get_options()->ClientDNSRejectInternalAddresses &&
-           tor_addr_is_internal(&addr, 0))) {
+           tor_addr_is_internal(&addr, 0) &&
+		   circ->purpose != CIRCUIT_PURPOSE_C_REND_JOINED)) { // IOT: Make sure we do not need to insert our valid IP
         log_info(LD_APP, "...but it claims the IP address was %s. Closing.",
                  fmt_addr(&addr));
         connection_edge_end(conn, END_STREAM_REASON_TORPROTOCOL);
@@ -1587,6 +1682,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     switch (rh.command) {
       case RELAY_COMMAND_BEGIN:
       case RELAY_COMMAND_CONNECTED:
+      case RELAY_COMMAND_MEASURE_ACK:
       case RELAY_COMMAND_END:
       case RELAY_COMMAND_RESOLVE:
       case RELAY_COMMAND_RESOLVED:
@@ -1594,6 +1690,13 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
         log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL, "Relay command %d with zero "
                "stream_id. Dropping.", (int)rh.command);
         return 0;
+#ifdef TOR4IOT_MEASUREMENT
+      case RELAY_COMMAND_MEASURE_HS:
+        log_debug(LD_GENERAL, "Received measurement cell from HS.");
+        TO_OR_CIRCUIT(circ)->mes = 1;
+        TO_OR_CIRCUIT(circ)->mes_type = MES_TYPE_HS;
+      	return 0;
+#endif
       default:
         ;
     }
@@ -1620,7 +1723,21 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     }
   }
 
+#ifdef TOR4IOT_MEASUREMENT
+  or_circuit_t *or_circ;
+#endif
+
   switch (rh.command) {
+#ifdef TOR4IOT_MEASUREMENT
+  	case RELAY_COMMAND_MEASURE:
+      log_info(LD_GENERAL, "Got measurement command on circuit, answering with ACK.");
+  		relay_send_command_from_edge(rh.stream_id, circ, RELAY_COMMAND_MEASURE_ACK,
+  				(char*) cell->payload + RELAY_HEADER_SIZE, rh.length, NULL);
+  		or_circ = TO_OR_CIRCUIT(circ);
+  		or_circ->mes = 1;
+      or_circ->mes_type = MES_TYPE_CLIENT;
+  		return 0;
+#endif
     case RELAY_COMMAND_DROP:
       rep_hist_padding_count_read(PADDING_TYPE_DROP);
 //      log_info(domain,"Got a relay-level padding cell. Dropping.");
@@ -1658,6 +1775,17 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
 
       return connection_exit_begin_conn(cell, circ);
     case RELAY_COMMAND_DATA:
+#ifdef TOR4IOT_MEASUREMENT
+      if (CIRCUIT_IS_ORIGIN(circ)) {
+        origin_circuit_t *o_circ = TO_ORIGIN_CIRCUIT(circ);
+        if (!o_circ->iot_mes_payload_response_already_set) {
+          clock_gettime(CLOCK_MONOTONIC, &o_circ->iot_mes_payload_response_recv);
+          memcpy(&o_circ->iot_mes_payload_response_from_buf, &cell->received, sizeof(struct timespec));
+          o_circ->iot_mes_payload_response_already_set = 1;
+        }
+      }
+#endif
+
       ++stats_n_data_cells_received;
       if (( layer_hint && --layer_hint->deliver_window < 0) ||
           (!layer_hint && --circ->deliver_window < 0)) {
@@ -1695,6 +1823,16 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
       stats_n_data_bytes_received += rh.length;
       connection_buf_add((char*)(cell->payload + RELAY_HEADER_SIZE),
                               rh.length, TO_CONN(conn));
+
+#ifdef TOR4IOT_MEASUREMENT
+      if (CIRCUIT_IS_ORCIRC(circ)) {
+        or_circ = TO_OR_CIRCUIT(circ);
+        if (or_circ->process_cells_out < PROCESS_CELLS && or_circ->mes) {
+          clock_gettime(CLOCK_MONOTONIC, &or_circ->iot_mes_relay_cell_out[or_circ->process_cells_out]);
+          or_circ->process_cells_out++;
+        }
+      }
+#endif
 
 #ifdef MEASUREMENTS_21206
       /* Count number of RELAY_DATA cells received on a linked directory
@@ -1848,6 +1986,7 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
                         get_uint8(cell->payload + RELAY_HEADER_SIZE));
       return 0;
     case RELAY_COMMAND_CONNECTED:
+    case RELAY_COMMAND_MEASURE_ACK:
       if (conn) {
         log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,
                "'connected' unsupported while open. Closing circ.");
@@ -1946,10 +2085,51 @@ connection_edge_process_relay_cell(cell_t *cell, circuit_t *circ,
     case RELAY_COMMAND_RENDEZVOUS2:
     case RELAY_COMMAND_INTRO_ESTABLISHED:
     case RELAY_COMMAND_RENDEZVOUS_ESTABLISHED:
+#ifdef TOR4IOT_MEASUREMENT
+      memcpy(&circ->temp1, &cell->received, sizeof(struct timespec));
+#endif
       rend_process_relay_cell(circ, layer_hint,
                               rh.command, rh.length,
                               cell->payload+RELAY_HEADER_SIZE);
       return 0;
+    //IOT: React on SPLIT message here
+//    case RELAY_COMMAND_SPLIT:
+//      iot_process_relay_split(circ);
+//      return 0;
+    case RELAY_COMMAND_PRE_TICKET:
+      iot_process_relay_pre_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
+      return 0;
+    case RELAY_COMMAND_TICKET:
+#ifdef TOR4IOT_MEASUREMENT
+      memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_handoverticketfrombuf, &cell->received, sizeof (struct timespec));
+#endif
+      iot_process_relay_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
+      return 0;
+    case RELAY_COMMAND_FAST_TICKET:
+#ifdef TOR4IOT_MEASUREMENT
+      memcpy(&TO_OR_CIRCUIT(circ)->iot_mes_ticketfrombuf, &cell->received, sizeof (struct timespec));
+#endif
+      iot_process_relay_fast_ticket(circ, rh.length, cell->payload+RELAY_HEADER_SIZE);
+      return 0;
+
+    case RELAY_COMMAND_TICKET_RELAYED:
+    case RELAY_COMMAND_FAST_TICKET_RELAYED:
+    	log_debug(LD_GENERAL, "Received *_TICKET_RELAYED2 cell.");
+    	// Check HMAC
+#ifdef TOR4IOT_MEASUREMENT
+	  	clock_gettime(CLOCK_MONOTONIC, &TO_ORIGIN_CIRCUIT(circ)->iot_mes_ticketack);
+	  	memcpy(&TO_ORIGIN_CIRCUIT(circ)->iot_mes_ticketack_from_buf, &cell->received, sizeof(struct timespec));
+#endif
+    	if (!memcmp(cell->payload+RELAY_HEADER_SIZE, circ->iot_expect_hmac, DIGEST256_LEN)) {
+    		if (circ->handover) {
+    			iot_ticket_send(TO_ORIGIN_CIRCUIT(circ), IOT_TICKET_TYPE_CLIENT); // Send ticket to our client IoT device
+    		} else {
+    			connection_ap_handshake_send_begin(circ->iot_entry_conn);
+    		}
+    	} else {
+    		log_warn(LD_GENERAL, "Received *_TICKET_RELAYED2 cell but HMAC didnt match %02x %02x (%02x %02x). Dropping.", (cell->payload+RELAY_HEADER_SIZE)[0], (cell->payload+RELAY_HEADER_SIZE)[1], circ->iot_expect_hmac[0], circ->iot_expect_hmac[1]);
+    	}
+    	return 0;
   }
   log_fn(LOG_PROTOCOL_WARN, LD_PROTOCOL,
          "Received unknown relay command %d. Perhaps the other side is using "
@@ -2082,10 +2262,29 @@ connection_edge_package_raw_inbuf(edge_connection_t *conn, int package_partial,
     buf_add(entry_conn->pending_optimistic_data, payload, length);
   }
 
+#ifdef TOR4IOT_MEASUREMENT
+  if (CIRCUIT_IS_ORIGIN(circ)) {
+    origin_circuit_t *or_circ = TO_ORIGIN_CIRCUIT(circ);
+    if (!or_circ->iot_mes_payload_request_already_set) {
+      clock_gettime(CLOCK_MONOTONIC, &or_circ->iot_mes_payload_request_done);
+    }
+  }
+#endif
+
   if (connection_edge_send_command(conn, RELAY_COMMAND_DATA,
                                    payload, length) < 0 )
     /* circuit got marked for close, don't continue, don't need to mark conn */
     return 0;
+
+#ifdef TOR4IOT_MEASUREMENT
+  if (CIRCUIT_IS_ORIGIN(circ)) {
+    origin_circuit_t *or_circ = TO_ORIGIN_CIRCUIT(circ);
+    if (!or_circ->iot_mes_payload_request_already_set) {
+      memcpy(&or_circ->iot_mes_payload_request_to_buf, &circ->temp2, sizeof(struct timespec));
+      or_circ->iot_mes_payload_request_already_set = 1;
+    }
+  }
+#endif
 
   if (!cpath_layer) { /* non-rendezvous exit */
     tor_assert(circ->package_window > 0);
@@ -2453,10 +2652,10 @@ dump_cell_pool_usage(int severity)
 
 /** Allocate a new copy of packed <b>cell</b>. */
 static inline packed_cell_t *
-packed_cell_copy(const cell_t *cell, int wide_circ_ids)
+packed_cell_copy(const cell_t *cell, int wide_circ_ids, int cell_num)
 {
   packed_cell_t *c = packed_cell_new();
-  cell_pack(c, cell, wide_circ_ids);
+  cell_pack(c, cell, wide_circ_ids, cell_num);
   return c;
 }
 
@@ -2475,9 +2674,15 @@ cell_queue_append(cell_queue_t *queue, packed_cell_t *cell)
 void
 cell_queue_append_packed_copy(circuit_t *circ, cell_queue_t *queue,
                               int exitward, const cell_t *cell,
-                              int wide_circ_ids, int use_stats)
+                              int wide_circ_ids, int use_stats,
+		                   	      int cell_num)
 {
-  packed_cell_t *copy = packed_cell_copy(cell, wide_circ_ids);
+  packed_cell_t *copy;
+
+  log_debug(LD_GENERAL, "Append cell with %s and %s", wide_circ_ids ? "wide circ ids" : "short circ ids", cell_num ? "cell nums" : "no cell nums");
+
+  copy = packed_cell_copy(cell, wide_circ_ids, cell_num);
+
   (void)circ;
   (void)exitward;
   (void)use_stats;
@@ -2485,6 +2690,10 @@ cell_queue_append_packed_copy(circuit_t *circ, cell_queue_t *queue,
   copy->inserted_time = (uint32_t) monotime_coarse_absolute_msec();
 
   cell_queue_append(queue, copy);
+
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &circ->temp2);
+#endif
 }
 
 /** Initialize <b>queue</b> as an empty cell queue. */
@@ -2573,7 +2782,7 @@ destroy_cell_queue_append(destroy_cell_queue_t *queue,
 
 /** Convert a destroy_cell_t to a newly allocated cell_t. Frees its input. */
 static packed_cell_t *
-destroy_cell_to_packed_cell(destroy_cell_t *inp, int wide_circ_ids)
+destroy_cell_to_packed_cell(destroy_cell_t *inp, int wide_circ_ids, int cell_num)
 {
   packed_cell_t *packed = packed_cell_new();
   cell_t cell;
@@ -2581,7 +2790,7 @@ destroy_cell_to_packed_cell(destroy_cell_t *inp, int wide_circ_ids)
   cell.circ_id = inp->circid;
   cell.command = CELL_DESTROY;
   cell.payload[0] = inp->reason;
-  cell_pack(packed, &cell, wide_circ_ids);
+  cell_pack(packed, &cell, wide_circ_ids, cell_num);
 
   tor_free(inp);
   return packed;
@@ -2829,7 +3038,7 @@ channel_flush_from_first_active_circuit, (channel_t *chan, int max))
       /* ...and pop() will always yield a cell from a nonempty queue. */
       tor_assert(dcell);
       /* frees dcell */
-      cell = destroy_cell_to_packed_cell(dcell, chan->wide_circ_ids);
+      cell = destroy_cell_to_packed_cell(dcell, chan->wide_circ_ids, chan->cell_num);
       /* frees cell */
       channel_write_packed_cell(chan, cell);
       /* Update the cmux destroy counter */
@@ -3067,8 +3276,10 @@ append_cell_to_circuit_queue(circuit_t *circ, channel_t *chan,
   }
 #endif /* 0 */
 
+  cell->cell_num = chan->cell_num_out;
   cell_queue_append_packed_copy(circ, queue, exitward, cell,
-                                chan->wide_circ_ids, 1);
+                                chan->wide_circ_ids, 1, chan->cell_num);
+  chan->cell_num_out++;
 
   if (PREDICT_UNLIKELY(cell_queues_check_size())) {
     /* We ran the OOM handler */
@@ -3092,6 +3303,10 @@ append_cell_to_circuit_queue(circuit_t *circ, channel_t *chan,
      * circuit active. */
     log_debug(LD_GENERAL, "Made a circuit active.");
   }
+
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &cell->sent);
+#endif
 
   /* New way: mark this as having waiting cells for the scheduler */
   scheduler_channel_has_waiting_cells(chan);

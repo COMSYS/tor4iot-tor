@@ -83,6 +83,22 @@
 #include "util_format.h"
 #include "hs_circuitmap.h"
 
+
+#include "hs_ntor.h"
+
+#define IOT_ID_LEN 32
+
+typedef uint16_t iot_join_id_t;
+
+typedef struct node_t node_t;
+
+typedef struct iot_circ_info_t {
+  uint8_t is_set;
+
+  const node_t *split;
+  uint8_t after;
+} iot_circ_info_t;
+
 /* These signals are defined to help handle_control_signal work.
  */
 #ifndef SIGHUP
@@ -229,7 +245,11 @@ typedef enum {
 /** Type for sockets listening for HTTP CONNECT tunnel connections. */
 #define CONN_TYPE_AP_HTTP_CONNECT_LISTENER 18
 
-#define CONN_TYPE_MAX_ 19
+// Tor4IoT: Support for UDP
+#define CONN_TYPE_OR_UDP_LISTENER 19
+#define CONN_TYPE_OR_UDP 20
+
+#define CONN_TYPE_MAX_ 21
 /* !!!! If _CONN_TYPE_MAX is ever over 31, we must grow the type field in
  * connection_t. */
 
@@ -297,7 +317,13 @@ typedef enum {
 #define OR_CONN_STATE_OR_HANDSHAKING_V3 7
 /** State for an OR connection: Ready to send/receive cells. */
 #define OR_CONN_STATE_OPEN 8
-#define OR_CONN_STATE_MAX_ 8
+
+/** State for an connection to an IoT device, awaiting a info cell */
+#define OR_CONN_STATE_OR_INFO 9
+/** State for an connection to an IoT device, awaiting a join cell */
+#define OR_CONN_STATE_OR_JOINING 10
+
+#define OR_CONN_STATE_MAX_ 10
 
 /** States of the Extended ORPort protocol. Be careful before changing
  *  the numbers: they matter. */
@@ -352,12 +378,15 @@ typedef enum {
 #define AP_CONN_STATE_NATD_WAIT 12
 /** State for an HTTP tunnel: waiting for an HTTP CONNECT command. */
 #define AP_CONN_STATE_HTTP_CONNECT_WAIT 13
-#define AP_CONN_STATE_MAX_ 13
+/** State for an FAST IoT connection where we already build a circuit and conn is not pending */
+#define AP_CONN_STATE_IOT_WAIT 14
+
+#define AP_CONN_STATE_MAX_ 14
 
 /** True iff the AP_CONN_STATE_* value <b>s</b> means that the corresponding
  * edge connection is not attached to any circuit. */
 #define AP_CONN_STATE_IS_UNATTACHED(s) \
-  ((s) <= AP_CONN_STATE_CIRCUIT_WAIT || (s) == AP_CONN_STATE_NATD_WAIT)
+  ((s) <= AP_CONN_STATE_CIRCUIT_WAIT || (s) == AP_CONN_STATE_NATD_WAIT || (s) == AP_CONN_STATE_IOT_WAIT)
 
 #define DIR_CONN_STATE_MIN_ 1
 /** State for connection to directory server: waiting for connect(). */
@@ -450,6 +479,10 @@ typedef enum {
 #define EXIT_PURPOSE_RESOLVE 2
 #define EXIT_PURPOSE_MAX_ 2
 
+#define IOT_PURPOSE_MIN_ 1
+#define IOT_PURPOSE_CONNECT 1
+#define IOT_PURPOSE_MAX_ 1
+
 /* !!!! If any connection purpose is ever over 31, we must grow the type
  * field in connection_t. */
 
@@ -466,6 +499,9 @@ typedef enum {
 #define CIRCUIT_STATE_GUARD_WAIT 3
 /** Circuit state: onionskin(s) processed, ready to send/receive cells. */
 #define CIRCUIT_STATE_OPEN 4
+
+#define CIRCUIT_STATE_JOIN_WAIT 5
+#define CIRCUIT_STATE_FAST_JOIN_WAIT 6
 
 #define CIRCUIT_PURPOSE_MIN_ 1
 
@@ -544,14 +580,25 @@ typedef enum {
 #define CIRCUIT_PURPOSE_CONTROLLER 19
 /** This circuit is used for path bias probing only */
 #define CIRCUIT_PURPOSE_PATH_BIAS_TESTING 20
-#define CIRCUIT_PURPOSE_MAX_ 20
+
+/** This circuit is used by the DHS to connect to the RP via the Entry of IoT */
+#define CIRCUIT_PURPOSE_S_CONNECT_REND_IOT 21
+/** This circuit is used by a client that wants to access an IoT without a DHS */
+#define CIRCUIT_PURPOSE_ENTRY_IOT 22
+/** This circuit is used by a DS that wants its IoT device to be connected to another iot device */
+#define CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER 23
+
+/** This circuit is used by an IoT entry for circuits to IoT devices */
+#define CIRCUIT_PURPOSE_IOT 24
+
+#define CIRCUIT_PURPOSE_MAX_ 24
 /** A catch-all for unrecognized purposes. Currently we don't expect
  * to make or see any circuits with this purpose. */
 #define CIRCUIT_PURPOSE_UNKNOWN 255
 
 /** True iff the circuit purpose <b>p</b> is for a circuit that
  * originated at this node. */
-#define CIRCUIT_PURPOSE_IS_ORIGIN(p) ((p)>CIRCUIT_PURPOSE_OR_MAX_)
+#define CIRCUIT_PURPOSE_IS_ORIGIN(p) ((p)>CIRCUIT_PURPOSE_OR_MAX_ && (p) != CIRCUIT_PURPOSE_IOT)
 /** True iff the circuit purpose <b>p</b> is for a circuit that originated
  * here to serve as a client.  (Hidden services don't count here.) */
 #define CIRCUIT_PURPOSE_IS_CLIENT(p)  \
@@ -598,6 +645,24 @@ typedef enum {
 #define RELAY_COMMAND_INTRO_ESTABLISHED 38
 #define RELAY_COMMAND_RENDEZVOUS_ESTABLISHED 39
 #define RELAY_COMMAND_INTRODUCE_ACK 40
+
+#define RELAY_COMMAND_PRE_TICKET 50
+
+#define RELAY_COMMAND_TICKET 53
+
+#define RELAY_COMMAND_FAST_TICKET 55
+
+#define RELAY_COMMAND_TICKET_RELAYED 57
+#define RELAY_COMMAND_FAST_TICKET_RELAYED 59
+
+//Client -> Client Guard
+#define RELAY_COMMAND_MEASURE 70
+//Client Guard -> Client
+#define RELAY_COMMAND_MEASURE_ACK 71
+
+//HS -> HS Guard
+#define RELAY_COMMAND_MEASURE_HS 72
+
 
 /* Reasons why an OR connection is closed. */
 #define END_OR_CONN_REASON_DONE           1
@@ -921,12 +986,24 @@ typedef enum {
 #define CELL_CREATED2 11
 #define CELL_PADDING_NEGOTIATE 12
 
+#define CELL_IOT_TICKET_RELAYED 21
+#define CELL_IOT_FAST_TICKET_RELAYED 23
+
 #define CELL_VPADDING 128
 #define CELL_CERTS 129
 #define CELL_AUTH_CHALLENGE 130
 #define CELL_AUTHENTICATE 131
 #define CELL_AUTHORIZE 132
-#define CELL_COMMAND_MAX_ 132
+
+#define CELL_JOIN 133
+#define CELL_IOT_INFO 134
+#define CELL_IOT_PRE_TICKET 135
+#define CELL_IOT_TICKET 136
+#define CELL_IOT_FAST_TICKET 137
+
+#define CELL_ACK 140
+
+#define CELL_COMMAND_MAX_ 140
 
 /** How long to test reachability before complaining to the user. */
 #define TIMEOUT_UNTIL_UNREACHABILITY_COMPLAINT (20*60)
@@ -1136,18 +1213,28 @@ typedef struct circuitmux_s circuitmux_t;
 /** Parsed onion routing cell.  All communication between nodes
  * is via cells. */
 typedef struct cell_t {
+  struct timespec received;
+  struct timespec sent;
+
   circid_t circ_id; /**< Circuit which received the cell. */
   uint8_t command; /**< Type of the cell: one of CELL_PADDING, CELL_CREATE,
                     * CELL_DESTROY, etc */
+  /** Tor4IoT: Cell number on this circ to ensure that no cell was lost. */
+  uint16_t cell_num;
   uint8_t payload[CELL_PAYLOAD_SIZE]; /**< Cell body. */
 } cell_t;
 
 /** Parsed variable-length onion routing cell. */
 typedef struct var_cell_t {
+  struct timespec received;
+  struct timespec sent;
+
   /** Type of the cell: CELL_VERSIONS, etc. */
   uint8_t command;
   /** Circuit thich received the cell */
   circid_t circ_id;
+  /** Tor4IoT: Cell number on this circ to ensure that no cell was lost. */
+  uint16_t cell_num;
   /** Number of bytes actually stored in <b>payload</b> */
   uint16_t payload_len;
   /** Payload of this cell */
@@ -1165,7 +1252,7 @@ typedef struct ext_or_cmd_t {
 typedef struct packed_cell_t {
   /** Next cell queued on this circuit. */
   TOR_SIMPLEQ_ENTRY(packed_cell_t) next;
-  char body[CELL_MAX_NETWORK_SIZE]; /**< Cell as packed for network. */
+  char body[CELL_MAX_NETWORK_SIZE+2]; /**< Cell as packed for network. */
   uint32_t inserted_time; /**< Time (in milliseconds since epoch, with high
                            * bits truncated) when this cell was inserted. */
 } packed_cell_t;
@@ -1652,6 +1739,8 @@ typedef struct or_connection_t {
    * bytes TLS actually sent - used for overhead estimation for scheduling.
    */
   uint64_t bytes_xmitted, bytes_xmitted_by_tls;
+
+  uint8_t iot_id[IOT_ID_LEN];
 } or_connection_t;
 
 /** Subtype of connection_t for an "edge connection" -- that is, an entry (ap)
@@ -1801,6 +1890,10 @@ typedef struct entry_connection_t {
 
   /** Are we a socks SocksSocket listener? */
   unsigned int is_socks_socket:1;
+
+#ifdef TOR4IOT_MEASUREMENT
+  struct timespec iot_mes_start;
+#endif
 } entry_connection_t;
 
 /** Subtype of connection_t for an "directory connection" -- that is, an HTTP
@@ -2818,6 +2911,8 @@ typedef struct extend_info_t {
   tor_addr_t addr; /**< IP address. */
   crypto_pk_t *onion_key; /**< Current onionskin key. */
   curve25519_public_key_t curve25519_onion_key;
+
+  iot_circ_info_t iot_circ_info;
 } extend_info_t;
 
 /** Certificate for v3 directory protocol: binds long-term authority identity
@@ -2864,6 +2959,13 @@ typedef enum {
 
 #define CRYPT_PATH_MAGIC 0x70127012u
 
+typedef struct c25519_measurement_t {
+  struct timespec c25519_before1;
+  struct timespec c25519_after1;
+  struct timespec c25519_before2;
+  struct timespec c25519_after2;
+} c25519_measurement_t;
+
 struct fast_handshake_state_t;
 struct ntor_handshake_state_t;
 #define ONION_HANDSHAKE_TYPE_TAP  0x0000
@@ -2877,6 +2979,7 @@ typedef struct {
     crypto_dh_t *tap;
     struct ntor_handshake_state_t *ntor;
   } u;
+  c25519_measurement_t mes;
 } onion_handshake_state_t;
 
 /** Holds accounting information for a single step in the layered encryption
@@ -2891,6 +2994,16 @@ typedef struct crypt_path_t {
   /** Encryption key and counter for cells heading back from the OR at this
    * step. */
   crypto_cipher_t *b_crypto;
+
+  uint16_t f_crypted_bytes;
+  uint16_t b_crypted_bytes;
+
+  uint8_t f_aesctrkey[16];
+  uint8_t b_aesctrkey[16];
+
+  uint8_t f_init_digest[DIGEST_LEN];
+
+  uint8_t hs_ntor_key[HS_NTOR_KEY_EXPANSION_KDF_OUT_LEN];
 
   /** Digest state for cells heading towards the OR at this step. */
   crypto_digest_t *f_digest; /* for integrity checking */
@@ -2929,6 +3042,20 @@ typedef struct crypt_path_t {
                        * at this step? */
   int deliver_window; /**< How many cells are we willing to deliver originating
                        * at this step? */
+
+#ifdef TOR4IOT_MEASUREMENT
+  struct timespec iot_mes_ntor1start;
+  struct timespec iot_mes_ntor1end;
+  struct timespec iot_mes_ntor2start;
+  struct timespec iot_mes_ntor2end;
+
+  struct timespec iot_mes_x255191start;
+  struct timespec iot_mes_x255191end;
+  struct timespec iot_mes_x255192start;
+  struct timespec iot_mes_x255192end;
+  struct timespec iot_mes_x255193start;
+  struct timespec iot_mes_x255193end;
+#endif
 } crypt_path_t;
 
 /** A reference-counted pointer to a crypt_path_t, used only to share
@@ -2972,6 +3099,8 @@ typedef struct {
   int failure_count;
   /** At what time should we give up on this task? */
   time_t expiry_time;
+
+  iot_circ_info_t iot_circ_info;
 } cpath_build_state_t;
 
 /** "magic" value for an origin_circuit_t */
@@ -3156,12 +3285,28 @@ typedef struct circuit_t {
    * cleared after being sent to control port. */
   smartlist_t *testing_cell_stats;
 
+  int already_split:1;
+  uint32_t join_cookie;
+
+  /** Buffer to store cells from client */
+  smartlist_t *iot_buffer;
+
   /** If set, points to an HS token that this circuit might be carrying.
    *  Used by the HS circuitmap.  */
   hs_token_t *hs_token;
   /** Hashtable node: used to look up the circuit by its HS token using the HS
       circuitmap. */
   HT_ENTRY(circuit_t) hs_circuitmap_node;
+
+  entry_connection_t *iot_entry_conn;
+  uint8_t iot_expect_hmac[DIGEST256_LEN];
+
+  int handover:1;
+
+#ifdef TOR4IOT_MEASUREMENT
+  struct timespec temp1;
+  struct timespec temp2;
+#endif
 } circuit_t;
 
 /** Largest number of relay_early cells that we can send on a given
@@ -3224,6 +3369,25 @@ typedef enum {
     PATH_STATE_ALREADY_COUNTED = 6,
 } path_state_t;
 #define path_state_bitfield_t ENUM_BF(path_state_t)
+
+#ifdef TOR4IOT_MEASUREMENT
+struct iot_measurement_ip_cpath {
+  struct timespec iot_mes_ntor1start;
+  struct timespec iot_mes_ntor1end;
+  struct timespec iot_mes_ntor2start;
+  struct timespec iot_mes_ntor2end;
+
+  struct timespec iot_mes_x255191start;
+  struct timespec iot_mes_x255191end;
+  struct timespec iot_mes_x255192start;
+  struct timespec iot_mes_x255192end;
+  struct timespec iot_mes_x255193start;
+  struct timespec iot_mes_x255193end;
+
+  struct iot_measurement_ip_cpath *next;
+  struct iot_measurement_ip_cpath *prev;
+};
+#endif
 
 /** An origin_circuit_t holds data necessary to build and use a circuit.
  */
@@ -3421,6 +3585,71 @@ typedef struct origin_circuit_t {
    * to 2*CircuitsAvailableTimoeut. */
   int circuit_idle_timeout;
 
+#define HSv3_REND_INFO 84
+  uint8_t iot_rend_info[HSv3_REND_INFO];
+
+#ifdef TOR4IOT_MEASUREMENT
+  struct timespec iot_mes_ipcpathstart;
+  struct timespec iot_mes_ipcpathend;
+  struct timespec iot_mes_ipcircstart;
+  struct timespec iot_mes_ipcircend;
+
+  struct iot_measurement_ip_cpath *ip_cpath_list;
+
+  struct timespec iot_mes_cpathstart;
+  struct timespec iot_mes_cpathend;
+  struct timespec iot_mes_circstart;
+  struct timespec iot_mes_circend;
+
+  struct timespec iot_mes_ticketstart;
+  struct timespec iot_mes_ticketend;
+  struct timespec iot_mes_ticket_to_buf;
+
+  struct timespec iot_mes_ticketack_from_buf;
+  struct timespec iot_mes_ticketack;
+
+  struct timespec iot_mes_handoverticketstart;
+  struct timespec iot_mes_handoverticketend;
+  struct timespec iot_mes_handoverticket_to_buf;
+
+  struct timespec iot_mes_hs_introduce1_to_buf;
+  struct timespec iot_mes_hs_introduce1_ready;
+  struct timespec iot_mes_hs_introduce1_start;
+  struct timespec iot_mes_hs_introduce1_build;
+  struct timespec iot_mes_hs_introduce2_received;
+  struct timespec iot_mes_hs_introduce2_from_buf;
+
+  struct timespec iot_mes_hs_ntor1_start;
+  struct timespec iot_mes_hs_ntor1_end;
+
+  struct timespec iot_mes_hs_rend2_received;
+  struct timespec iot_mes_hs_rend2_from_buf;
+
+  struct timespec iot_mes_hsfinalizestart;
+  struct timespec iot_mes_hsfinalizeend;
+
+  struct timespec iot_mes_hs_begin_ready;
+  struct timespec iot_mes_hs_begin_to_buf;
+
+  struct timespec iot_mes_hs_connected;
+  struct timespec iot_mes_hs_connected_from_buf;
+
+  struct timespec iot_mes_hs_begin;
+  struct timespec iot_mes_hs_begin_from_buf;
+
+  struct timespec iot_mes_hs_connected_ready;
+  struct timespec iot_mes_hs_connected_to_buf;
+
+  struct timespec iot_mes_payload_request_done;
+  struct timespec iot_mes_payload_request_to_buf;
+  int iot_mes_payload_request_already_set : 1;
+
+  struct timespec iot_mes_payload_response_from_buf;
+  struct timespec iot_mes_payload_response_recv;
+  int iot_mes_payload_response_already_set : 1;
+
+  int measure : 1; // Independent from purpose this is true when we like to print measurements
+#endif
 } origin_circuit_t;
 
 struct onion_queue_t;
@@ -3478,6 +3707,12 @@ typedef struct or_circuit_t {
    */
   crypto_digest_t *n_digest;
 
+  /**
+   * We store the states the IoT device will use after the handover
+   */
+  crypto_cipher_t *p_crypto_iot;
+  crypto_digest_t *p_digest_iot;
+
   /** Points to spliced circuit if purpose is REND_ESTABLISHED, and circuit
    * is not marked for close. */
   struct or_circuit_t *rend_splice;
@@ -3510,6 +3745,47 @@ typedef struct or_circuit_t {
    * to zero, it is initialized to the default value.
    */
   uint32_t max_middle_cells;
+
+#ifdef TOR4IOT_MEASUREMENT
+  struct timespec iot_mes_circreceived;
+  struct timespec iot_mes_circdone;
+
+  struct timespec iot_mes_ticketfrombuf;
+  struct timespec iot_mes_ticketreceived;
+  struct timespec iot_mes_ticketrelayed;
+  struct timespec iot_mes_tickettobuf;
+
+  struct timespec iot_mes_relayticketrelayedfrombuf;
+  struct timespec iot_mes_relayticketrelayed;
+  struct timespec iot_mes_relayticketrelayedtobuf;
+
+  struct timespec iot_mes_handoverticketfrombuf;
+  struct timespec iot_mes_handoverticketreceived;
+  struct timespec iot_mes_handoverticketrelayed;
+  struct timespec iot_mes_handovertickettobuf;
+
+  struct timespec iot_mes_joinfrombuf;
+  struct timespec iot_mes_joinreq;
+  struct timespec iot_mes_joindone;
+
+  struct timespec iot_mes_relay_begin_frombuf;
+  struct timespec iot_mes_relay_begin_recv;
+
+  struct timespec iot_mes_relay_connected_done;
+  struct timespec iot_mes_relay_connected_tobuf;
+
+#define PROCESS_CELLS 4
+  struct timespec iot_mes_relay_cell_in[PROCESS_CELLS]; // Timestamps of incoming cells
+  struct timespec iot_mes_relay_cell_out[PROCESS_CELLS]; // Timestamps of the same cells when outgoing
+  uint8_t process_cells_in; // How many incoming cells do we have measured?
+  uint8_t process_cells_out; // Same for outgoing cells
+
+  uint8_t mes; // Only measure that on some circuits after it is activated.
+
+#define MES_TYPE_CLIENT 1
+#define MES_TYPE_HS 2
+  uint8_t mes_type;
+#endif
 } or_circuit_t;
 
 #if REND_COOKIE_LEN != DIGEST_LEN
@@ -3668,6 +3944,7 @@ typedef struct {
   routerset_t *EntryNodes;/**< Structure containing nicknames, digests,
                            * country codes and IP address patterns of ORs to
                            * consider as entry points. */
+  routerset_t *IoTEntryNodes;/**< Structure containing our IoT Entry Node */
   int StrictNodes; /**< Boolean: When none of our EntryNodes or ExitNodes
                     * are up, or we need to access a node in ExcludeNodes,
                     * do we just fail instead? */
@@ -3717,6 +3994,9 @@ typedef struct {
   int ExtendAllowPrivateAddresses;
   char *User; /**< Name of user to run Tor as. */
   config_line_t *ORPort_lines; /**< Ports to listen on for OR connections. */
+
+  config_line_t *ORUDPPort_lines; /**< Ports to listen on for ORUDP connections. */
+
   /** Ports to listen on for extended OR connections. */
   config_line_t *ExtORPort_lines;
   /** Ports to listen on for SOCKS connections. */
@@ -3769,6 +4049,9 @@ typedef struct {
    * @{
    */
   unsigned int ORPort_set : 1;
+
+  unsigned int ORUDPPort_set : 1;
+
   unsigned int SocksPort_set : 1;
   unsigned int TransPort_set : 1;
   unsigned int NATDPort_set : 1;
@@ -4773,8 +5056,10 @@ static inline void or_state_mark_dirty(or_state_t *state, time_t when)
 /** Please turn this IP address into an FQDN, privately. */
 #define SOCKS_COMMAND_RESOLVE_PTR   0xF1
 
+#define SOCKS_COMMAND_CONNECT_MES   0xA1
+
 /* || 0 is for -Wparentheses-equality (-Wall?) appeasement under clang */
-#define SOCKS_COMMAND_IS_CONNECT(c) (((c)==SOCKS_COMMAND_CONNECT) || 0)
+#define SOCKS_COMMAND_IS_CONNECT(c) (((c)==SOCKS_COMMAND_CONNECT) || (c)==SOCKS_COMMAND_CONNECT_MES || 0)
 #define SOCKS_COMMAND_IS_RESOLVE(c) ((c)==SOCKS_COMMAND_RESOLVE || \
                                      (c)==SOCKS_COMMAND_RESOLVE_PTR)
 

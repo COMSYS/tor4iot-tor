@@ -3,8 +3,15 @@ between your Internet address and the services you use. We believe Tor
 is reasonably secure, but please ensure you read the instructions and
 configure it properly.
 
+This is an extended Version of Tor enabling IoT devices to communicate anonymously.
+
 To build Tor from source:
         ./configure && make && make install
+
+Make sure that you build this version of Tor against OpenSSL with DTLS functionality.
+Tested with OpenSSL 1.1.0i.
+
+You can also enable measurements by enabling the MACRO TOR4IOT_MEASUREMENT.
 
 To build Tor from a just-cloned git repository:
         sh autogen.sh && ./configure && make && make install

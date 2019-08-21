@@ -27,7 +27,7 @@
 static var_cell_t *mock_got_var_cell = NULL;
 
 static void
-mock_write_var_cell(const var_cell_t *vc, or_connection_t *conn)
+mock_write_var_cell(var_cell_t *vc, or_connection_t *conn)
 {
   (void)conn;
 
@@ -220,7 +220,7 @@ test_link_handshake_certs_ok(void *arg)
   c1->chan = chan1;
   chan1->conn = c1;
   c1->base_.address = tor_strdup("C1");
-  c1->tls = tor_tls_new(-1, 0);
+  c1->tls = tor_tls_new(-1, 0, 0);
   c1->link_proto = 4;
   c1->base_.conn_array_index = -1;
   crypto_pk_get_digest(key2, c1->identity_digest);
@@ -264,7 +264,7 @@ test_link_handshake_certs_ok(void *arg)
   c2->chan = chan2;
   chan2->conn = c2;
   c2->base_.address = tor_strdup("C2");
-  c2->tls = tor_tls_new(-1, 1);
+  c2->tls = tor_tls_new(-1, 1, 0);
   c2->link_proto = 4;
   c2->base_.conn_array_index = -1;
   crypto_pk_get_digest(key1, c2->identity_digest);
@@ -1222,7 +1222,7 @@ authenticate_data_setup(const struct testcase_t *test)
   d->c2->chan = d->chan2;
   d->chan2->conn = d->c2;
   d->c2->base_.address = tor_strdup("C2");
-  d->c2->tls = tor_tls_new(-1, 1);
+  d->c2->tls = tor_tls_new(-1, 1, 0);
   d->c2->handshake_state->received_certs_cell = 1;
 
   const tor_x509_cert_t *id_cert=NULL, *link_cert=NULL, *auth_cert=NULL;

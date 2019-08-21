@@ -1900,6 +1900,9 @@ channel_get_cell_queue_entry_size(channel_t *chan, cell_queue_entry_t *q)
       tor_assert_nonfatal_unreached_once();
   }
 
+  if (chan->cell_num)
+    rv += 2;
+
   return rv;
 }
 
@@ -2925,6 +2928,10 @@ channel_queue_cell(channel_t *chan, cell_t *cell)
   ++(chan->n_cells_recved);
   chan->n_bytes_recved += get_cell_network_size(chan->wide_circ_ids);
 
+  if (chan->cell_num) {
+      chan->n_bytes_recved += 2;
+  }
+
   /* If we don't need to queue we can just call cell_handler */
   if (!need_to_queue) {
     tor_assert(chan->cell_handler);
@@ -2991,6 +2998,10 @@ channel_queue_var_cell(channel_t *chan, var_cell_t *var_cell)
   ++(chan->n_cells_recved);
   chan->n_bytes_recved += get_var_cell_header_size(chan->wide_circ_ids) +
     var_cell->payload_len;
+
+  if (chan->cell_num) {
+      chan->n_bytes_recved += 2;
+  }
 
   /* If we don't need to queue we can just call cell_handler */
   if (!need_to_queue) {

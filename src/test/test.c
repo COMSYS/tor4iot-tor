@@ -236,7 +236,7 @@ test_ntor_handshake(void *arg)
   /* client handshake 1. */
   memset(c_buf, 0, NTOR_ONIONSKIN_LEN);
   tt_int_op(0, OP_EQ, onion_skin_ntor_create(node_id, server_pubkey,
-                                          &c_state, c_buf));
+                                          &c_state, c_buf, NULL));
 
   /* server handshake */
   memset(s_buf, 0, NTOR_REPLY_LEN);
@@ -248,7 +248,7 @@ test_ntor_handshake(void *arg)
   /* client handshake 2 */
   memset(c_keys, 0, 40);
   tt_int_op(0, OP_EQ, onion_skin_ntor_client_handshake(c_state, s_buf,
-                                                       c_keys, 400, NULL));
+                                                       c_keys, 400, NULL, NULL));
 
   tt_mem_op(c_keys,OP_EQ, s_keys, 400);
   memset(s_buf, 0, 40);
@@ -260,7 +260,7 @@ test_ntor_handshake(void *arg)
   memset(s_buf, 0, NTOR_REPLY_LEN);
   const char *msg = NULL;
   tt_int_op(-1, OP_EQ, onion_skin_ntor_client_handshake(c_state, s_buf,
-                                                        c_keys, 400, &msg));
+                                                        c_keys, 400, &msg, NULL));
   tt_str_op(msg, OP_EQ, "Zero output from curve25519 handshake");
 
  done:

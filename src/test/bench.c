@@ -205,7 +205,7 @@ bench_onion_ntor_impl(void)
   reset_perftime();
   start = perftime();
   for (i = 0; i < iters; ++i) {
-    onion_skin_ntor_create(nodeid, &keypair1.pubkey, &state, os);
+    onion_skin_ntor_create(nodeid, &keypair1.pubkey, &state, os, NULL);
     ntor_handshake_state_free(state);
     state = NULL;
   }
@@ -213,7 +213,7 @@ bench_onion_ntor_impl(void)
   printf("Client-side, part 1: %f usec.\n", NANOCOUNT(start, end, iters)/1e3);
 
   state = NULL;
-  onion_skin_ntor_create(nodeid, &keypair1.pubkey, &state, os);
+  onion_skin_ntor_create(nodeid, &keypair1.pubkey, &state, os, NULL);
   start = perftime();
   for (i = 0; i < iters; ++i) {
     uint8_t key_out[CPATH_KEY_MATERIAL_LEN];
@@ -229,7 +229,7 @@ bench_onion_ntor_impl(void)
     uint8_t key_out[CPATH_KEY_MATERIAL_LEN];
     int s;
     s = onion_skin_ntor_client_handshake(state, or, key_out, sizeof(key_out),
-                                         NULL);
+                                         NULL, NULL);
     tor_assert(s == 0);
   }
   end = perftime();

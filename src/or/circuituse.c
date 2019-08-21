@@ -55,6 +55,8 @@
 #include "router.h"
 #include "routerlist.h"
 
+#include "iot_delegation.h"
+
 static void circuit_expire_old_circuits_clientside(void);
 static void circuit_increment_failure_count(void);
 
@@ -1667,6 +1669,14 @@ circuit_has_opened(origin_circuit_t *circ)
       /* at the service, connecting to rend point */
       hs_service_circuit_has_opened(circ);
       break;
+    case CIRCUIT_PURPOSE_S_CONNECT_REND_IOT:
+      /* at the service, connecting to rend point */
+      hs_service_circuit_has_opened(circ);
+      break;
+    case CIRCUIT_PURPOSE_ENTRY_IOT:
+    case CIRCUIT_PURPOSE_ENTRY_IOT_HANDOVER:
+      iot_client_entry_circuit_has_opened(circ);
+      break;
     case CIRCUIT_PURPOSE_TESTING:
       circuit_testing_opened(circ);
       break;
@@ -1902,6 +1912,7 @@ circuit_launch_by_extend_info(uint8_t purpose,
     /* XXX if we're planning to add a hop, perhaps we want to look for
      * internal circs rather than exit circs? -RD */
     circ = circuit_find_to_cannibalize(purpose, extend_info, flags);
+    circ = NULL; // Tor4IoT: DISABLE CANNIBALIZATION
     if (circ) {
       uint8_t old_purpose = circ->base_.purpose;
       struct timeval old_timestamp_began = circ->base_.timestamp_began;
@@ -2034,7 +2045,8 @@ circuit_get_open_circ_or_launch(entry_connection_t *conn,
 
   /* Will the exit policy of the exit node apply to this stream? */
   check_exit_policy =
-      conn->socks_request->command == SOCKS_COMMAND_CONNECT &&
+      (conn->socks_request->command == SOCKS_COMMAND_CONNECT ||
+    		  conn->socks_request->command == SOCKS_COMMAND_CONNECT_MES) &&
       !conn->use_begindir &&
       !connection_edge_is_rendezvous_stream(ENTRY_TO_EDGE_CONN(conn));
 
@@ -2409,11 +2421,13 @@ optimistic_data_enabled(void)
  * p_streams. Also set apconn's cpath_layer to <b>cpath</b>, or to the last
  * hop in circ's cpath if <b>cpath</b> is NULL.
  */
-static void
+void
 link_apconn_to_circ(entry_connection_t *apconn, origin_circuit_t *circ,
                     crypt_path_t *cpath)
 {
   const node_t *exitnode = NULL;
+
+  circ->base_.iot_entry_conn = apconn;
 
   /* add it into the linked list of streams on this circuit */
   log_debug(LD_APP|LD_CIRC, "attaching new conn to circ. n_circ_id %u.",
@@ -2540,6 +2554,11 @@ connection_ap_handshake_attach_chosen_circuit(entry_connection_t *conn,
              base_conn->state == AP_CONN_STATE_CONTROLLER_WAIT);
   tor_assert(conn->socks_request);
   tor_assert(circ);
+
+  if (base_conn->purpose == IOT_PURPOSE_CONNECT) {
+	  return 1;
+  }
+
   tor_assert(circ->base_.state == CIRCUIT_STATE_OPEN);
 
   base_conn->state = AP_CONN_STATE_CIRCUIT_WAIT;
@@ -2560,7 +2579,8 @@ connection_ap_handshake_attach_chosen_circuit(entry_connection_t *conn,
   link_apconn_to_circ(conn, circ, cpath);
 
   tor_assert(conn->socks_request);
-  if (conn->socks_request->command == SOCKS_COMMAND_CONNECT) {
+  if (conn->socks_request->command == SOCKS_COMMAND_CONNECT ||
+		  conn->socks_request->command == SOCKS_COMMAND_CONNECT_MES) {
     if (!conn->use_begindir)
       consider_recording_trackhost(conn, circ);
     if (connection_ap_handshake_send_begin(conn) < 0)
@@ -2880,4 +2900,3 @@ mark_circuit_unusable_for_new_conns(origin_circuit_t *circ)
 
   circ->unusable_for_new_conns = 1;
 }
-

@@ -96,6 +96,8 @@
 #include "routerset.h"
 #include "circuitbuild.h"
 
+#include "iot_delegation.h"
+
 #ifdef HAVE_LINUX_TYPES_H
 #include <linux/types.h>
 #endif
@@ -280,6 +282,7 @@ connection_edge_process_inbuf(edge_connection_t *conn, int package_partial)
     case AP_CONN_STATE_CIRCUIT_WAIT:
     case AP_CONN_STATE_RESOLVE_WAIT:
     case AP_CONN_STATE_CONTROLLER_WAIT:
+    case AP_CONN_STATE_IOT_WAIT:
       log_info(LD_EDGE,
                "data from edge while in '%s' state. Leaving it on buffer.",
                conn_state_to_string(conn->base_.type, conn->base_.state));
@@ -499,6 +502,7 @@ connection_edge_finished_flushing(edge_connection_t *conn)
     case AP_CONN_STATE_CONTROLLER_WAIT:
     case AP_CONN_STATE_RESOLVE_WAIT:
     case AP_CONN_STATE_HTTP_CONNECT_WAIT:
+    case AP_CONN_STATE_IOT_WAIT:
       return 0;
     default:
       log_warn(LD_BUG, "Called in unexpected state %d.",conn->base_.state);
@@ -579,6 +583,13 @@ connection_edge_finished_connecting(edge_connection_t *edge_conn)
     if (connection_edge_send_command(edge_conn,
                                      RELAY_COMMAND_CONNECTED, NULL, 0) < 0)
       return 0; /* circuit is closed, don't continue */
+
+#ifdef TOR4IOT_MEASUREMENT
+    log_debug(LD_GENERAL, "Sending measurement cell from HS to guard.");
+    relay_send_command_from_edge(0, edge_conn->on_circuit,
+                                 RELAY_COMMAND_MEASURE_HS,
+                                 NULL, 0, TO_ORIGIN_CIRCUIT(edge_conn->on_circuit)->cpath);
+#endif
   } else {
     uint8_t connected_payload[MAX_CONNECTED_CELL_PAYLOAD_LEN];
     int connected_payload_len =
@@ -1408,6 +1419,34 @@ connection_ap_handshake_rewrite(entry_connection_t *conn,
 /** We just received a SOCKS request in <b>conn</b> to an onion address of type
  *  <b>addresstype</b>. Start connecting to the onion service. */
 static int
+connection_ap_handle_iot(entry_connection_t *conn,
+                         socks_request_t *socks,
+                         origin_circuit_t *circ,
+                         hostname_type_t addresstype)
+{
+  (void) socks;
+  (void) circ;
+  (void) addresstype;
+
+  log_debug(LD_GENERAL, "Handling .iot address: %s", socks->address);
+
+  connection_t *base_conn = ENTRY_TO_CONN(conn);
+  base_conn->state = AP_CONN_STATE_IOT_WAIT;
+
+  if(!strncmp(socks->address, "direct", 6)) {
+	  iot_circ_launch_entry_point(conn, 0);
+  } else if (!strncmp(socks->address, "handover", 8)) {
+	  iot_circ_launch_entry_point(conn, 1);
+  } else {
+	  log_warn(LD_GENERAL, "UNKNOWN IOT ADDRESS.");
+  }
+
+  return 0;
+}
+
+/** We just received a SOCKS request in <b>conn</b> to an onion address of type
+ *  <b>addresstype</b>. Start connecting to the onion service. */
+static int
 connection_ap_handle_onion(entry_connection_t *conn,
                            socks_request_t *socks,
                            origin_circuit_t *circ,
@@ -1763,6 +1802,19 @@ connection_ap_handshake_rewrite_and_attach(entry_connection_t *conn,
        implies no. */
   }
 
+#ifdef TOR4IOT_MEASUREMENT
+  clock_gettime(CLOCK_MONOTONIC, &conn->iot_mes_start);
+#endif
+
+  // IoT
+  if (addresstype == IOT_HOSTNAME) {
+    /* No matter which hostname it is -- build the cirucit to our predefined
+     * IoT entry node
+     */
+    connection_ap_handle_iot(conn, socks, circ, addresstype);
+    return 0;
+  }
+
   /* Now, we handle everything that isn't a .onion address. */
   if (addresstype != ONION_V2_HOSTNAME && addresstype != ONION_V3_HOSTNAME) {
     /* Not a hidden-service request.  It's either a hostname or an IP,
@@ -1865,7 +1917,7 @@ connection_ap_handshake_rewrite_and_attach(entry_connection_t *conn,
       }
       tor_assert(!automap);
       rep_hist_note_used_resolve(now); /* help predict this next time */
-    } else if (socks->command == SOCKS_COMMAND_CONNECT) {
+    } else if (socks->command == SOCKS_COMMAND_CONNECT || socks->command == SOCKS_COMMAND_CONNECT_MES) {
       /* Now see if this is a connect request that we can reject immediately */
 
       tor_assert(!automap);
@@ -2673,7 +2725,8 @@ connection_ap_handshake_send_begin,(entry_connection_t *ap_conn))
   circ = TO_ORIGIN_CIRCUIT(edge_conn->on_circuit);
 
   tor_assert(base_conn->type == CONN_TYPE_AP);
-  tor_assert(base_conn->state == AP_CONN_STATE_CIRCUIT_WAIT);
+  tor_assert(base_conn->state == AP_CONN_STATE_CIRCUIT_WAIT ||
+		  base_conn->state == AP_CONN_STATE_IOT_WAIT);
   tor_assert(ap_conn->socks_request);
   tor_assert(SOCKS_COMMAND_IS_CONNECT(ap_conn->socks_request->command));
 
@@ -3434,6 +3487,11 @@ connection_exit_begin_conn(cell_t *cell, circuit_t *circ)
     port = bcell.port;
 
     if (or_circ && or_circ->p_chan) {
+#ifdef TOR4IOT_MEASUREMENT
+      clock_gettime(CLOCK_MONOTONIC, &or_circ->iot_mes_relay_begin_recv);
+      memcpy(&or_circ->iot_mes_relay_begin_frombuf, &cell->received, sizeof(struct timespec));
+      or_circ->mes = 1;
+#endif
       const int client_chan = channel_is_client(or_circ->p_chan);
       if ((client_chan ||
            (!connection_or_digest_is_known_relay(
@@ -3514,6 +3572,10 @@ connection_exit_begin_conn(cell_t *cell, circuit_t *circ)
     tor_free(address);
     /* We handle this circuit and stream in this function for all supported
      * hidden service version. */
+#ifdef TOR4IOT_MEASUREMENT
+    clock_gettime(CLOCK_MONOTONIC, &origin_circ->iot_mes_hs_begin);
+    memcpy(&origin_circ->iot_mes_hs_begin_from_buf, &cell->received, sizeof(struct timespec));
+#endif
     return handle_hs_exit_conn(circ, n_stream);
   }
   tor_strlower(address);
@@ -3856,7 +3918,7 @@ connection_ap_can_use_exit(const entry_connection_t *conn,
     return 1;
   }
 
-  if (conn->socks_request->command == SOCKS_COMMAND_CONNECT) {
+  if (conn->socks_request->command == SOCKS_COMMAND_CONNECT || conn->socks_request->command == SOCKS_COMMAND_CONNECT_MES) {
     tor_addr_t addr, *addrp = NULL;
     addr_policy_result_t r;
     if (0 == tor_addr_parse(&addr, conn->socks_request->address)) {
@@ -3919,6 +3981,10 @@ parse_extended_hostname(char *address)
     if (!strcmp(s+1,"exit")) {
       *s = 0; /* NUL-terminate it */
       return EXIT_HOSTNAME; /* .exit */
+    }
+    if (!strcmp(s+1,"iot")) {
+      *s = 0; /* NUL-terminate it */
+      return IOT_HOSTNAME; /* .iot */
     }
     if (strcmp(s+1,"onion"))
       return NORMAL_HOSTNAME; /* neither .exit nor .onion, thus normal */

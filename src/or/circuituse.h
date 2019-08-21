@@ -84,5 +84,8 @@ STATIC int needs_circuits_for_build(int num);
 
 #endif /* defined(TOR_UNIT_TESTS) */
 
-#endif /* !defined(TOR_CIRCUITUSE_H) */
+void
+link_apconn_to_circ(entry_connection_t *apconn, origin_circuit_t *circ,
+                    crypt_path_t *cpath);
 
+#endif /* !defined(TOR_CIRCUITUSE_H) */

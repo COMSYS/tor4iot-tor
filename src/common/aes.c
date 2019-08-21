@@ -118,6 +118,13 @@ aes_cipher_free(aes_cnt_cipher_t *cipher_)
   EVP_CIPHER_CTX_cleanup(cipher);
   EVP_CIPHER_CTX_free(cipher);
 }
+aes_cnt_cipher_t *
+aes_cipher_copy(aes_cnt_cipher_t *in)
+{
+  EVP_CIPHER_CTX *cipher = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX_copy(cipher, (EVP_CIPHER_CTX *) in);
+  return (aes_cnt_cipher_t *) cipher;
+}
 void
 aes_crypt_inplace(aes_cnt_cipher_t *cipher_, char *data, size_t len)
 {
@@ -399,6 +406,15 @@ aes_set_iv(aes_cnt_cipher_t *cipher, const uint8_t *iv)
 #endif /* defined(USING_COUNTER_VARS) */
   cipher->pos = 0;
   memcpy(cipher->ctr_buf.buf, iv, 16);
+}
+
+//Tor4IoT: Copy IV from aes struct
+static void
+aes_get_iv(aes_cnt_cipher_t *cipher, uint8_t *iv) {
+  memcpy(iv, cipher->counter0, 4);
+  memcpy(iv+4, cipher->counter1, 4);
+  memcpy(iv+8, cipher->counter2, 4);
+  memcpy(iv+12, cipher->counter3, 4);
 }
 
 #endif /* defined(USE_EVP_AES_CTR) */
